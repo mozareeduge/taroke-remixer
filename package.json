@@ -1,0 +1,10 @@
+{
+  "name": "taroke-remixer",
+  "version": "0.7.0-layout-pass",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "bash tests/run_all_tests.sh",
+    "test:core": "node tests/run_core_tests.js"
+  }
+}
