@@ -4,7 +4,7 @@ Light local-first workbench for making Taroko-style remix artifacts.
 
 Open `index.html` locally or publish the repository root with GitHub Pages. The app is static: HTML, CSS, and plain JavaScript. No build step.
 
-Current pass: v07 layout-pass.
+Current pass: v07.1 QA hardening.
 
 ## Current functional scope
 
@@ -34,7 +34,7 @@ Run all available checks:
 ./tests/run_all_tests.sh
 ```
 
-Expected current result: 45 passed, 0 failed.
+Expected current result: 133 passed, 0 failed.
 
 Browser tests require Chromium plus Python `requests` and `websocket-client`.
 
