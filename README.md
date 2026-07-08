@@ -4,7 +4,7 @@ Light local-first workbench for making Taroko-style remix artifacts.
 
 Open `index.html` locally or publish the repository root with GitHub Pages. The app is static: HTML, CSS, and plain JavaScript. No build step.
 
-Current pass: v07.1 QA hardening.
+Current pass: v07.3 UX/accessibility hardening.
 
 ## Current functional scope
 
