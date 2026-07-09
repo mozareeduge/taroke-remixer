@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   const C = window.TarokeCore;
-  const STORAGE_KEY = 'taroke-rimixer-v07-layout-pass-draft';
+  const AUTOSAVE_KEY = 'taroke.remixer.v07.draft';
   const STEPS = [
     ['source','Source','origin'], ['samples','Samples','banks'], ['forms','Forms','modulators'], ['devices','Devices','line racks'], ['stanza','Stanza','patterns'], ['flow','Flow','scenes'], ['triggers','Triggers','conditions'], ['surface','Surface','output'], ['run','Run','live'], ['notes','Notes','repairs'], ['export','Export','files']
   ];
@@ -9,8 +9,10 @@
   function trayNames(){ return Object.keys(project.materials?.trays || {}); }
   function bankDef(name){ return C.projectTrayDefs(project)[name] || {label:String(name).toUpperCase(), role:'literal', desc:'custom sample bank'}; }
   const ROLES = ['noun','verb','adjective','literal','mixed'];
+  let storageAvailable = false;
+  try { localStorage.setItem('__trk_t','1'); localStorage.removeItem('__trk_t'); storageAvailable = true; } catch(e) {}
   let project = C.defaultProject();
-  let ui = {step:'source', tray:'above', device:'ld_path', stanza:'st_classic', token:null, openSelect:null, drag:null, timer:null, runState:{tick:0,queue:[]}, events:[], selectedEvent:null, help:false, msg:'', draft:false};
+  let ui = {step:'source', tray:'above', device:'ld_path', stanza:'st_classic', token:null, openSelect:null, drag:null, timer:null, runState:{tick:0,queue:[]}, events:[], selectedEvent:null, help:false, msg:'', pendingDraft:null, autosaveTime:null, autosaveUnavailable:!storageAvailable, autosaveWarning:''};
   const app = document.getElementById('app');
   const h = C.esc;
   const tray = n => project.materials.trays[n] || [];
@@ -22,9 +24,10 @@
   const tokenTray = id => trayNames().find(t=>tray(t).some(x=>x.id===id));
   const roleForTray = name => bankDef(name).role || 'literal';
 
-  function saveDraft(){ try{localStorage.setItem(STORAGE_KEY, C.exportProjectJson(project));}catch(e){} }
-  function clearDraft(){ try{localStorage.removeItem(STORAGE_KEY);}catch(e){} ui.draft=false; }
-  try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw){project=C.extractProjectFromText(raw); ui.draft=true;} }catch(e){}
+  function saveDraft(){ if(!storageAvailable)return; try{ const savedAt=new Date().toISOString(); localStorage.setItem(AUTOSAVE_KEY,JSON.stringify({savedAt,schemaVersion:C.SCHEMA_VERSION,project:JSON.parse(C.exportProjectJson(project))})); ui.autosaveTime=savedAt; }catch(e){} }
+  function clearDraft(){ try{localStorage.removeItem(AUTOSAVE_KEY);}catch(e){} ui.pendingDraft=null; ui.autosaveTime=null; }
+  // Boot: read draft but never silently restore — offer explicit restore prompt instead
+  if(storageAvailable){ try{ const raw=localStorage.getItem(AUTOSAVE_KEY); if(raw){ const env=JSON.parse(raw); if(env&&env.savedAt&&env.project){ if(env.schemaVersion===C.SCHEMA_VERSION){ ui.pendingDraft={savedAt:env.savedAt,project:C.migrateProject(env.project)}; }else{ ui.autosaveWarning='Saved draft could not be read and was ignored.'; try{localStorage.removeItem(AUTOSAVE_KEY);}catch(e){} } } } }catch(e){ ui.autosaveWarning='Saved draft could not be read and was ignored.'; try{localStorage.removeItem(AUTOSAVE_KEY);}catch(e){} } }
 
   function applyTheme(){ document.body.dataset.theme = project.workbench?.theme || 'night'; }
   function flash(msg){ ui.msg=msg; render(); setTimeout(()=>{ui.msg=''; render();},1800); }
@@ -37,7 +40,21 @@
   function topbar(){ return `<header class="top"><div class="brand"><b>TAROKE RIMIXER</b><span>v07 reset / stripped functional workbench</span></div><nav class="toolbar"><button class="btn" data-new>New</button><button class="btn" data-open>Open</button><button class="btn" data-self-test>Self-test</button><button class="btn primary" data-goto-export>Export</button><button class="btn" data-help>Guide</button></nav><div class="status">local / editable / ${h(project.project.title)}</div></header>`; }
   function rail(){ return `<aside class="rail">${STEPS.map(([id,label,k],i)=>`<button class="stepBtn ${ui.step===id?'active':''}" data-step="${id}"><span class="stepNum">${String(i+1).padStart(2,'0')}</span><span><span class="stepLabel">${label}</span><br><span class="kicker">${k}</span></span><span class="state">${h(status(id))}</span></button>`).join('')}</aside>`; }
   function mobileTabs(){ return `<nav class="bottomTabs">${STEPS.map(([id,label])=>`<button class="${ui.step===id?'active':''}" data-step="${id}">${label}<br><span>${h(status(id))}</span></button>`).join('')}</nav>`; }
-  function draftNotice(){ return ui.draft?`<div class="panel"><div class="panelBody row"><b>Unsaved local draft restored.</b><span class="hint">Crash recovery only; no account history.</span><button class="btn small" data-discard-draft>Discard recovery</button></div></div>`:''; }
+  function draftNotice(){
+    if(ui.autosaveUnavailable) return `<div class="autosaveStrip autosaveWarn" role="status">Autosave unavailable in this browser/session. JSON export remains the archive copy.</div>`;
+    if(ui.pendingDraft){
+      const t=new Date(ui.pendingDraft.savedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      return `<div class="autosaveStrip autosavePending" role="status" aria-live="polite">Saved draft found — saved at ${h(t)}. JSON export remains the archive copy.<span class="autosaveActions"><button class="btn small primary" data-restore-draft>Restore saved draft</button><button class="btn small" data-dismiss-draft>Dismiss</button><button class="btn small" data-clear-draft>Clear saved draft</button></span></div>`;
+    }
+    const parts=[];
+    if(ui.autosaveWarning) parts.push(`<span>${h(ui.autosaveWarning)}</span>`);
+    if(ui.autosaveTime){
+      const t=new Date(ui.autosaveTime).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      parts.push(`<span>Draft saved locally in this browser at ${h(t)}.</span><button class="btn small" data-clear-draft>Clear saved draft</button>`);
+    }
+    if(!parts.length) return '';
+    return `<div class="autosaveStrip" role="status">${parts.join(' ')}</div>`;
+  }
   function work(){ return ({source,samples,forms,devices,stanza:stanzaStep,flow,triggers,surface,run,notes,export:exportStep}[ui.step]||source)(); }
   function field(label,path,type='text'){ const id='fld-'+path.replace(/[^a-z0-9]/gi,'-'); return `<div class="field"><label for="${id}">${h(label)}</label><input id="${id}" class="input" type="${type}" value="${h(get(path)||'')}" data-bind="${path}"></div>`; }
   function area(label,path){ const id='fld-'+path.replace(/[^a-z0-9]/gi,'-'); return `<div class="field"><label for="${id}">${h(label)}</label><textarea id="${id}" class="textarea" data-bind="${path}">${h(get(path)||'')}</textarea></div>`; }
@@ -90,9 +107,11 @@
     app.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{ui.step=b.dataset.step;ui.openSelect=null;render();});
     app.querySelector('[data-goto-export]')?.addEventListener('click',()=>{ui.step='export';render();});
     app.querySelector('[data-help]')?.addEventListener('click',()=>{ui.help=true;render();}); app.querySelector('[data-close-help]')?.addEventListener('click',()=>{ui.help=false;render();}); app.querySelector('[data-self-test]')?.addEventListener('click',runSelfTest);
-    app.querySelector('[data-new]')?.addEventListener('click',()=>{pause(); project=C.defaultProject(); ui={...ui,step:'source',events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null}; clearDraft(); render();});
+    app.querySelector('[data-new]')?.addEventListener('click',()=>{pause(); project=C.defaultProject(); ui={...ui,step:'source',events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,autosaveWarning:''}; clearDraft(); render();});
     app.querySelector('[data-open]')?.addEventListener('click',()=>app.querySelector('[data-file]').click()); app.querySelector('[data-file]')?.addEventListener('change',importFile);
-    app.querySelector('[data-discard-draft]')?.addEventListener('click',()=>{clearDraft();render();});
+    app.querySelector('[data-restore-draft]')?.addEventListener('click',()=>{if(ui.pendingDraft){project=ui.pendingDraft.project;ui.autosaveTime=ui.pendingDraft.savedAt;ui.pendingDraft=null;render();}});
+    app.querySelector('[data-dismiss-draft]')?.addEventListener('click',()=>{ui.pendingDraft=null;render();});
+    app.querySelector('[data-clear-draft]')?.addEventListener('click',()=>{clearDraft();render();});
     app.querySelectorAll('[data-bind]').forEach(el=>el.oninput=()=>{set(el.dataset.bind,el.value);saveDraft();}); app.querySelectorAll('[data-bind-number]').forEach(el=>el.onchange=()=>{set(el.dataset.bindNumber,Number(el.value));saveDraft();render();});
     app.querySelectorAll('[data-select-open]').forEach(b=>b.onclick=()=>{ui.openSelect=ui.openSelect===b.dataset.selectOpen?null:b.dataset.selectOpen;render();});
     app.querySelectorAll('[data-select-key]').forEach(b=>b.onclick=()=>{const key=b.dataset.selectKey; const val=b.dataset.selectValue; handleSelect(key,val); ui.openSelect=null; saveDraft(); render();});
@@ -189,7 +208,7 @@
   function move(arr,i,dir){ const j=i+dir; if(j<0||j>=arr.length)return; const [x]=arr.splice(i,1); arr.splice(j,0,x); }
   function runTimer(){ if(ui.timer)return; ui.timer=setInterval(()=>{const ev=C.generateEvent(project,ui.runState); ui.runState.tick++; ui.events.push(ev); if(ui.events.length>160)ui.events.shift(); render();}, Math.max(250,project.surface.speedMs||1200)); const ev=C.generateEvent(project,ui.runState); ui.runState.tick++; ui.events.push(ev); render(); }
   function pause(){ if(ui.timer){clearInterval(ui.timer); ui.timer=null;} }
-  function importFile(e){ const f=e.target.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{try{pause(); project=C.extractProjectFromText(r.result); ui={...ui,step:'source',events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,device:project.lineDevices[0]?.id,stanza:project.stanzaPatterns[0]?.id}; saveDraft(); flash('Imported project.'); render();}catch(err){flash('Import failed: '+err.message);} }; r.readAsText(f); e.target.value=''; }
+  function importFile(e){ const f=e.target.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{try{pause(); project=C.extractProjectFromText(r.result); ui={...ui,step:'source',events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,device:project.lineDevices[0]?.id,stanza:project.stanzaPatterns[0]?.id,pendingDraft:null,autosaveWarning:''}; saveDraft(); flash('Imported project.'); render();}catch(err){flash('Import failed: '+err.message);} }; r.readAsText(f); e.target.value=''; }
   function download(content,name,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},100); }
 
   window.addEventListener('beforeunload',()=>saveDraft());
