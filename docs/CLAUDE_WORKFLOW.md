@@ -122,8 +122,8 @@ No narrative padding. Short, factual, actionable.
 |--------|-----------------|--------------------------|
 | v07.2  | Merged to main  | `f01e429`                |
 | v07.3  | Merged to main  | `650640b`                |
-| v07.4  | In progress     | ops/infra layer          |
-| v07.5  | Planned         | TBD                      |
+| v07.4  | Merged to main  | `4ee5e05`                |
+| v07.5  | In progress     | autosave/recovery        |
 | v07.6  | Planned         | TBD                      |
 | v07.7  | Planned         | TBD                      |
 | v07.8  | Planned         | TBD                      |
