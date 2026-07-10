@@ -42,10 +42,16 @@
   function projectTrayDefs(project){
     const meta = project?.materials?.bankMeta || {};
     const trays = project?.materials?.trays || {};
-    const out = Object.assign({}, TRAY_DEFS);
+    const out = {};
     Object.keys(trays).forEach(k=>{
       const m = meta[k] || {};
-      out[k] = Object.assign({label:(TRAY_DEFS[k]?.label || k.toUpperCase()), role:(TRAY_DEFS[k]?.role || 'literal'), desc:(TRAY_DEFS[k]?.desc || 'custom sample bank')}, m);
+      out[k] = Object.assign(
+        {label:(TRAY_DEFS[k]?.label || k.toUpperCase()), role:(TRAY_DEFS[k]?.role || 'literal'), desc:(TRAY_DEFS[k]?.desc || 'custom sample bank')},
+        m
+      );
+      if (!out[k].label) out[k].label = k.toUpperCase();
+      if (!out[k].role)  out[k].role  = 'literal';
+      if (!out[k].desc)  out[k].desc  = 'custom sample bank';
     });
     return out;
   }
@@ -203,8 +209,118 @@
     if(!activeScenes(project).length)push('error','flow','No enabled scene can run.','Enable one flow scene and stanza pattern.');
     return issues;
   }
-  function migrateProject(input){ const base=defaultProject(); const p=clone(input||{}); if(p.lineMachines && !p.lineDevices)p.lineDevices=p.lineMachines; p.schemaVersion=SCHEMA_VERSION; p.project=Object.assign({},base.project,p.project||{}); p.workbench=Object.assign({},base.workbench,p.workbench||p.appearance||{}); p.materials=p.materials||base.materials; p.materials.trays=Object.assign({},base.materials.trays,p.materials.trays||p.dictionary||{}); p.materials.bankMeta=Object.assign({},base.materials.bankMeta||clone(TRAY_DEFS),p.materials.bankMeta||{}); Object.keys(p.materials.trays).forEach(k=>{p.materials.bankMeta[k]=Object.assign({label:(TRAY_DEFS[k]?.label||k.toUpperCase()),role:(TRAY_DEFS[k]?.role||'literal'),desc:(TRAY_DEFS[k]?.desc||'custom sample bank')},p.materials.bankMeta[k]||{}); p.materials.trays[k]=(p.materials.trays[k]||[]).map(x=>typeof x==='string'?token(x,projectTrayDefs({materials:{trays:p.materials.trays,bankMeta:p.materials.bankMeta}})[k]?.role||roleForTray(k)):Object.assign({id:uid('tok'),literal:'',role:projectTrayDefs({materials:{trays:p.materials.trays,bankMeta:p.materials.bankMeta}})[k]?.role||roleForTray(k),weight:1,lockedLiteral:false},x));}); p.forms=Object.assign({},base.forms,p.forms||{}); p.lineDevices=Array.isArray(p.lineDevices)&&p.lineDevices.length?p.lineDevices:base.lineDevices; p.stanzaPatterns=Array.isArray(p.stanzaPatterns)&&p.stanzaPatterns.length?p.stanzaPatterns:base.stanzaPatterns; p.flowScenes=Array.isArray(p.flowScenes)&&p.flowScenes.length?p.flowScenes:base.flowScenes; if(p.flow && !input.flowScenes){ /* keep old line-flow only by wrapping default stanza; old data not expressive enough */ }
-    p.triggers=Array.isArray(p.triggers)?p.triggers:(Array.isArray(p.rareEvents)?p.rareEvents.map(r=>({id:r.id||uid('tr'),name:r.name,enabled:r.enabled,condition:{tray:r.triggerLayer,term:r.triggerTerm},chance:r.chance,action:{type:r.placement||'append',text:r.insertion}})):base.triggers); p.surface=Object.assign({},base.surface,p.surface||{}); p.surface.showTick=false; p.surface.family='taroko'; p.notes=Array.isArray(p.notes)?p.notes.map(n=>{const x=clone(n); if(x.surface)x.surface=cleanSurfaceText(x.surface); if(x.event&&x.event.surface)x.event.surface=cleanSurfaceText(x.event.surface); return x;}):[]; p.meta=Object.assign({},base.meta,p.meta||{}); return p; }
+  function _hasProp(obj, key){ return obj != null && Object.prototype.hasOwnProperty.call(obj, key); }
+  function migrateProject(input){
+    const base = defaultProject();
+    const p = clone(input || {});
+    const inp = input || {};
+
+    if (p.lineMachines && !p.lineDevices) p.lineDevices = p.lineMachines;
+    p.schemaVersion = SCHEMA_VERSION;
+    p.project   = Object.assign({}, base.project,   p.project   || {});
+    p.workbench = Object.assign({}, base.workbench, p.workbench || p.appearance || {});
+
+    // A/B/C: Tray selection — explicit modern trays > legacy dictionary > default
+    const hasExplicitTrays = _hasProp(inp.materials, 'trays');
+    const hasLegacyDict    = _hasProp(inp, 'dictionary');
+
+    let rawTrays;
+    if (hasExplicitTrays) {
+      if (!p.materials || typeof p.materials !== 'object') p.materials = {};
+      rawTrays = p.materials.trays || {};
+    } else if (hasLegacyDict) {
+      p.materials = (p.materials && typeof p.materials === 'object') ? p.materials : {};
+      rawTrays = clone(inp.dictionary || {});
+    } else {
+      p.materials = clone(base.materials);
+      rawTrays = clone(base.materials.trays);
+    }
+
+    // D: bankMeta — only for trays that actually exist; imported meta wins over defaults
+    const rawBankMeta = inp.materials?.bankMeta;
+    const importedBankMeta = (rawBankMeta && typeof rawBankMeta === 'object') ? clone(rawBankMeta) : {};
+    const bankMeta = {};
+    Object.keys(rawTrays).forEach(k => {
+      const m = importedBankMeta[k] || {};
+      bankMeta[k] = Object.assign(
+        {label:(TRAY_DEFS[k]?.label || k.toUpperCase()), role:(TRAY_DEFS[k]?.role || 'literal'), desc:(TRAY_DEFS[k]?.desc || 'custom sample bank')},
+        m
+      );
+      if (!bankMeta[k].label) bankMeta[k].label = k.toUpperCase();
+      if (!bankMeta[k].role)  bankMeta[k].role  = 'literal';
+      if (!bankMeta[k].desc)  bankMeta[k].desc  = 'custom sample bank';
+    });
+
+    // Normalize tokens and repair duplicate token IDs
+    const seenIds = new Map();
+    const repairs = [];
+    const trays = {};
+    Object.keys(rawTrays).forEach(k => {
+      const trayRole = bankMeta[k]?.role || roleForTray(k);
+      trays[k] = (rawTrays[k] || []).map((x, idx) => {
+        const tok = typeof x === 'string'
+          ? token(x, trayRole)
+          : Object.assign({id: uid('tok'), literal: '', role: trayRole, weight: 1, lockedLiteral: false}, x);
+        if (!tok.id) tok.id = uid('tok');
+        if (seenIds.has(tok.id)) {
+          const prev = seenIds.get(tok.id);
+          const newId = 'tok_' + k + '_dup_' + idx;
+          repairs.push({originalId: tok.id, newId, bank: k, index: idx, prevBank: prev.bank});
+          tok.id = newId;
+        } else {
+          seenIds.set(tok.id, {bank: k, idx});
+        }
+        return tok;
+      });
+    });
+
+    p.materials.trays   = trays;
+    p.materials.bankMeta = bankMeta;
+    p.forms = Object.assign({}, base.forms, p.forms || {});
+
+    // E: Collections — absent → use defaults; explicitly present (even empty array) → preserve
+    const hasLD = _hasProp(inp, 'lineDevices') || _hasProp(inp, 'lineMachines');
+    const hasSP = _hasProp(inp, 'stanzaPatterns');
+    const hasFS = _hasProp(inp, 'flowScenes');
+    const hasTR = _hasProp(inp, 'triggers') || _hasProp(inp, 'rareEvents');
+
+    p.lineDevices    = hasLD ? (Array.isArray(p.lineDevices) ? p.lineDevices : []) : base.lineDevices;
+    p.stanzaPatterns = hasSP ? (Array.isArray(p.stanzaPatterns) ? p.stanzaPatterns : []) : base.stanzaPatterns;
+    p.flowScenes     = hasFS ? (Array.isArray(p.flowScenes) ? p.flowScenes : []) : base.flowScenes;
+
+    if (!hasTR) {
+      p.triggers = base.triggers;
+    } else if (Array.isArray(p.triggers)) {
+      // preserve as-is
+    } else if (Array.isArray(p.rareEvents)) {
+      p.triggers = p.rareEvents.map(r => ({
+        id: r.id || uid('tr'), name: r.name, enabled: r.enabled,
+        condition: {tray: r.triggerLayer, term: r.triggerTerm},
+        chance: r.chance, action: {type: r.placement || 'append', text: r.insertion}
+      }));
+    } else {
+      p.triggers = [];
+    }
+
+    // F: Surface — merge defaults, then enforce global invariants (documented)
+    // Invariants: showTick=false (no visible tick policy), family='taroko' (single surface family)
+    p.surface = Object.assign({}, base.surface, p.surface || {});
+    p.surface.showTick = false;
+    p.surface.family   = 'taroko';
+
+    p.notes = Array.isArray(p.notes) ? p.notes.map(n => {
+      const x = clone(n);
+      if (x.surface) x.surface = cleanSurfaceText(x.surface);
+      if (x.event && x.event.surface) x.event.surface = cleanSurfaceText(x.event.surface);
+      return x;
+    }) : [];
+
+    p.meta = Object.assign({}, base.meta, p.meta || {});
+    delete p.meta.importRepairs;
+    if (repairs.length) p.meta.importRepairs = repairs;
+
+    return p;
+  }
   function downloadName(project, ext){ return normalizeIdLabel(project.project?.title || 'taroke_rimix') + ext; }
   function surfaceCss(project){
     const theme=THEME_TOKENS[project.surface?.theme]||THEME_TOKENS.night;

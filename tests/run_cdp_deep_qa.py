@@ -81,21 +81,23 @@ try:
     rec('package.json has no runtime dependencies',
         json.loads((ROOT/'package.json').read_text()).get('dependencies') is None)
 
-    # Custom bank delete moves tokens to reserve; device inputs rerouted
+    # Custom bank delete (unreferenced): bank removed, no reserve injection
     ev1('document.querySelector(`[data-step="samples"]`).click()')
     ev1('document.querySelector(`[data-add-bank]`).click()')
     ev1('let bl=document.querySelector(`[data-bank-label]`); bl.value="TEMP"; bl.dispatchEvent(new Event("input",{bubbles:true}));')
     ev1('document.querySelector(`[data-add-token]`).click()')
     ev1('let lit=document.querySelector(`[data-token-lit]`); lit.value="phantom"; lit.dispatchEvent(new Event("input",{bubbles:true}));')
     bank_id = ev1('Object.keys(TarokeDebug.project().materials.bankMeta).find(k=>TarokeDebug.project().materials.bankMeta[k].label==="TEMP")')
+    reserve_count_before = ev1('(TarokeDebug.project().materials.trays.reserve||[]).length')
     if bank_id:
         ev1(f'document.querySelector(`[data-delete-bank="{bank_id}"]`)?.click()')
-        rec('custom bank delete moves tokens to reserve',
-            bool(ev1('TarokeDebug.project().materials.trays.reserve.some(t=>t.literal==="phantom")')))
+        reserve_count_after = ev1('(TarokeDebug.project().materials.trays.reserve||[]).length')
+        rec('unreferenced custom bank deleted without reserve injection',
+            reserve_count_after == reserve_count_before)
         rec('deleted bank not in trays',
             not bool(ev1(f'"{bank_id}" in TarokeDebug.project().materials.trays')))
     else:
-        rec('custom bank delete moves tokens to reserve', False, 'bank_id not found')
+        rec('unreferenced custom bank deleted without reserve injection', False, 'bank_id not found')
         rec('deleted bank not in trays', False, 'bank_id not found')
 
     # Device: add input slot, rename it, delete it

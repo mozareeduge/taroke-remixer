@@ -118,14 +118,15 @@ No narrative padding. Short, factual, actionable.
 
 ## Current release train
 
-| Pass   | Status          | Branch / commit          |
-|--------|-----------------|--------------------------|
-| v07.2  | Merged to main  | `f01e429`                |
-| v07.3  | Merged to main  | `650640b`                |
-| v07.4  | Merged to main  | `4ee5e05`                |
-| v07.5  | Merged to main  | `20c923c`                |
-| v07.6  | Next            | live embedded artifact preview |
-| v07.7  | Planned         | TBD                      |
-| v07.8  | Planned         | TBD                      |
+| Pass    | Status           | Branch / commit                          |
+|---------|------------------|------------------------------------------|
+| v07.2   | Merged to main   | `f01e429`                                |
+| v07.3   | Merged to main   | `650640b`                                |
+| v07.4   | Merged to main   | `4ee5e05`                                |
+| v07.5   | Merged to main   | `20c923c`                                |
+| v07.5c  | In progress      | `claude/v07-5c-import-integrity-ovw5pn`  |
+| v07.5d  | Next after 5c    | TBD                                      |
+| v07.6   | Held prototype   | `claude/artifact-preview-iframe-uqm74k` commit `0921001` — do not merge before v07.5d |
+| v07.7   | Planned          | TBD                                      |
 
 Each pass targets a specific named scope. Do not mix scopes within a pass.
