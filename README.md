@@ -4,7 +4,7 @@ Light local-first workbench for making Taroko-style remix artifacts.
 
 Open `index.html` locally or publish the repository root with GitHub Pages. The app is static: HTML, CSS, and plain JavaScript. No build step.
 
-Current pass: v07.5 transparent local autosave/recovery.
+Current pass: v07.5c exact import fidelity and project-integrity correction.
 
 ## Current functional scope
 
@@ -19,6 +19,7 @@ Current pass: v07.5 transparent local autosave/recovery.
 - Run chamber: generate, pause, reset, inspect line recipe, keep/repair notes.
 - Export: standalone `.taroke.html` and `.taroke.json`. JSON export remains the portable archive authority.
 - Transparent local autosave: draft saved to browser localStorage after each edit; restore prompt on next boot. No cloud, no account.
+- Authoritative import contract: imported projects with custom sample banks are never contaminated with classic Taroko defaults. Explicit tray sets are preserved exactly; defaults apply only when trays are absent.
 
 ## Deliberate simplifications in this pass
 
@@ -35,7 +36,7 @@ Run all available checks:
 ./tests/run_all_tests.sh
 ```
 
-Expected current result: 180 passed, 0 failed.
+Expected current result: 245 passed, 0 failed.
 
 Browser tests require Chromium plus Python `requests` and `websocket-client`.
 

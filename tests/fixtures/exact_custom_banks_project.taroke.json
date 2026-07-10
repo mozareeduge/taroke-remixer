@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "0.7-reset",
+  "project": {
+    "title": "Custom Banks Test Project",
+    "author": "Test Author",
+    "sourceTitle": "Custom Source",
+    "sourceUrl": "",
+    "statement": "A test project with only custom banks and no classic Taroko defaults.",
+    "credits": "Test fixture for v07.5c import fidelity."
+  },
+  "workbench": {"theme": "night", "relief": "medium", "density": "standard", "texture": "source"},
+  "materials": {
+    "trays": {
+      "processed_bodies": [
+        {"id": "tok_pb_001", "literal": "document", "role": "noun", "weight": 2, "lockedLiteral": false},
+        {"id": "tok_pb_002", "literal": "body", "role": "noun", "weight": 1, "lockedLiteral": true},
+        {"id": "tok_pb_003", "literal": "room", "role": "noun", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_pb_004", "literal": "wound", "role": "noun", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_pb_005", "literal": "office", "role": "noun", "weight": 1, "lockedLiteral": false}
+      ],
+      "labor_verbs": [
+        {"id": "tok_lv_001", "literal": "process", "role": "verb", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_lv_002", "literal": "convert", "role": "verb", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_lv_003", "literal": "mark", "role": "verb", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_dup_001", "literal": "enter", "role": "verb", "weight": 1, "lockedLiteral": false}
+      ],
+      "pressure_texture": [
+        {"id": "tok_pt_001", "literal": "wet", "role": "adjective", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_pt_002", "literal": "folded", "role": "adjective", "weight": 2, "lockedLiteral": false},
+        {"id": "tok_pt_003", "literal": "grey", "role": "adjective", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_dup_001", "literal": "sealed", "role": "adjective", "weight": 1, "lockedLiteral": false}
+      ],
+      "relations": [
+        {"id": "tok_rel_001", "literal": "slowly", "role": "adverb", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_rel_002", "literal": "precisely", "role": "adverb", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_rel_003", "literal": "without pause", "role": "adverb", "weight": 1, "lockedLiteral": false}
+      ],
+      "among_prep": [
+        {"id": "tok_ap_001", "literal": "among", "role": "preposition", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_ap_002", "literal": "beneath", "role": "preposition", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_ap_003", "literal": "against", "role": "preposition", "weight": 1, "lockedLiteral": false}
+      ],
+      "reserve": []
+    },
+    "bankMeta": {
+      "processed_bodies": {
+        "label": "PROCESSED BODIES",
+        "role": "noun",
+        "desc": "physical and document objects subject to processing"
+      },
+      "labor_verbs": {
+        "label": "LABOR VERBS",
+        "role": "verb",
+        "desc": "actions performed on bodies and documents"
+      },
+      "pressure_texture": {
+        "label": "PRESSURE TEXTURE",
+        "role": "adjective",
+        "desc": "surface qualities and states under pressure"
+      },
+      "relations": {
+        "label": "RELATIONS",
+        "role": "adverb",
+        "desc": "manner and mode of action"
+      },
+      "among_prep": {
+        "label": "AMONG PREP",
+        "role": "preposition",
+        "desc": "positional and relational prepositions"
+      },
+      "reserve": {
+        "label": "RESERVE",
+        "role": "mixed",
+        "desc": "off-stage authored material"
+      }
+    }
+  },
+  "forms": {"language": "en", "casePolicy": "preserve", "compoundPolicy": "head", "overrides": {}},
+  "lineDevices": [
+    {
+      "id": "ld_body",
+      "name": "BODY",
+      "enabled": true,
+      "description": "Body / action / texture device.",
+      "inputs": [
+        {"slot": "body", "tray": "processed_bodies", "role": "noun"},
+        {"slot": "action", "tray": "labor_verbs", "role": "verb"},
+        {"slot": "texture", "tray": "pressure_texture", "role": "adjective"}
+      ],
+      "routes": [
+        {"id": "rt_body_main", "name": "main", "weight": 70, "template": "{body:plural} {action:base} the {texture:literal}."},
+        {"id": "rt_body_singular", "name": "singular", "weight": 30, "template": "{article:a} {body:singular} {action:thirdSingular} the {texture:literal}."}
+      ]
+    },
+    {
+      "id": "ld_space",
+      "name": "SPACE",
+      "enabled": true,
+      "description": "Spatial / relational device.",
+      "inputs": [
+        {"slot": "place", "tray": "processed_bodies", "role": "noun"},
+        {"slot": "manner", "tray": "relations", "role": "adverb"},
+        {"slot": "prep", "tray": "among_prep", "role": "preposition"}
+      ],
+      "routes": [
+        {"id": "rt_space_main", "name": "main", "weight": 100, "template": "{prep:literal} the {place:plural}, {manner:literal}."}
+      ]
+    }
+  ],
+  "stanzaPatterns": [
+    {
+      "id": "st_custom",
+      "name": "Custom stanza",
+      "enabled": true,
+      "description": "BODY device, SPACE device, BODY device, breath.",
+      "slots": [
+        {"id": "sl_001", "type": "device", "deviceId": "ld_body", "label": "BODY", "repeat": "once", "chance": 100},
+        {"id": "sl_002", "type": "device", "deviceId": "ld_space", "label": "SPACE", "repeat": "once", "chance": 75},
+        {"id": "sl_003", "type": "device", "deviceId": "ld_body", "label": "BODY", "repeat": "once", "chance": 100},
+        {"id": "sl_004", "type": "breath", "label": "BREATH", "repeat": "once", "chance": 100}
+      ]
+    }
+  ],
+  "flowScenes": [
+    {"id": "sc_custom", "name": "Custom scene", "stanzaId": "st_custom", "enabled": true, "chance": 100, "mode": "loop"}
+  ],
+  "triggers": [
+    {
+      "id": "tr_body_001",
+      "name": "body intrusion",
+      "enabled": true,
+      "condition": {"tray": "processed_bodies", "term": "body"},
+      "chance": 40,
+      "action": {"type": "append", "text": "[BODY PRESENT]"}
+    }
+  ],
+  "surface": {
+    "family": "taroko",
+    "traceMode": "hidden",
+    "theme": "night",
+    "speedMs": 1200,
+    "retention": 28,
+    "fontSize": 21,
+    "lineHeight": 1.48,
+    "showTitle": true,
+    "showSource": true,
+    "showTick": false
+  },
+  "notes": [],
+  "meta": {
+    "createdWith": "TAROKE RIMIXER",
+    "updatedAt": "2026-07-10T00:00:00.000Z",
+    "note": "Regression fixture for v07.5c import fidelity. Contains intentional duplicate token ID tok_dup_001 in processed_bodies and pressure_texture for integrity testing."
+  }
+}

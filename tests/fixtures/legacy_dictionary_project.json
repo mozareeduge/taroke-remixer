@@ -1,0 +1,57 @@
+{
+  "project": {"title": "Legacy Dict Project", "author": "Test"},
+  "dictionary": {
+    "scene_objects": [
+      {"id": "tok_so_001", "literal": "corridor", "role": "noun", "weight": 1, "lockedLiteral": false},
+      {"id": "tok_so_002", "literal": "table", "role": "noun", "weight": 1, "lockedLiteral": false},
+      {"id": "tok_so_003", "literal": "door", "role": "noun", "weight": 1, "lockedLiteral": false}
+    ],
+    "room_verbs": [
+      {"id": "tok_rv_001", "literal": "open", "role": "verb", "weight": 1, "lockedLiteral": false},
+      {"id": "tok_rv_002", "literal": "close", "role": "verb", "weight": 1, "lockedLiteral": false},
+      {"id": "tok_rv_003", "literal": "pass", "role": "verb", "weight": 1, "lockedLiteral": false}
+    ]
+  },
+  "lineMachines": [
+    {
+      "id": "ld_room",
+      "name": "ROOM",
+      "enabled": true,
+      "description": "Room / action device.",
+      "inputs": [
+        {"slot": "object", "tray": "scene_objects", "role": "noun"},
+        {"slot": "verb", "tray": "room_verbs", "role": "verb"}
+      ],
+      "routes": [
+        {"id": "rt_room_main", "name": "main", "weight": 100, "template": "{object:plural} {verb:base}."}
+      ]
+    }
+  ],
+  "stanzaPatterns": [
+    {
+      "id": "st_room",
+      "name": "Room stanza",
+      "enabled": true,
+      "description": "ROOM device, breath.",
+      "slots": [
+        {"id": "sl_r1", "type": "device", "deviceId": "ld_room", "label": "ROOM", "repeat": "once", "chance": 100},
+        {"id": "sl_r2", "type": "breath", "label": "BREATH", "repeat": "once", "chance": 100}
+      ]
+    }
+  ],
+  "flowScenes": [
+    {"id": "sc_room", "name": "Room scene", "stanzaId": "st_room", "enabled": true, "chance": 100}
+  ],
+  "rareEvents": [
+    {
+      "id": "tr_door",
+      "name": "door event",
+      "enabled": true,
+      "triggerLayer": "scene_objects",
+      "triggerTerm": "door",
+      "chance": 30,
+      "placement": "append",
+      "insertion": "[DOOR OPENS]"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "0.7-reset",
+  "project": {"title": "Empty Collections Test", "author": "Test"},
+  "materials": {
+    "trays": {
+      "body_sites": [
+        {"id": "tok_bs_001", "literal": "wound", "role": "noun", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_bs_002", "literal": "site", "role": "noun", "weight": 1, "lockedLiteral": false},
+        {"id": "tok_bs_003", "literal": "surface", "role": "noun", "weight": 1, "lockedLiteral": false}
+      ]
+    },
+    "bankMeta": {
+      "body_sites": {
+        "label": "BODY SITES",
+        "role": "noun",
+        "desc": "anatomical and spatial sites"
+      }
+    }
+  },
+  "forms": {"language": "en", "casePolicy": "preserve", "compoundPolicy": "head", "overrides": {}},
+  "lineDevices": [],
+  "stanzaPatterns": [],
+  "flowScenes": [],
+  "triggers": [],
+  "notes": [],
+  "meta": {
+    "createdWith": "TAROKE RIMIXER",
+    "note": "Fixture for testing that explicitly empty collections remain empty after migration."
+  }
+}
