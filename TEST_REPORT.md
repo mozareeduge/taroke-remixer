@@ -10,7 +10,7 @@ Result:
 
 - Core/static: 14 passed, 0 failed.
 - Core extended: 38 passed, 0 failed.
-- Import fidelity (JS): 30 passed, 0 failed.
+- Import fidelity (JS): 35 passed, 0 failed.
 - Browser functional CDP: 16 passed, 0 failed.
 - User-notes regression: 10 passed, 0 failed.
 - Route-template regression: 5 passed, 0 failed.
@@ -19,7 +19,7 @@ Result:
 - Autosave/recovery CDP: 19 passed, 0 failed.
 - Import fidelity CDP: 30 passed, 0 failed.
 
-Total: 240 passed, 0 failed.
+Total: 245 passed, 0 failed.
 
 ## Import fidelity suite breakdown (JS — run_import_fidelity_tests.js)
 
@@ -41,6 +41,7 @@ Total: 240 passed, 0 failed.
 | validation reports unusable empty-collection project | PASS |
 | duplicate token IDs are repaired deterministically | PASS |
 | migration is idempotent: double-migrate does not change structure | PASS |
+| stable importRepairs across repeated migration (m1→m2→m3) | PASS |
 | JSON round-trip preserves exact custom tray set | PASS |
 | HTML round-trip preserves exact custom tray set | PASS |
 | token literals and weights survive JSON round-trip | PASS |
@@ -55,6 +56,10 @@ Total: 240 passed, 0 failed.
 | projectTrayDefs returns only actual project trays | PASS |
 | generation succeeds on custom project without errors | PASS |
 | validation: custom project with correct device inputs has no missing-tray errors | PASS |
+| duplicate ID form override: first-occurrence reference is unbroken after repair | PASS |
+| unique form override reference survives migration | PASS |
+| duplicate ID note link: first-occurrence linkedTokenId survives | PASS |
+| idempotent reference repair: double-migrate leaves overrides unchanged | PASS |
 
 ## Import fidelity suite breakdown (CDP — run_import_fidelity_cdp.py)
 

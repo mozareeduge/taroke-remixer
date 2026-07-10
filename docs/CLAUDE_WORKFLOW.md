@@ -124,8 +124,8 @@ No narrative padding. Short, factual, actionable.
 | v07.3   | Merged to main   | `650640b`                                |
 | v07.4   | Merged to main   | `4ee5e05`                                |
 | v07.5   | Merged to main   | `20c923c`                                |
-| v07.5c  | In progress      | `claude/v07-5c-import-integrity-ovw5pn`  |
-| v07.5d  | Next after 5c    | TBD                                      |
+| v07.5c  | Merged to main   | acceptance pass — 245 passed, 0 failed — `eebc98d` + acceptance corrections |
+| v07.5d  | Next             | TBD                                      |
 | v07.6   | Held prototype   | `claude/artifact-preview-iframe-uqm74k` commit `0921001` — do not merge before v07.5d |
 | v07.7   | Planned          | TBD                                      |
 

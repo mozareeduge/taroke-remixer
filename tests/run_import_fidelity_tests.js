@@ -158,8 +158,35 @@ test('migration is idempotent: double-migrate does not change structure', () => 
   for(const k of keys1){
     eq(p1.materials.trays[k].length, p2.materials.trays[k].length);
   }
-  // No new repairs on second pass
-  assert(!p2.meta.importRepairs || p2.meta.importRepairs.length === 0, 'second migration still has repairs');
+  // Provenance must persist: p2 preserves p1's importRepairs (not cleared)
+  const r1 = JSON.stringify(p1.meta.importRepairs || []);
+  const r2 = JSON.stringify(p2.meta.importRepairs || []);
+  assert(r1 === r2, 'importRepairs provenance must be stable across re-migration');
+});
+
+// 16b. importRepairs provenance survives m1→m2→m3
+test('stable importRepairs across repeated migration (m1→m2→m3)', () => {
+  const rawWithDups = {
+    materials: { trays: {
+      bank_a: [{id:'shared_id', literal:'alpha', role:'noun', weight:1, lockedLiteral:false}],
+      bank_b: [{id:'shared_id', literal:'beta',  role:'noun', weight:1, lockedLiteral:false}]
+    }}
+  };
+  const m1 = C.migrateProject(rawWithDups);
+  assert(Array.isArray(m1.meta.importRepairs) && m1.meta.importRepairs.length > 0, 'm1 must record repairs');
+  const m2 = C.migrateProject(C.clone(m1));
+  const m3 = C.migrateProject(C.clone(m2));
+  // m2 and m3 must be structurally identical
+  assert(JSON.stringify(m2) === JSON.stringify(m3), 'm2 must deep-equal m3');
+  // provenance must survive into m2 and m3
+  assert(JSON.stringify(m1.meta.importRepairs) === JSON.stringify(m2.meta.importRepairs), 'importRepairs must persist from m1 to m2');
+  assert(JSON.stringify(m2.meta.importRepairs) === JSON.stringify(m3.meta.importRepairs), 'importRepairs must persist from m2 to m3');
+  // repaired IDs must be stable (not keep changing)
+  eq(m1.materials.trays.bank_b[0].id, m2.materials.trays.bank_b[0].id);
+  eq(m2.materials.trays.bank_b[0].id, m3.materials.trays.bank_b[0].id);
+  // unique original ID (bank_a) must be unchanged
+  eq(m1.materials.trays.bank_a[0].id, 'shared_id');
+  eq(m2.materials.trays.bank_a[0].id, 'shared_id');
 });
 
 // 17. JSON round-trip preserves exact trays
@@ -287,6 +314,73 @@ test('validation: custom project with correct device inputs has no missing-tray 
   const issues = C.validateProject(p);
   const trayErrors = issues.filter(i => i.level === 'error' && /missing bank/.test(i.message));
   eq(trayErrors.length, 0);
+});
+
+// 31. duplicate ID referenced by forms.overrides — first occurrence keeps original ID so reference survives
+test('duplicate ID form override: first-occurrence reference is unbroken after repair', () => {
+  const raw = {
+    materials: { trays: {
+      bank_a: [{id:'dup_tok', literal:'stone', role:'noun', weight:1, lockedLiteral:false}],
+      bank_b: [{id:'dup_tok', literal:'water', role:'noun', weight:1, lockedLiteral:false}]
+    }},
+    forms: { overrides: { 'dup_tok': { plural: 'stones' } } }
+  };
+  const p = C.migrateProject(raw);
+  // bank_a[0] keeps the original id; override should still map to it
+  eq(p.materials.trays.bank_a[0].id, 'dup_tok');
+  assert(p.forms.overrides['dup_tok'], 'form override for first-occurrence id must be preserved');
+  eq(p.forms.overrides['dup_tok'].plural, 'stones');
+  // bank_b[0] got a new id; no override for it (ambiguous, not silently moved)
+  const repairedId = p.materials.trays.bank_b[0].id;
+  assert(repairedId !== 'dup_tok', 'bank_b[0] must have received a new id');
+  assert(!p.forms.overrides[repairedId], 'no override should be silently created for repaired duplicate');
+});
+
+// 32. unique override references survive migration unchanged
+test('unique form override reference survives migration', () => {
+  const raw = {
+    materials: { trays: {
+      bank_a: [{id:'unique_tok', literal:'leaf', role:'noun', weight:1, lockedLiteral:false}]
+    }},
+    forms: { overrides: { 'unique_tok': { plural: 'leaves' } } }
+  };
+  const p = C.migrateProject(raw);
+  eq(p.materials.trays.bank_a[0].id, 'unique_tok');
+  assert(p.forms.overrides['unique_tok'], 'unique override must be preserved');
+  eq(p.forms.overrides['unique_tok'].plural, 'leaves');
+});
+
+// 33. duplicate ID referenced by notes.linkedTokenIds — first occurrence id is unchanged
+test('duplicate ID note link: first-occurrence linkedTokenId survives', () => {
+  const raw = {
+    materials: { trays: {
+      bank_a: [{id:'link_tok', literal:'fog', role:'noun', weight:1, lockedLiteral:false}],
+      bank_b: [{id:'link_tok', literal:'mist', role:'noun', weight:1, lockedLiteral:false}]
+    }},
+    notes: [{ id:'n1', eventId:'ev_0001', status:'keep', note:'', linkedTokenIds:['link_tok'] }]
+  };
+  const p = C.migrateProject(raw);
+  // The note references 'link_tok' — bank_a[0] keeps that id, so the reference is still valid
+  eq(p.materials.trays.bank_a[0].id, 'link_tok');
+  assert(p.notes.some(n => n.linkedTokenIds && n.linkedTokenIds.includes('link_tok')),
+    'note linkedTokenId for first-occurrence must remain valid after repair');
+});
+
+// 34. idempotent reference repair: second migration does not corrupt overrides
+test('idempotent reference repair: double-migrate leaves overrides unchanged', () => {
+  const raw = {
+    materials: { trays: {
+      bank_a: [{id:'idem_tok', literal:'rope', role:'noun', weight:1, lockedLiteral:false}],
+      bank_b: [{id:'idem_tok', literal:'cord', role:'noun', weight:1, lockedLiteral:false}]
+    }},
+    forms: { overrides: { 'idem_tok': { plural: 'ropes' } } }
+  };
+  const m1 = C.migrateProject(raw);
+  const m2 = C.migrateProject(C.clone(m1));
+  // Override for first-occurrence id must survive both passes
+  assert(m1.forms.overrides['idem_tok'], 'override in m1');
+  assert(m2.forms.overrides['idem_tok'], 'override in m2');
+  eq(JSON.stringify(m1.forms.overrides), JSON.stringify(m2.forms.overrides));
 });
 
 console.log(`${passed} passed, ${failed} failed`);

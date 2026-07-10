@@ -36,7 +36,7 @@ Run all available checks:
 ./tests/run_all_tests.sh
 ```
 
-Expected current result: 240 passed, 0 failed.
+Expected current result: 245 passed, 0 failed.
 
 Browser tests require Chromium plus Python `requests` and `websocket-client`.
 

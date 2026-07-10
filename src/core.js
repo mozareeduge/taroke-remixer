@@ -316,8 +316,13 @@
     }) : [];
 
     p.meta = Object.assign({}, base.meta, p.meta || {});
+    // Preserve existing provenance; merge with any new repairs from this pass.
+    // New repairs for the same newId replace the old entry; all others are kept.
+    const prevRepairs = Array.isArray(inp.meta?.importRepairs) ? clone(inp.meta.importRepairs) : [];
+    const newRepairIds = new Set(repairs.map(r => r.newId));
+    const mergedRepairs = [...prevRepairs.filter(r => !newRepairIds.has(r.newId)), ...repairs];
     delete p.meta.importRepairs;
-    if (repairs.length) p.meta.importRepairs = repairs;
+    if (mergedRepairs.length) p.meta.importRepairs = mergedRepairs;
 
     return p;
   }
