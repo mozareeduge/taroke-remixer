@@ -98,3 +98,13 @@ Result (v07.5):
 | Accessibility / CDP | 28 | 0 |
 | Autosave / CDP | 19 | 0 |
 | **Total** | **180** | **0** |
+
+---
+
+## Screenshots
+
+Captured at merge to main (v07.5 / `20c923c`):
+
+- `docs/screenshots/v07_5/desktop-autosave-status.png` — autosave strip showing saved timestamp on desktop (1280px).
+- `docs/screenshots/v07_5/desktop-restore-prompt.png` — restore prompt on boot with saved draft present (1280px).
+- `docs/screenshots/v07_5/mobile-375-autosave.png` — autosave strip at 375px mobile width.
