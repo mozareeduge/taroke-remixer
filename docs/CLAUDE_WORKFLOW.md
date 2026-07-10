@@ -124,7 +124,7 @@ No narrative padding. Short, factual, actionable.
 | v07.3  | Merged to main  | `650640b`                |
 | v07.4  | Merged to main  | `4ee5e05`                |
 | v07.5  | Merged to main  | `20c923c`                |
-| v07.6  | Next            | live embedded artifact preview |
+| v07.6  | In progress     | live embedded artifact preview |
 | v07.7  | Planned         | TBD                      |
 | v07.8  | Planned         | TBD                      |
 

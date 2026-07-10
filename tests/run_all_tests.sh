@@ -11,3 +11,4 @@ python3 tests/run_route_template_regression_cdp.py
 python3 tests/run_cdp_deep_qa.py
 python3 tests/run_a11y_cdp.py
 python3 tests/run_autosave_cdp.py
+python3 tests/run_live_preview_cdp.py

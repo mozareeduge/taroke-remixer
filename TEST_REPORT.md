@@ -1,4 +1,4 @@
-# Test report — v07.5 transparent local autosave/recovery
+# Test report — v07.6 live embedded artifact preview
 
 Command:
 
@@ -16,8 +16,33 @@ Result:
 - CDP deep QA: 50 passed, 0 failed.
 - Accessibility/CDP hardening: 28 passed, 0 failed.
 - Autosave/recovery CDP: 19 passed, 0 failed.
+- Live preview CDP: 19 passed, 0 failed.
 
-Total: 180 passed, 0 failed.
+Total: 199 passed, 0 failed.
+
+## Live preview suite breakdown
+
+| Test | Result |
+|---|---|
+| export contains iframe preview | PASS |
+| iframe has sandbox attribute | PASS |
+| iframe sandbox contains allow-scripts | PASS |
+| iframe sandbox does not contain allow-same-origin | PASS |
+| iframe has non-empty srcdoc | PASS |
+| iframe srcdoc contains embedded project JSON | PASS |
+| iframe srcdoc has artifact runtime | PASS |
+| generated output has no unresolved {slot:form} variables | PASS |
+| iframe artifact CSS hides tick spans | PASS |
+| edit project then refresh updates iframe content | PASS |
+| JSON export button remains available | PASS |
+| HTML export button remains available | PASS |
+| standalone HTML has required structure | PASS |
+| preview failure does not crash app | PASS |
+| preview refresh button is keyboard reachable | PASS |
+| preview status is perceivable | PASS |
+| preview refresh does not write to editor autosave key | PASS |
+| mobile 375px: no horizontal overflow on export step | PASS |
+| export preview controls have accessible text labels | PASS |
 
 ## Autosave/recovery suite breakdown
 
