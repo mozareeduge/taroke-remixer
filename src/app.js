@@ -1,7 +1,14 @@
 (function(){
   'use strict';
   const C = window.TarokeCore;
-  const STORAGE_KEY = 'taroke-rimixer-v07-layout-pass-draft';
+  const AUTOSAVE_KEY = 'taroke.remixer.v07.draft';
+  const _store = {
+    ok: false,
+    probe(){ try{ localStorage.setItem('__t__','1'); localStorage.removeItem('__t__'); this.ok=true; }catch(e){ this.ok=false; } },
+    get(){ try{ return localStorage.getItem(AUTOSAVE_KEY); }catch(e){ return null; } },
+    set(v){ try{ localStorage.setItem(AUTOSAVE_KEY,v); return true; }catch(e){ return false; } },
+    rm(){ try{ localStorage.removeItem(AUTOSAVE_KEY); }catch(e){} }
+  };
   const STEPS = [
     ['source','Source','origin'], ['samples','Samples','banks'], ['forms','Forms','modulators'], ['devices','Devices','line racks'], ['stanza','Stanza','patterns'], ['flow','Flow','scenes'], ['triggers','Triggers','conditions'], ['surface','Surface','output'], ['run','Run','live'], ['notes','Notes','repairs'], ['export','Export','files']
   ];
@@ -10,7 +17,8 @@
   function bankDef(name){ return C.projectTrayDefs(project)[name] || {label:String(name).toUpperCase(), role:'literal', desc:'custom sample bank'}; }
   const ROLES = ['noun','verb','adjective','literal','mixed'];
   let project = C.defaultProject();
-  let ui = {step:'source', tray:'above', device:'ld_path', stanza:'st_classic', token:null, openSelect:null, drag:null, timer:null, runState:{tick:0,queue:[]}, events:[], selectedEvent:null, help:false, msg:'', draft:false};
+  let _bootDraftProject = null;
+  let ui = {step:'source', tray:'above', device:'ld_path', stanza:'st_classic', token:null, openSelect:null, drag:null, timer:null, runState:{tick:0,queue:[]}, events:[], selectedEvent:null, help:false, msg:'', autosave:{available:false, savedAt:null, draftFound:false, draftDismissed:false, corruptWarning:false}};
   const app = document.getElementById('app');
   const h = C.esc;
   const tray = n => project.materials.trays[n] || [];
@@ -22,9 +30,13 @@
   const tokenTray = id => trayNames().find(t=>tray(t).some(x=>x.id===id));
   const roleForTray = name => bankDef(name).role || 'literal';
 
-  function saveDraft(){ try{localStorage.setItem(STORAGE_KEY, C.exportProjectJson(project));}catch(e){} }
-  function clearDraft(){ try{localStorage.removeItem(STORAGE_KEY);}catch(e){} ui.draft=false; }
-  try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw){project=C.extractProjectFromText(raw); ui.draft=true;} }catch(e){}
+  function saveDraft(){
+    if(!ui.autosave.available)return;
+    const w={savedAt:new Date().toISOString(),schemaVersion:C.SCHEMA_VERSION,project:project};
+    if(_store.set(JSON.stringify(w))){ ui.autosave.savedAt=w.savedAt; if(ui.autosave.draftFound){ui.autosave.draftFound=false;_bootDraftProject=null;} }
+  }
+  _store.probe(); ui.autosave.available=_store.ok;
+  if(_store.ok){ const _raw=_store.get(); if(_raw){ try{ const _w=JSON.parse(_raw); if(_w&&_w.project){ if(_w.schemaVersion&&_w.schemaVersion!==C.SCHEMA_VERSION){ ui.autosave.corruptWarning=true; }else{ _bootDraftProject=C.migrateProject(_w.project); ui.autosave.draftFound=true; ui.autosave.savedAt=_w.savedAt||null; } }else{ ui.autosave.corruptWarning=true; } }catch(e){ ui.autosave.corruptWarning=true; } } }
 
   function applyTheme(){ document.body.dataset.theme = project.workbench?.theme || 'night'; }
   function flash(msg){ ui.msg=msg; render(); setTimeout(()=>{ui.msg=''; render();},1800); }
@@ -33,11 +45,19 @@
   function issueCount(prefix){ return C.validateProject(project).filter(i=>i.area.startsWith(prefix)).length; }
   function status(id){ if(id==='samples')return issueCount('samples')?'warning':'ready'; if(id==='forms')return trayNames().reduce((n,t)=>n+tray(t).filter(x=>x.lockedLiteral).length,0)+' locked'; if(id==='devices')return project.lineDevices.length+' devices'; if(id==='stanza')return project.stanzaPatterns.length+' patterns'; if(id==='flow')return C.activeScenes(project).length?'ready':'blocked'; if(id==='run')return ui.timer?'running':ui.events.length+' events'; if(id==='notes')return project.notes.length+' notes'; if(id==='surface')return project.surface.family; return 'ready'; }
 
-  function render(){ applyTheme(); app.innerHTML = `<div class="app">${topbar()}<main class="layout">${rail()}<section class="work"><div class="workInner">${draftNotice()}${work()}</div></section></main>${mobileTabs()}${ui.help?guide():''}${ui.selectedEvent?lineInspector():''}${ui.msg?`<div class="toast" role="status" aria-live="polite">${h(ui.msg)}</div>`:''}<input class="fileInput" type="file" accept=".html,.json,text/html,application/json" data-file></div>`; bind(); }
+  function render(){ applyTheme(); app.innerHTML = `<div class="app">${topbar()}<main class="layout">${rail()}<section class="work"><div class="workInner">${autosaveStrip()}${work()}</div></section></main>${mobileTabs()}${ui.help?guide():''}${ui.selectedEvent?lineInspector():''}${ui.msg?`<div class="toast" role="status" aria-live="polite">${h(ui.msg)}</div>`:''}<input class="fileInput" type="file" accept=".html,.json,text/html,application/json" data-file></div>`; bind(); }
   function topbar(){ return `<header class="top"><div class="brand"><b>TAROKE RIMIXER</b><span>v07 reset / stripped functional workbench</span></div><nav class="toolbar"><button class="btn" data-new>New</button><button class="btn" data-open>Open</button><button class="btn" data-self-test>Self-test</button><button class="btn primary" data-goto-export>Export</button><button class="btn" data-help>Guide</button></nav><div class="status">local / editable / ${h(project.project.title)}</div></header>`; }
   function rail(){ return `<aside class="rail">${STEPS.map(([id,label,k],i)=>`<button class="stepBtn ${ui.step===id?'active':''}" data-step="${id}"><span class="stepNum">${String(i+1).padStart(2,'0')}</span><span><span class="stepLabel">${label}</span><br><span class="kicker">${k}</span></span><span class="state">${h(status(id))}</span></button>`).join('')}</aside>`; }
   function mobileTabs(){ return `<nav class="bottomTabs">${STEPS.map(([id,label])=>`<button class="${ui.step===id?'active':''}" data-step="${id}">${label}<br><span>${h(status(id))}</span></button>`).join('')}</nav>`; }
-  function draftNotice(){ return ui.draft?`<div class="panel"><div class="panelBody row"><b>Unsaved local draft restored.</b><span class="hint">Crash recovery only; no account history.</span><button class="btn small" data-discard-draft>Discard recovery</button></div></div>`:''; }
+  function fmtTime(iso){ try{ return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
+  function autosaveStrip(){
+    const as=ui.autosave;
+    if(!as.available) return `<div class="autosaveStrip"><span class="autosaveMuted">Autosave unavailable in this browser/session.</span></div>`;
+    if(as.corruptWarning) return `<div class="autosaveStrip"><span class="autosaveMuted">Saved draft could not be read and was ignored. JSON export remains the archive copy.</span><button class="btn small" data-clear-draft>Clear saved draft</button></div>`;
+    if(as.draftFound&&!as.draftDismissed){ const when=as.savedAt?` (${fmtTime(as.savedAt)})`:''; return `<div class="autosaveStrip autosaveAlert"><b>Saved draft found${h(when)}.</b><button class="btn small primary" data-restore-draft>Restore saved draft</button><button class="btn small" data-dismiss-draft>Dismiss</button><button class="btn small" data-clear-draft>Clear saved draft</button><span class="autosaveMuted">JSON export remains the archive copy.</span></div>`; }
+    if(!as.savedAt) return '';
+    return `<div class="autosaveStrip"><span class="autosaveMuted" aria-live="polite">Draft saved locally in this browser at ${fmtTime(as.savedAt)}.</span><button class="btn small" data-clear-draft>Clear saved draft</button></div>`;
+  }
   function work(){ return ({source,samples,forms,devices,stanza:stanzaStep,flow,triggers,surface,run,notes,export:exportStep}[ui.step]||source)(); }
   function field(label,path,type='text'){ const id='fld-'+path.replace(/[^a-z0-9]/gi,'-'); return `<div class="field"><label for="${id}">${h(label)}</label><input id="${id}" class="input" type="${type}" value="${h(get(path)||'')}" data-bind="${path}"></div>`; }
   function area(label,path){ const id='fld-'+path.replace(/[^a-z0-9]/gi,'-'); return `<div class="field"><label for="${id}">${h(label)}</label><textarea id="${id}" class="textarea" data-bind="${path}">${h(get(path)||'')}</textarea></div>`; }
@@ -90,9 +110,11 @@
     app.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{ui.step=b.dataset.step;ui.openSelect=null;render();});
     app.querySelector('[data-goto-export]')?.addEventListener('click',()=>{ui.step='export';render();});
     app.querySelector('[data-help]')?.addEventListener('click',()=>{ui.help=true;render();}); app.querySelector('[data-close-help]')?.addEventListener('click',()=>{ui.help=false;render();}); app.querySelector('[data-self-test]')?.addEventListener('click',runSelfTest);
-    app.querySelector('[data-new]')?.addEventListener('click',()=>{pause(); project=C.defaultProject(); ui={...ui,step:'source',events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null}; clearDraft(); render();});
+    app.querySelector('[data-new]')?.addEventListener('click',()=>{pause(); project=C.defaultProject(); _store.rm(); _bootDraftProject=null; ui={...ui,step:'source',events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,autosave:{available:ui.autosave.available,savedAt:null,draftFound:false,draftDismissed:false,corruptWarning:false}}; render();});
     app.querySelector('[data-open]')?.addEventListener('click',()=>app.querySelector('[data-file]').click()); app.querySelector('[data-file]')?.addEventListener('change',importFile);
-    app.querySelector('[data-discard-draft]')?.addEventListener('click',()=>{clearDraft();render();});
+    app.querySelector('[data-restore-draft]')?.addEventListener('click',()=>{ if(_bootDraftProject){pause(); project=_bootDraftProject; _bootDraftProject=null; ui={...ui,step:'source',events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,device:project.lineDevices[0]?.id,stanza:project.stanzaPatterns[0]?.id,autosave:{...ui.autosave,draftFound:false}}; saveDraft(); render(); } });
+    app.querySelector('[data-dismiss-draft]')?.addEventListener('click',()=>{ ui.autosave.draftDismissed=true; render(); });
+    app.querySelector('[data-clear-draft]')?.addEventListener('click',()=>{ _store.rm(); _bootDraftProject=null; ui.autosave.savedAt=null; ui.autosave.draftFound=false; ui.autosave.corruptWarning=false; render(); });
     app.querySelectorAll('[data-bind]').forEach(el=>el.oninput=()=>{set(el.dataset.bind,el.value);saveDraft();}); app.querySelectorAll('[data-bind-number]').forEach(el=>el.onchange=()=>{set(el.dataset.bindNumber,Number(el.value));saveDraft();render();});
     app.querySelectorAll('[data-select-open]').forEach(b=>b.onclick=()=>{ui.openSelect=ui.openSelect===b.dataset.selectOpen?null:b.dataset.selectOpen;render();});
     app.querySelectorAll('[data-select-key]').forEach(b=>b.onclick=()=>{const key=b.dataset.selectKey; const val=b.dataset.selectValue; handleSelect(key,val); ui.openSelect=null; saveDraft(); render();});
@@ -189,7 +211,7 @@
   function move(arr,i,dir){ const j=i+dir; if(j<0||j>=arr.length)return; const [x]=arr.splice(i,1); arr.splice(j,0,x); }
   function runTimer(){ if(ui.timer)return; ui.timer=setInterval(()=>{const ev=C.generateEvent(project,ui.runState); ui.runState.tick++; ui.events.push(ev); if(ui.events.length>160)ui.events.shift(); render();}, Math.max(250,project.surface.speedMs||1200)); const ev=C.generateEvent(project,ui.runState); ui.runState.tick++; ui.events.push(ev); render(); }
   function pause(){ if(ui.timer){clearInterval(ui.timer); ui.timer=null;} }
-  function importFile(e){ const f=e.target.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{try{pause(); project=C.extractProjectFromText(r.result); ui={...ui,step:'source',events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,device:project.lineDevices[0]?.id,stanza:project.stanzaPatterns[0]?.id}; saveDraft(); flash('Imported project.'); render();}catch(err){flash('Import failed: '+err.message);} }; r.readAsText(f); e.target.value=''; }
+  function importFile(e){ const f=e.target.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{try{pause(); project=C.extractProjectFromText(r.result); _bootDraftProject=null; ui={...ui,step:'source',events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,device:project.lineDevices[0]?.id,stanza:project.stanzaPatterns[0]?.id,autosave:{...ui.autosave,draftFound:false,draftDismissed:false}}; saveDraft(); flash('Imported project.'); render();}catch(err){flash('Import failed: '+err.message);} }; r.readAsText(f); e.target.value=''; }
   function download(content,name,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},100); }
 
   window.addEventListener('beforeunload',()=>saveDraft());
