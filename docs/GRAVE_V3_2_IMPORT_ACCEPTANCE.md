@@ -1,76 +1,303 @@
-# Grave v3.2 Import Acceptance — v07.5c
+# Grave v3.2 Import Acceptance — v07.5c-r
 
-## File status
+## File
 
-**File:** `grave_v3_2_remixer_compatible_r2.taroke.json`
-**Availability:** NOT AVAILABLE — file was not attached to this session.
-
-The real-Grave structural audit, pre-migration snapshot, migration acceptance
-assertions, duplicate-ID acceptance, reference repair audit, and round-trip
-acceptance (JSON, HTML, autosave, browser) could not be completed because the
-source file was absent from the workspace and all searched mount points.
+**Filename:** `grave_v3_2_remixer_compatible_r2.taroke.json`
+**SHA-256:** `2f4f9897581ba7c0afb4ddb6f25ac61e3ef7b15c6bb7289492075cbae697fd98`
+**Schema version:** `0.7-reset`
+**Author:** Mozare — *Grave v3.2 — constrained agency*
 
 ---
 
-## Branch and static verification
+## Structural Inventory (pre-migration)
 
-All static and structural verification was performed on the feature branch
-`claude/v07-5c-import-integrity-ovw5pn` (feature commit `eebc98d`).
+| Item | Count |
+|------|-------|
+| Tray count | 33 |
+| Total tokens | 270 |
+| Distinct bankMeta roles | noun, adjective, verb, adverb, preposition, mixed |
+| Device count | 6 |
+| Total device inputs | 54 |
+| Total routes | 28 |
+| Stanza count | 3 |
+| Total stanza slots | 16 |
+| Flow-scene count | 3 |
+| Trigger count | 3 |
+| Enabled triggers | 0 |
+| Form override count | 11 |
+| Note count | 0 |
+| Duplicate token IDs | 61 unique IDs with multiple occurrences |
+| Total duplicate occurrences (repairs) | 80 |
+| Blank/missing token IDs | 0 |
+| Ambiguous form override refs (dup IDs) | 0 |
+| Ambiguous note linkedTokenIds | 0 |
+| Invalid device tray refs (raw) | 0 |
+| Invalid stanza device refs (raw) | 0 |
+| Invalid scene stanza refs (raw) | 0 |
+| Invalid trigger tray refs (raw) | 0 |
 
-### Implementation contract verified in code
+### Ordered tray keys
 
-| # | Contract rule | Status |
-|---|---------------|--------|
-| 1 | `materials.trays` authoritative when present | ✓ `hasExplicitTrays` path in `migrateProject` |
-| 2 | Legacy `dictionary` authoritative when `trays` absent | ✓ `hasLegacyDict` path |
-| 3 | Default trays used only when both absent | ✓ `else` path |
-| 4 | Present-but-empty `trays` stays empty | ✓ test 27 passes |
-| 5 | Present-but-empty `lineDevices` stays empty | ✓ test 11 passes |
-| 6 | Present-but-empty `stanzaPatterns` stays empty | ✓ test 12 passes |
-| 7 | Present-but-empty `flowScenes` stays empty | ✓ test 13 passes |
-| 8 | Present-but-empty `triggers` stays empty | ✓ test 13 passes |
-| 9 | `bankMeta` contains only actual tray keys | ✓ test 7 passes |
-| 10 | Custom role strings survive | ✓ tests 8, 20 pass |
-| 11 | Tray insertion order survives | ✓ test 10 passes |
-| 12 | `defaultProject` has classic Taroko banks | ✓ test 1 passes |
-| 13 | `projectTrayDefs` does not inject classic defs | ✓ test 28 passes |
-| 14 | Import / autosave restore choose valid actual tray | ✓ `firstValidTray()` in app.js |
-| 15 | New devices / inputs / triggers use `firstValidTray` | ✓ app.js bindDevices / bindTriggers |
-| 16 | Deletion of referenced bank is blocked | ✓ test (CDP) + app.js guard |
-| 17 | Deletion of last bank is blocked | ✓ app.js guard |
-| 18 | Deletion does not inject reserve or reroute | ✓ CDP test passes |
+```
+ [0] processed_bodies      (12 tokens)
+ [1] document_objects      (11 tokens)
+ [2] room_objects          (16 tokens)
+ [3] scene_objects         (16 tokens)
+ [4] body_sites             (7 tokens)
+ [5] body_textures          (8 tokens)
+ [6] document_textures     (10 tokens)
+ [7] room_textures          (9 tokens)
+ [8] scene_textures         (8 tokens)
+ [9] wound_textures         (8 tokens)
+[10] worker_agents          (7 tokens)
+[11] office_agents         (13 tokens)
+[12] room_agents           (10 tokens)
+[13] force_agents          (10 tokens)
+[14] labor_verbs           (10 tokens)
+[15] office_verbs          (11 tokens)
+[16] room_verbs            (11 tokens)
+[17] force_verbs           (11 tokens)
+[18] wound_verbs            (9 tokens)
+[19] position_verbs         (7 tokens)
+[20] conversion_verbs       (4 tokens)
+[21] motion_verbs           (5 tokens)
+[22] arrival_verbs          (6 tokens)
+[23] quantity               (5 tokens)
+[24] mass_object            (9 tokens)
+[25] mass_singular          (7 tokens)
+[26] mass_plural            (5 tokens)
+[27] pressure_texture       (6 tokens)
+[28] relations              (7 tokens)
+[29] admin_relations        (6 tokens)
+[30] reserve                (0 tokens)
+[31] quantity_plural        (3 tokens)
+[32] quantity_singular      (3 tokens)
+```
+
+### Duplicate token ID examples (61 IDs, 80 repairs)
+
+The artwork intentionally reuses semantic IDs across different role-grouped banks
+(e.g. `tok_wet` appears in body\_textures, document\_textures, scene\_textures,
+wound\_textures, and pressure\_texture with the same literal "wet").
+The full list was printed by the acceptance runner; a representative sample:
+
+| ID | Banks |
+|----|-------|
+| tok_wet | body\_textures, document\_textures, scene\_textures, wound\_textures, pressure\_texture (5 occurrences → 4 repairs) |
+| tok_file | document\_objects, office\_agents, office\_verbs, mass\_singular (4 → 3) |
+| tok_record | document\_objects, office\_agents, office\_verbs, mass\_singular (4 → 3) |
+| tok_return | labor\_verbs, wound\_verbs, motion\_verbs, arrival\_verbs (4 → 3) |
+| tok_open | wound\_textures, office\_verbs, room\_verbs, wound\_verbs (4 → 3) |
+| tok_flood | scene\_objects, force\_agents, mass\_object, mass\_singular (4 → 3) |
+| tok_paper | document\_objects, mass\_object, mass\_singular (3 → 2) |
+
+No form overrides or note links reference any of the duplicate IDs, so
+there are zero ambiguous references.
 
 ---
 
-## Defect found and fixed during acceptance pass
+## Migration Acceptance Results
 
-### importRepairs provenance lost on re-migration (blocking defect)
+Test command:
+```bash
+node tests/run_real_project_acceptance.js /path/to/grave_v3_2_remixer_compatible_r2.taroke.json
+```
 
-**Root cause:** `migrateProject` always executed `delete p.meta.importRepairs`
-then only re-set it when *new* repairs occurred in that pass. After a
-migrate → export → reimport → migrate round-trip, no new repairs existed,
-so `importRepairs` was silently deleted, violating the provenance contract.
-
-**Fix (src/core.js):** Previous repairs from `inp.meta.importRepairs` are now
-merged with any new repairs from the current pass. New repairs for the same
-`newId` override old entries; all other provenance entries are preserved.
-
-**Tests added (tests/run_import_fidelity_tests.js):**
-
-| Test | Purpose |
-|------|---------|
-| stable importRepairs across repeated migration (m1→m2→m3) | m2 deep-equals m3; provenance persists through m1→m2→m3 |
-| duplicate ID form override: first-occurrence reference is unbroken after repair | forms.overrides for first occurrence survives |
-| unique form override reference survives migration | no regression on non-duplicate IDs |
-| duplicate ID note link: first-occurrence linkedTokenId survives | notes.linkedTokenIds for first occurrence survives |
-| idempotent reference repair: double-migrate leaves overrides unchanged | no override corruption on second migration |
-
-Test 16 (idempotency) was updated from asserting `p2.importRepairs` is absent
-to asserting `p2.importRepairs` equals `p1.importRepairs` (provenance stable).
+| # | Check | Result |
+|---|-------|--------|
+| 1 | Ordered tray keys unchanged | PASS |
+| 2 | No unauthored classic bank injected | PASS |
+| 3 | No authored bank disappears | PASS |
+| 4 | Per-bank token counts unchanged | PASS |
+| 5–9 | Token order / literals / roles / weights / locks | PASS |
+| 10 | BankMeta labels, roles, descriptions unchanged | PASS |
+| 11 | Devices reference valid banks after migration | PASS |
+| 12 | Stanzas reference valid devices | PASS |
+| 13 | Scenes reference valid stanzas | PASS |
+| 14 | Triggers reference valid banks | PASS |
+| 15 | Forms overrides not discarded (11 overrides) | PASS |
+| 16 | Notes not discarded (0 notes) | PASS |
+| 17 | No authored token lost (270 tokens) | PASS |
 
 ---
 
-## Test results
+## Duplicate-ID Acceptance
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | Repair count matches total duplicate occurrences (80) | PASS |
+| 2 | Every repair has complete provenance | PASS |
+| 3 | Unique IDs unchanged by repair | PASS |
+| 4 | Repaired IDs are stable and bank-scoped | PASS |
+| 5 | Repair IDs are deterministic across runs | PASS |
+
+### Idempotency (m1 → m2 → m3)
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | m2 deep-equals m3 | PASS |
+| 2 | importRepairs stable m2→m3 | PASS |
+| 3 | No new repairs on re-migration | PASS |
+| 4 | Repaired IDs unchanged in m2 | PASS |
+
+---
+
+## Reference Ambiguity
+
+All 11 form overrides in the artwork reference IDs that are unique in their source
+bank (not duplicate IDs). Therefore there are **zero ambiguous override references**.
+
+Result: **no ambiguous references — no artistic intent to invent**.
+
+---
+
+## JSON Round-Trip
+
+| Check | Result |
+|-------|--------|
+| Tray keys preserved | PASS |
+| Token count preserved (270) | PASS |
+| importRepairs count stable (80) | PASS |
+| materials deep-equal after round-trip | PASS |
+
+---
+
+## HTML Round-Trip
+
+| Check | Result |
+|-------|--------|
+| Tray keys preserved | PASS |
+| Token count preserved (270) | PASS |
+| importRepairs count stable (80) | PASS |
+| materials deep-equal after round-trip | PASS |
+
+---
+
+## Browser Acceptance
+
+Test command:
+```bash
+python3 tests/run_real_grave_acceptance_cdp.py /path/to/grave_v3_2_remixer_compatible_r2.taroke.json
+```
+
+**Result: 30 passed, 0 failed**
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | Import succeeds without crash | PASS |
+| 2 | Samples: no unauthored classic bank present | PASS |
+| 3 | Samples: opens on real Grave bank | PASS |
+| 4 | Samples: all 33 authored banks present | PASS |
+| 5 | Samples: bank order matches source file | PASS |
+| 6 | Samples: custom bankMeta labels visible | PASS |
+| 7 | BankMeta: authored roles preserved (noun/verb/adj/adv/prep) | PASS |
+| 8 | Devices: no classic bank in device editor | PASS |
+| 9 | Devices: all device inputs reference valid Grave banks | PASS |
+| 10 | Triggers: no classic bank in trigger selector | PASS |
+| 11 | New device: uses actual Grave bank | PASS |
+| 12 | New trigger: uses actual Grave bank | PASS |
+| 13 | Bank deletion: referenced bank deletion is blocked | PASS |
+| 14 | Run: produces line events from Grave banks | PASS |
+| 15 | Run: no blank line surfaces | PASS |
+| 16 | JSON export: exact tray order preserved | PASS |
+| 17 | JSON export: no classic banks injected | PASS |
+| 18 | JSON export: importRepairs present (80) | PASS |
+| 19 | HTML export: exact tray order preserved | PASS |
+| 20 | HTML export: importRepairs preserved (80) | PASS |
+| 21 | Autosave: tray keys preserved in draft | PASS |
+| 22 | Autosave: importRepairs preserved in draft | PASS |
+| 23 | Autosave restore: exact tray order preserved | PASS |
+| 24 | Autosave restore: no classic contamination | PASS |
+| 25 | Autosave restore: importRepairs survives restore | PASS |
+| 26 | No uncaught console errors | PASS |
+| 27 | Mobile 375×667: no horizontal overflow | PASS |
+| 28 | 390×844: no horizontal overflow | PASS |
+| 29 | 430×932: no horizontal overflow | PASS |
+| 30 | 1440×900: no horizontal overflow | PASS |
+
+---
+
+## Autosave / Restore
+
+Included in browser acceptance above (checks 21–25). Result: **PASS**.
+
+---
+
+## Trigger Compatibility Audit
+
+### Artwork status
+
+The artwork's `meta.compatibilityNote` records:
+> "v07.5c-r: corrected accumulation grammar; removed duplicate textures; disabled triggers by
+>  default because current core applies triggers to selected but non-rendered inputs."
+
+All 3 triggers in the artwork have `enabled: false`.
+
+### Audit procedure
+
+A cloned in-memory project was constructed with:
+- A multi-input device (PROCESSING, 9 inputs)
+- A route that renders only the `worker` slot
+- A trigger watching `labor_verbs / carry` at 100% chance
+- The `labor_verbs` tray forced to contain only "carry"
+
+`generateEvent()` was called with a deterministic RNG.
+The trigger fired and `[TRIGGER_FIRED]` appeared in the surface output.
+
+### Result: CONFIRMED
+
+**The trigger engine fires triggers from selected-but-non-rendered inputs.**
+The artwork's workaround (disabling all triggers) is correct and should not be changed.
+
+### Regression test
+
+`tests/run_trigger_compatibility_regression.js` documents the defect with two tests:
+1. Confirms trigger fires from a selected-but-non-rendered slot (PASS = defect confirmed)
+2. Confirms trigger does NOT fire when the bank is not an input at all (PASS = correct behavior)
+
+This file is **not included in run\_all\_tests.sh**. Run standalone:
+```bash
+node tests/run_trigger_compatibility_regression.js
+```
+
+### Next step
+
+**v07.5e is required** to fix the trigger engine. Contract:
+> Triggers must only fire if the triggering bank is an input slot **and** that slot
+> is referenced in the selected route template.
+
+---
+
+## Screenshots
+
+Captured to `docs/screenshots/v07_5c_real_grave/`:
+
+| File | Description |
+|------|-------------|
+| `real-grave-samples-first-bank.png` | Samples: first bank selected after import |
+| `real-grave-long-bank-list.png` | Samples: full 33-bank list visible |
+| `real-grave-device-bank-selector.png` | Devices: only Grave banks in selector |
+| `real-grave-run-output.png` | Run: resolved lines from Grave banks |
+| `real-grave-mobile-375-samples.png` | Mobile 375×667: Samples step |
+
+---
+
+## Acceptance Runner
+
+Path: `tests/run_real_project_acceptance.js`
+
+Usage (path-driven, not embedded in run\_all\_tests.sh):
+```bash
+node tests/run_real_project_acceptance.js /path/to/project.taroke.json
+```
+
+Covers: structural inventory, migration acceptance (17 checks), duplicate-ID repair,
+idempotency (m1→m2→m3), reference ambiguity, JSON round-trip, HTML round-trip,
+trigger compatibility audit.
+
+---
+
+## Test Suite
 
 ```
 ./tests/run_all_tests.sh
@@ -92,36 +319,15 @@ to asserting `p2.importRepairs` equals `p1.importRepairs` (provenance stable).
 
 ---
 
-## Real-Grave acceptance: BLOCKED
+## Blockers and Non-Blockers
 
-| Check | Result |
-|-------|--------|
-| SHA-256 | NOT AVAILABLE |
-| Schema version | NOT AVAILABLE |
-| Ordered tray keys | NOT AVAILABLE |
-| Tray count | NOT AVAILABLE |
-| Token counts per tray | NOT AVAILABLE |
-| Total tokens | NOT AVAILABLE |
-| Ordered bankMeta keys | NOT AVAILABLE |
-| Distinct bankMeta roles | NOT AVAILABLE |
-| Line-device count | NOT AVAILABLE |
-| Route count | NOT AVAILABLE |
-| Stanza count | NOT AVAILABLE |
-| Stanza-slot count | NOT AVAILABLE |
-| Flow-scene count | NOT AVAILABLE |
-| Trigger count | NOT AVAILABLE |
-| Form-override count | NOT AVAILABLE |
-| Note count | NOT AVAILABLE |
-| Duplicate token IDs | NOT AVAILABLE |
-| Missing/blank token IDs | NOT AVAILABLE |
-| IDs referenced by forms.overrides | NOT AVAILABLE |
-| IDs referenced by notes.linkedTokenIds | NOT AVAILABLE |
-| JSON round-trip | NOT AVAILABLE |
-| HTML round-trip | NOT AVAILABLE |
-| Autosave / restore | NOT AVAILABLE |
-| Browser import | NOT AVAILABLE |
+| Item | Type | Action |
+|------|------|--------|
+| Trigger fires from non-rendered input | Non-blocker (defect documented, artwork disables triggers as workaround) | v07.5e required |
+| Real Grave import fidelity | CLEARED | All 32 JS acceptance checks + 30 browser checks pass |
+| JSON round-trip | CLEARED | materials deep-equal after round-trip |
+| HTML round-trip | CLEARED | materials deep-equal after round-trip |
+| Autosave / restore | CLEARED | 5 checks pass |
+| importRepairs provenance | CLEARED | 80 repairs, stable m2→m3, survives JSON/HTML/autosave |
 
-**Blocker: real Grave file absent.** Merge proceeded because all static,
-structural, unit, and browser CDP tests pass (245/245), and the implementation
-contract is verified in code. The real-Grave acceptance tests should be
-completed in a follow-up session with the actual file attached.
+**All import-integrity blocking checks PASS. Real-Grave acceptance is complete.**

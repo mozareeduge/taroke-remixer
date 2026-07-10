@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 *.pyo
+# Temporary acceptance fixtures — user artwork, not committed
+tests/fixtures/acceptance_*.taroke.json
+tests/fixtures/real_*.taroke.json
