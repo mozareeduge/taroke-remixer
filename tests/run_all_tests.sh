@@ -18,3 +18,4 @@ node tests/run_trigger_compatibility_regression.js
 node tests/run_trigger_runtime_parity_tests.js
 python3 tests/run_trigger_runtime_parity_cdp.py
 python3 tests/run_live_preview_cdp.py
+python3 tests/run_docs_verification.py

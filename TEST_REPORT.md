@@ -1,4 +1,4 @@
-# Test report — v07.6 live embedded artifact preview
+# Test report — v07.7 public documentation packet
 
 Command:
 
@@ -23,8 +23,9 @@ Result:
 - Trigger runtime parity (JS): 32 passed, 0 failed.
 - Trigger runtime parity CDP: 16 passed, 0 failed.
 - Live preview CDP: 68 passed, 0 failed.
+- Documentation verification: 105 passed, 0 failed.
 
-Total: 415 passed, 0 failed.
+Total: 520 passed, 0 failed.
 
 ## Import fidelity suite breakdown (JS — run_import_fidelity_tests.js)
 

@@ -1,48 +1,89 @@
 # TAROKE RIMIXER
 
-Light local-first workbench for making Taroko-style remix artifacts.
+TAROKE RIMIXER is a visible-constraint generative-poetry workbench that runs entirely in your browser. It is a local-first static application — no server, no account, no build step. Open `index.html` locally or publish the repository root with GitHub Pages. The app edits a project JSON describing a poem-machine and exports a standalone playable HTML artifact.
 
-Open `index.html` locally or publish the repository root with GitHub Pages. The app is static: HTML, CSS, and plain JavaScript. No build step.
+**Live URL:** `https://mozareeduge.github.io/taroke-remixer/`
 
-Current pass: v07.6 live embedded artifact preview.
+**Current pass:** v07.7 public documentation packet.
 
-## Current functional scope
+**Current test count:** 520 passed, 0 failed (executable suite).
 
-- Source metadata editor.
-- Sample banks: create, relabel, add, bulk paste, edit, duplicate, move between banks, weight samples.
-- Forms: case policy, compound handling, per-token overrides.
-- Devices: input slots + route templates.
-- Route templates: large textarea; write static text and click slot chips to insert variables at the cursor.
-- Stanza patterns: arrange devices and breaths.
-- Flow scenes: choose stanza patterns and weighting.
-- Triggers: condition by sample bank/term and append/prepend/replace event text.
-- Run chamber: generate, pause, reset, inspect line recipe, keep/repair notes.
-- Export: standalone `.taroke.html` and `.taroke.json`. JSON export remains the portable archive authority. The Export chamber also offers a live embedded preview: a sandboxed iframe running the actual artifact runtime. The preview is temporary (not the archive or the downloaded file) and reflects the last explicit Build.
-- Transparent local autosave: draft saved to browser localStorage after each edit; restore prompt on next boot. No cloud, no account.
-- Authoritative import contract: imported projects with custom sample banks are never contaminated with classic Taroko defaults. Explicit tray sets are preserved exactly; defaults apply only when trays are absent.
-- Predictable chamber entry: navigating to any chamber (Run, Notes, Export, or any editor step) always opens at the top of that chamber's content, with primary controls immediately visible.
-- Immediate identity synchronization: editing the title, author, or source title updates the topbar status, identity slip, surface preview stage head, run stage head, and export filename in real time — without navigating away and back.
-- Rendered-input trigger parity: triggers fire only from samples that were actually consumed by the chosen route template, not from any selected-but-omitted slot. Exported standalone HTML files now honour triggers too.
+---
 
-## Deliberate simplifications in this pass
+## Features
 
-- No surface theme controls.
-- No surface family cards.
-- No visible line numbers in the run surface or exported artifact.
-- Black/white functional workbench first; aesthetics later.
+- **Source** — title, author, source lineage, statement, credits; identity mirrors update in real time.
+- **Samples** — multiple named banks; tokens with weights, roles, and per-token inflection overrides; bulk paste; drag between banks.
+- **Forms** — case policy, compound handling, per-token plural and verb overrides, locked literals.
+- **Devices** — line-making templates; slot inputs + route templates; click slot chips to insert `{slot:form}` variables; weighted routes.
+- **Stanza** — arrange device slots and breaths into repeatable patterns.
+- **Flow** — scenes that select stanza patterns with weights and enabled/off state.
+- **Triggers** — conditional line modifications (append / prepend / replace) based on consumed samples.
+- **Surface** — speed, retention, poem size, line height, trace mode. No visible line numbers.
+- **Run** — generate, pause, reset; inspect line recipes; keep or mark lines for repair.
+- **Notes** — line evidence; open recipe from note.
+- **Export** — standalone playable HTML, project JSON, copy JSON; live embedded preview.
+- **Autosave** — browser-local draft recovery after each edit; explicit restore / dismiss / clear.
+- **Import** — `.taroke.json` and supported `.taroke.html`; authored bank systems preserved exactly; no classic-bank contamination.
+
+---
+
+## Quick start
+
+```bash
+# Open locally:
+open index.html
+
+# Or deploy via GitHub Pages:
+# Configure Pages → main branch root in repository Settings.
+```
+
+---
+
+## Import and export
+
+| Format | Purpose |
+|--------|---------|
+| `.taroke.json` | Authoritative editable project archive. Reimportable. |
+| `.taroke.html` | Standalone distributable artifact. Self-contained; no editor required. |
+| Autosave | Browser-local draft (`taroke.remixer.v07.draft`). Not an archive. Explicit restore on next boot. |
+| Embedded preview | Temporary in-browser render of the artifact. Not the downloaded file. |
+
+---
+
+## Public documentation
+
+| Document | Contents |
+|----------|----------|
+| [What Is TAROKE RIMIXER?](docs/WHAT_IS_TAROKE_RIMIXER.md) | Concept, layers, scope, and what it is not. |
+| [Make a Remix](docs/MAKE_A_REMIX.md) | Chamber-by-chamber practical usage guide. |
+| [Importing Authored Projects](docs/IMPORTING_AUTHORED_PROJECTS.md) | Import contract, fidelity rules, supported formats, Grave v3.2 acceptance. |
+| [Export, Preview, and Recovery](docs/EXPORT_PREVIEW_AND_RECOVERY.md) | JSON, standalone HTML, autosave, live preview, sandboxing. |
+| [Known Limits](docs/KNOWN_LIMITS.md) | Architecture, browser, import, interaction, accessibility, preview, aesthetic limits. |
+| [Release v07.7](docs/RELEASE_v07_7.md) | Release notes, feature summaries, blockers, next phase. |
+
+---
 
 ## Tests
-
-Run all available checks:
 
 ```bash
 ./tests/run_all_tests.sh
 ```
 
-Expected current result: 415 passed, 0 failed.
+Browser tests require Chromium plus Python `requests` and `websocket-client`:
 
-Browser tests require Chromium plus Python `requests` and `websocket-client`.
+```bash
+pip3 install websocket-client
+```
 
-## GitHub Pages
+---
 
-This is a static site. Put `index.html`, `styles.css`, and `src/` at the repository root. Then configure GitHub Pages to deploy from the `main` branch root. `.nojekyll` is included so GitHub Pages serves the static files directly.
+## Known limits
+
+See [docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md). No server. No cloud. No account. No formal WCAG compliance claim. Primary automated browser coverage is Chromium/CDP.
+
+---
+
+## Repository
+
+Static. No framework, no bundler, no build step. `index.html`, `styles.css`, and `src/` at the repository root.
