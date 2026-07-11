@@ -126,7 +126,7 @@ No narrative padding. Short, factual, actionable.
 | v07.5     | Merged to main   | `20c923c`                                |
 | v07.5c    | Merged to main   | acceptance pass — 245 passed, 0 failed — `eebc98d` + acceptance corrections `c3c47d8` |
 | v07.5c-r  | Merged to main   | real-Grave acceptance — 245 passed, 0 failed — trigger defect CONFIRMED |
-| v07.5d    | Next             | TBD                                      |
+| v07.5d    | Merged to main   | interaction continuity — 296 passed, 0 failed |
 | v07.5e    | Required         | Trigger-engine fix: triggers must only fire from rendered inputs (defect CONFIRMED in v07.5c-r audit) |
 | v07.6     | Held prototype   | `claude/artifact-preview-iframe-uqm74k` commit `0921001` — do not merge before v07.5d |
 | v07.7     | Planned          | TBD                                      |

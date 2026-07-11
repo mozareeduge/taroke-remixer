@@ -1,4 +1,4 @@
-# Test report — v07.5c exact import fidelity and project-integrity correction
+# Test report — v07.5d interaction continuity and reactive derived-surface synchronization
 
 Command:
 
@@ -18,8 +18,9 @@ Result:
 - Accessibility/CDP hardening: 28 passed, 0 failed.
 - Autosave/recovery CDP: 19 passed, 0 failed.
 - Import fidelity CDP: 30 passed, 0 failed.
+- Interaction continuity CDP: 51 passed, 0 failed.
 
-Total: 245 passed, 0 failed.
+Total: 296 passed, 0 failed.
 
 ## Import fidelity suite breakdown (JS — run_import_fidelity_tests.js)
 
@@ -119,3 +120,59 @@ Total: 245 passed, 0 failed.
 | schema/version mismatch does not silently load project | PASS |
 | localStorage unavailable: app boots without crash | PASS |
 | localStorage unavailable: autosave unavailable message shown | PASS |
+
+## Interaction continuity suite breakdown (CDP — run_interaction_continuity_cdp.py)
+
+| Section | Test | Result |
+|---------|------|--------|
+| A. Scroll ownership | A1: desktop app shell is viewport-bounded | PASS |
+| A. Scroll ownership | A2: .rail is independently scrollable | PASS |
+| A. Scroll ownership | A3: .work is independently scrollable | PASS |
+| A. Scroll ownership | A4: document.scrollTop stays at 0 during navigation | PASS |
+| A. Scroll ownership | A5: rail scroll does not move work | PASS |
+| A. Scroll ownership | A6: work scroll does not move rail | PASS |
+| A. Scroll ownership | A7: .work scroll container has usable height | PASS |
+| A. Scroll ownership | A8: run stage scroll container present | PASS |
+| B. Chamber entry | B9: navigate to Run resets work scroll to top | PASS |
+| B. Chamber entry | B10: Run heading visible on chamber entry | PASS |
+| B. Chamber entry | B11: Run controls (Run/Pause/Reset) visible on entry | PASS |
+| B. Chamber entry | B12: navigate to Notes resets work scroll to top | PASS |
+| B. Chamber entry | B13: Notes heading visible on entry | PASS |
+| B. Chamber entry | B14: navigate to Export resets work scroll to top | PASS |
+| B. Chamber entry | B15: Export Save HTML button visible on entry | PASS |
+| B. Chamber entry | B16: Export JSON button visible on entry | PASS |
+| B. Chamber entry | B17: toolbar Export opens at top | PASS |
+| B. Chamber entry | B18: active rail entry visible within rail | PASS |
+| C. Same-step continuity | C20: work scroll preserved after field edit (autosave update) | PASS |
+| C. Same-step continuity | C22: work scroll preserved when toast appears/expires | PASS |
+| C. Same-step continuity | C24: custom select open preserves work scroll | PASS |
+| C. Same-step continuity | C25: focus preserved during identity field input | PASS |
+| C. Same-step continuity | C26: Escape closing select preserves work scroll | PASS |
+| D. Run continuity | D31/32: timer ticks do not change outer work scroll | PASS |
+| D. Run continuity | D33: rail scroll does not change during run | PASS |
+| D. Run continuity | D34: stage follows new output when near bottom | PASS |
+| D. Run continuity | D35/36: stage does not auto-scroll after user scrolls up | PASS |
+| D. Run continuity | D37/38: following resumes after scroll back to bottom | PASS |
+| D. Run continuity | D39: pause/resume preserves outer scroll | PASS |
+| E. Reactive mirrors | E41: source identity slip updates immediately on title input | PASS |
+| E. Reactive mirrors | E42: topbar status updates immediately on title input | PASS |
+| E. Reactive mirrors | E43: title input stays focused during mirror update | PASS |
+| E. Reactive mirrors | E44: author mirror updates immediately | PASS |
+| E. Reactive mirrors | E45: source title mirror updates immediately | PASS |
+| E. Reactive mirrors | E46: Surface chamber preview shows current title | PASS |
+| E. Reactive mirrors | E47: Run chamber stage head shows current title | PASS |
+| E. Reactive mirrors | E48: Export filename mirror reflects current title | PASS |
+| F. Focus | F53/54: chamber heading has tabindex=-1 | PASS |
+| F. Focus | F55: identity field input does not steal focus | PASS |
+| F. Focus | F56: toast does not steal focus from active input | PASS |
+| F. Focus | F57: Escape closes select without crashing app | PASS |
+| G. Responsive | G57: no horizontal overflow at mobile-375x667 | PASS |
+| G. Responsive | G57: no horizontal overflow at mobile-390x844 | PASS |
+| G. Responsive | G57: no horizontal overflow at mobile-430x932 | PASS |
+| G. Responsive | G57: no horizontal overflow at landscape-844x390 | PASS |
+| G. Responsive | G57: no horizontal overflow at tablet-1024x768 | PASS |
+| G. Responsive | G57: no horizontal overflow at desktop-1280x800 | PASS |
+| G. Responsive | G57: no horizontal overflow at desktop-1440x900 | PASS |
+| G. Responsive | G58: mobile nav does not cover Export Save HTML at 390px | PASS |
+| G. Responsive | G59: all chambers reachable on mobile (notes chamber test) | PASS |
+| G. Responsive | G60: Run controls visible on mobile entry | PASS |
