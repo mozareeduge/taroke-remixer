@@ -1,4 +1,4 @@
-# Test report — v07.5d interaction continuity and reactive derived-surface synchronization
+# Test report — v07.5e rendered-input trigger parity and consumed-input model
 
 Command:
 
@@ -19,8 +19,11 @@ Result:
 - Autosave/recovery CDP: 19 passed, 0 failed.
 - Import fidelity CDP: 30 passed, 0 failed.
 - Interaction continuity CDP: 51 passed, 0 failed.
+- Trigger compatibility regression: 3 passed, 0 failed.
+- Trigger runtime parity (JS): 32 passed, 0 failed.
+- Trigger runtime parity CDP: 16 passed, 0 failed.
 
-Total: 296 passed, 0 failed.
+Total: 347 passed, 0 failed.
 
 ## Import fidelity suite breakdown (JS — run_import_fidelity_tests.js)
 
