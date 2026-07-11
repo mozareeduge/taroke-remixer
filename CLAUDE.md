@@ -24,7 +24,7 @@ Hard rules:
 Workflow:
 - For small fixes, patch directly and run targeted tests.
 - For multi-file changes, inspect first, write a compact plan, then implement.
-- Always run `./tests/run_all_tests.sh` before claiming done. Expected: 347 passed, 0 failed.
+- Always run `./tests/run_all_tests.sh` before claiming done. Expected: 415 passed, 0 failed.
 - Show evidence: changed files and test output.
 - If two attempts fail, stop, summarize root cause, and restart from a clean plan.
 - One session = one bounded task. See `docs/CLAUDE_WORKFLOW.md` for phase order.

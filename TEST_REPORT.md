@@ -1,4 +1,4 @@
-# Test report — v07.5e rendered-input trigger parity and consumed-input model
+# Test report — v07.6 live embedded artifact preview
 
 Command:
 
@@ -22,8 +22,9 @@ Result:
 - Trigger compatibility regression: 3 passed, 0 failed.
 - Trigger runtime parity (JS): 32 passed, 0 failed.
 - Trigger runtime parity CDP: 16 passed, 0 failed.
+- Live preview CDP: 68 passed, 0 failed.
 
-Total: 347 passed, 0 failed.
+Total: 415 passed, 0 failed.
 
 ## Import fidelity suite breakdown (JS — run_import_fidelity_tests.js)
 
