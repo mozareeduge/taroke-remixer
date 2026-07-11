@@ -4,7 +4,7 @@ Light local-first workbench for making Taroko-style remix artifacts.
 
 Open `index.html` locally or publish the repository root with GitHub Pages. The app is static: HTML, CSS, and plain JavaScript. No build step.
 
-Current pass: v07.5e rendered-input trigger parity and consumed-input model.
+Current pass: v07.6 live embedded artifact preview.
 
 ## Current functional scope
 
@@ -17,7 +17,7 @@ Current pass: v07.5e rendered-input trigger parity and consumed-input model.
 - Flow scenes: choose stanza patterns and weighting.
 - Triggers: condition by sample bank/term and append/prepend/replace event text.
 - Run chamber: generate, pause, reset, inspect line recipe, keep/repair notes.
-- Export: standalone `.taroke.html` and `.taroke.json`. JSON export remains the portable archive authority.
+- Export: standalone `.taroke.html` and `.taroke.json`. JSON export remains the portable archive authority. The Export chamber also offers a live embedded preview: a sandboxed iframe running the actual artifact runtime. The preview is temporary (not the archive or the downloaded file) and reflects the last explicit Build.
 - Transparent local autosave: draft saved to browser localStorage after each edit; restore prompt on next boot. No cloud, no account.
 - Authoritative import contract: imported projects with custom sample banks are never contaminated with classic Taroko defaults. Explicit tray sets are preserved exactly; defaults apply only when trays are absent.
 - Predictable chamber entry: navigating to any chamber (Run, Notes, Export, or any editor step) always opens at the top of that chamber's content, with primary controls immediately visible.
@@ -39,7 +39,7 @@ Run all available checks:
 ./tests/run_all_tests.sh
 ```
 
-Expected current result: 347 passed, 0 failed.
+Expected current result: 415 passed, 0 failed.
 
 Browser tests require Chromium plus Python `requests` and `websocket-client`.
 

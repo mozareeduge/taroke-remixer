@@ -27,7 +27,7 @@
   }
   let project = C.defaultProject();
   let _bootDraftProject = null;
-  let ui = {step:'source', tray:'above', device:'ld_path', stanza:'st_classic', token:null, openSelect:null, drag:null, timer:null, runState:{tick:0,queue:[]}, events:[], selectedEvent:null, help:false, msg:'', autosave:{available:false, savedAt:null, draftFound:false, draftDismissed:false, corruptWarning:false}};
+  let ui = {step:'source', tray:'above', device:'ld_path', stanza:'st_classic', token:null, openSelect:null, drag:null, timer:null, runState:{tick:0,queue:[]}, events:[], selectedEvent:null, help:false, msg:'', autosave:{available:false, savedAt:null, draftFound:false, draftDismissed:false, corruptWarning:false}, preview:{srcdoc:null,error:null,builtSig:null}};
 
   // Run-stage follow policy: true = follow new lines; updated by stage scroll listener
   let _runFollowing = true;
@@ -129,6 +129,36 @@
     const state = captureRenderState();
     render();
     requestAnimationFrame(()=> restoreRenderState(state));
+  }
+
+  // ─── Live preview state/signature (v07.6) ───────────────────────────────────
+
+  function previewSignature() {
+    return JSON.stringify({p:project.project,m:project.materials,f:project.forms,d:project.lineDevices,st:project.stanzaPatterns,fl:project.flowScenes,tr:project.triggers,su:project.surface,n:project.notes,me:project.meta,sv:project.schemaVersion});
+  }
+  function previewState() {
+    if(ui.preview.error) return 'error';
+    if(!ui.preview.builtSig) return 'unbuilt';
+    if(previewSignature()===ui.preview.builtSig) return 'fresh';
+    return 'stale';
+  }
+  function buildPreview() {
+    const work=document.querySelector('.work'); const rail=document.querySelector('.rail');
+    const workST=work?work.scrollTop:0; const railST=rail?rail.scrollTop:0;
+    try{
+      ui.preview.srcdoc=C.exportProjectHtml(project);
+      ui.preview.error=null;
+      ui.preview.builtSig=previewSignature();
+    }catch(e){
+      ui.preview.error=e.message||'Preview build failed.';
+    }
+    render();
+    requestAnimationFrame(()=>{
+      const w=document.querySelector('.work'); const r=document.querySelector('.rail');
+      if(w) w.scrollTop=workST; if(r) r.scrollTop=railST;
+      const btn=document.querySelector('[data-build-preview]');
+      if(btn) btn.focus({preventScroll:true});
+    });
   }
 
   // ─── Centralized chamber navigation ─────────────────────────────────────────
@@ -252,7 +282,19 @@
     return `<div class="modalShade" data-close-event><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-insp-title" onclick="event.stopPropagation()"><div class="modalHead"><div><div class="panelTitle" id="modal-insp-title">Line recipe</div><div class="panelKicker">${h(e.id)} / ${h(e.deviceName)} / ${h(e.route)}</div></div><button class="btn" data-close-event>Close</button></div><div class="modalBody"><div class="stage"><p class="poemText">${h(e.surface)}</p><p class="micro">${h(e.trace)}</p>${trigLine}</div><h3 class="mono">Consumed samples</h3><div class="tokenList">${consumedToks.map(t=>`<button class="tokenCell" data-jump-token="${t.id}">${h(t.literal)}</button>`).join('')||'<span class="hint">none</span>'}</div>${omittedSection}<div class="row"><button class="btn primary" data-note="keep:${e.id}">Keep as sample line</button><button class="btn" data-note="repair:${e.id}">Mark for repair</button><button class="btn" data-open-device="${e.deviceId}">Open device</button></div></div></div></div>`;
   }
   function notes(){ return `<div class="panel"><div class="panelHead"><div><div class="panelTitle" tabindex="-1">Notes / repairs</div><div class="panelKicker">line evidence and repair doors</div></div></div><div class="panelBody">${project.notes.length?project.notes.map(n=>`<div class="noteCard"><b>${h(n.status)} / ${h(n.eventId)}</b><p>${h(n.surface)}</p><p class="micro">${h(n.event?.trace||'')}</p><button class="btn small" data-open-note-event="${n.eventId}">Open recipe</button></div>`).join(''):'<p class="hint">No notes yet. Select a generated line in Run.</p>'}</div></div>`; }
-  function exportStep(){ return `<div class="panel"><div class="panelHead"><div><div class="panelTitle" tabindex="-1">Export</div><div class="panelKicker">playable HTML + project JSON</div></div></div><div class="panelBody"><p class="hint">HTML is the playable artwork and can be reopened here. JSON is the clean project configuration. Both are accepted as import.</p>${validationPanel()}<p class="micro">Filename: <span data-live-export-name>${h(C.downloadName(project,'.taroke.html'))}</span></p><div class="row"><button class="btn primary" data-save-html>Save playable HTML</button><button class="btn" data-export-json>Export project JSON</button><button class="btn" data-copy-json>Copy JSON</button></div></div></div>`; }
+  function exportStep(){
+    const state=previewState();
+    const statusHtml=state==='error'
+      ?`<div class="previewStatus previewError" role="alert" aria-live="assertive">Preview failed: ${h(ui.preview.error)}</div>`
+      :state==='unbuilt'
+        ?`<div class="previewStatus" role="status" aria-live="polite">Live preview has not been built.</div>`
+        :state==='fresh'
+          ?`<div class="previewStatus" role="status" aria-live="polite">Preview built from the current project.</div>`
+          :`<div class="previewStatus" role="status" aria-live="polite">Preview is out of date.</div>`;
+    const btnLabel=state==='unbuilt'?'Build live artifact preview':state==='fresh'?'Rebuild live artifact preview':state==='stale'?'Refresh live artifact preview':'Retry live artifact preview';
+    const frameHtml=ui.preview.srcdoc?`<iframe class="livePreviewFrame" sandbox="allow-scripts" title="Live preview of the exported TAROKE artifact"></iframe>`:'';
+    return `<div class="panel"><div class="panelHead"><div><div class="panelTitle" tabindex="-1">Export</div><div class="panelKicker">playable HTML + project JSON</div></div></div><div class="panelBody"><p class="hint">HTML is the playable artwork and can be reopened here. JSON is the clean project configuration. Both are accepted as import.</p>${validationPanel()}<p class="micro">Filename: <span data-live-export-name>${h(C.downloadName(project,'.taroke.html'))}</span></p><div class="row exportActions"><button class="btn primary" data-save-html>Save playable HTML</button><button class="btn" data-export-json>Export project JSON</button><button class="btn" data-copy-json>Copy JSON</button></div><div class="previewSection"><p class="hint">JSON is the editable project archive. Playable HTML is the standalone distributable artifact. The embedded preview is temporary — it runs in this browser only and is not the archive or the downloaded artifact.</p>${statusHtml}<div class="row"><button class="btn" data-build-preview>${h(btnLabel)}</button></div>${frameHtml}</div></div></div>`;
+  }
 
   function customSelect(label,value,options,key){ const open=ui.openSelect===key; const current=(options.find(o=>String(o[0])===String(value))||['',value])[1]; const lid='csl-'+key.replace(/[^a-z0-9]/gi,'-'); return `<div class="field"><label id="${lid}">${h(label||'select')}</label><div class="selectWrap"><button class="customSelectBtn" type="button" aria-haspopup="listbox" aria-expanded="${open?'true':'false'}" aria-labelledby="${lid}" data-select-open="${h(key)}"><span>${h(current)}</span><span>⌄</span></button>${open?`<div class="listbox" role="listbox">${options.map(([v,l])=>`<button class="option" role="option" aria-selected="${String(v)===String(value)}" data-select-key="${h(key)}" data-select-value="${h(v)}">${h(l)}</button>`).join('')}</div>`:''}</div></div>`; }
   function guide(){ return `<div class="modalShade"><div class="modal guideModal" role="dialog" aria-modal="true" aria-labelledby="modal-guide-title"><div class="modalHead"><div><div class="panelTitle" id="modal-guide-title">Guide</div><div class="panelKicker">samples → devices → stanza → flow → run → export</div></div><button class="btn" data-close-help>Close</button></div><div class="modalBody"><p class="hint">Use sample banks as word material. Devices are text-field/variable templates. Stanzas arrange devices. Flow chooses stanzas. Run tests the poem. Export writes a standalone HTML or JSON artifact.</p></div></div></div>`; }
@@ -262,9 +304,9 @@
     app.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>navigateStep(b.dataset.step));
     app.querySelector('[data-goto-export]')?.addEventListener('click',()=>navigateStep('export'));
     app.querySelector('[data-help]')?.addEventListener('click',()=>{ui.help=true;renderPreserving();}); app.querySelector('[data-close-help]')?.addEventListener('click',()=>{ui.help=false;renderPreserving();}); app.querySelector('[data-self-test]')?.addEventListener('click',runSelfTest);
-    app.querySelector('[data-new]')?.addEventListener('click',()=>{pause(); project=C.defaultProject(); _store.rm(); _bootDraftProject=null; ui={...ui,events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,autosave:{available:ui.autosave.available,savedAt:null,draftFound:false,draftDismissed:false,corruptWarning:false}}; navigateStep('source');});
+    app.querySelector('[data-new]')?.addEventListener('click',()=>{pause(); project=C.defaultProject(); _store.rm(); _bootDraftProject=null; ui={...ui,events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,autosave:{available:ui.autosave.available,savedAt:null,draftFound:false,draftDismissed:false,corruptWarning:false},preview:{srcdoc:null,error:null,builtSig:null}}; navigateStep('source');});
     app.querySelector('[data-open]')?.addEventListener('click',()=>app.querySelector('[data-file]').click()); app.querySelector('[data-file]')?.addEventListener('change',importFile);
-    app.querySelector('[data-restore-draft]')?.addEventListener('click',()=>{ if(_bootDraftProject){pause(); project=_bootDraftProject; _bootDraftProject=null; ui={...ui,events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,tray:firstValidTray(project)||trayNames()[0]||ui.tray,device:project.lineDevices[0]?.id,stanza:project.stanzaPatterns[0]?.id,autosave:{...ui.autosave,draftFound:false}}; saveDraft(); navigateStep('source'); } });
+    app.querySelector('[data-restore-draft]')?.addEventListener('click',()=>{ if(_bootDraftProject){pause(); project=_bootDraftProject; _bootDraftProject=null; ui={...ui,events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,tray:firstValidTray(project)||trayNames()[0]||ui.tray,device:project.lineDevices[0]?.id,stanza:project.stanzaPatterns[0]?.id,autosave:{...ui.autosave,draftFound:false},preview:{srcdoc:null,error:null,builtSig:null}}; saveDraft(); navigateStep('source'); } });
     app.querySelector('[data-dismiss-draft]')?.addEventListener('click',()=>{ ui.autosave.draftDismissed=true; renderPreserving(); });
     app.querySelector('[data-clear-draft]')?.addEventListener('click',()=>{ _store.rm(); _bootDraftProject=null; ui.autosave.savedAt=null; ui.autosave.draftFound=false; ui.autosave.corruptWarning=false; renderPreserving(); });
     // Model binding — identity fields update live mirrors; no full render on text input
@@ -373,6 +415,10 @@
     app.querySelectorAll('[data-jump-token]').forEach(b=>b.onclick=()=>{ui.token=b.dataset.jumpToken; ui.tray=tokenTray(ui.token)||ui.tray; ui.selectedEvent=null; navigateStep('samples');});
     app.querySelectorAll('[data-open-device]').forEach(b=>b.onclick=()=>{ui.device=b.dataset.openDevice; ui.selectedEvent=null; navigateStep('devices');});
     app.querySelectorAll('[data-open-note-event]').forEach(b=>b.onclick=()=>{ui.selectedEvent=b.dataset.openNoteEvent; renderPreserving();});
+    app.querySelector('[data-build-preview]')?.addEventListener('click',buildPreview);
+    // Assign iframe srcdoc via DOM property (avoids attribute entity encoding)
+    const previewFrame=app.querySelector('.livePreviewFrame');
+    if(previewFrame&&ui.preview.srcdoc) previewFrame.srcdoc=ui.preview.srcdoc;
     app.querySelector('[data-save-html]')?.addEventListener('click',()=>download(C.exportProjectHtml(project),C.downloadName(project,'.taroke.html'),'text/html'));
     app.querySelector('[data-export-json]')?.addEventListener('click',()=>download(C.exportProjectJson(project),C.downloadName(project,'.taroke.json'),'application/json'));
     app.querySelector('[data-copy-json]')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(C.exportProjectJson(project));flash('JSON copied.');}catch(e){flash('Copy unavailable.');}});
@@ -438,7 +484,7 @@
   function runTimer(){ runStart(); }
 
   function pause(){ if(ui.timer){clearInterval(ui.timer); ui.timer=null;} }
-  function importFile(e){ const f=e.target.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{try{pause(); project=C.extractProjectFromText(r.result); _bootDraftProject=null; ui={...ui,events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,tray:firstValidTray(project)||trayNames()[0]||ui.tray,device:project.lineDevices[0]?.id,stanza:project.stanzaPatterns[0]?.id,autosave:{...ui.autosave,draftFound:false,draftDismissed:false}}; saveDraft(); flash('Imported project.'); navigateStep('source');}catch(err){flash('Import failed: '+err.message);} }; r.readAsText(f); e.target.value=''; }
+  function importFile(e){ const f=e.target.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{try{pause(); project=C.extractProjectFromText(r.result); _bootDraftProject=null; ui={...ui,events:[],selectedEvent:null,runState:{tick:0,queue:[]},token:null,tray:firstValidTray(project)||trayNames()[0]||ui.tray,device:project.lineDevices[0]?.id,stanza:project.stanzaPatterns[0]?.id,autosave:{...ui.autosave,draftFound:false,draftDismissed:false},preview:{srcdoc:null,error:null,builtSig:null}}; saveDraft(); flash('Imported project.'); navigateStep('source');}catch(err){flash('Import failed: '+err.message);} }; r.readAsText(f); e.target.value=''; }
   function download(content,name,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},100); }
 
   window.addEventListener('beforeunload',()=>saveDraft());

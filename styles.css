@@ -34,6 +34,13 @@ html,body{height:100%}
   .work{min-height:0;overflow-y:auto}
   .deviceListPanel{top:8px;max-height:calc(100% - 16px)}
 }
+/* v07.6 live embedded artifact preview */
+.previewSection{margin-top:18px;border-top:1px solid #555;padding-top:14px}
+.previewStatus{padding:6px 0 10px;font-size:13px;color:var(--muted)}
+.previewStatus.previewError{color:#fff}
+.livePreviewFrame{width:100%;min-height:500px;border:1px solid #fff;display:block;background:#000;margin-top:12px}
+@media(max-width:900px){.livePreviewFrame{min-height:320px}}
+
 /* v07.5d mobile: safe-area bottom padding so tabs don't cover final controls */
 @media (max-width:900px){
   .workInner{padding-bottom:calc(130px + env(safe-area-inset-bottom,0px)) !important}

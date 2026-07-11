@@ -127,8 +127,9 @@ No narrative padding. Short, factual, actionable.
 | v07.5c    | Merged to main   | acceptance pass — 245 passed, 0 failed — `eebc98d` + acceptance corrections `c3c47d8` |
 | v07.5c-r  | Merged to main   | real-Grave acceptance — 245 passed, 0 failed — trigger defect CONFIRMED |
 | v07.5d    | Merged to main   | interaction continuity — 296 passed, 0 failed — `444321e` |
-| v07.5e    | Merged to main   | rendered-input trigger parity — 347 passed, 0 failed — `20c3afa` |
-| v07.6     | Next             | reconciled preview integration — held prototype commit `0921001` on `claude/artifact-preview-iframe-uqm74k` (superseded, not merged) |
-| v07.7     | Planned          | TBD                                      |
+| v07.5e    | Merged to main   | rendered-input trigger parity — 347 passed, 0 failed — `20c3afa` / certification `2b9ebd1` |
+| v07.6     | Merged to main   | live embedded artifact preview — 415 passed, 0 failed — final commit TBD |
+| v07.7     | Next             | public documentation packet              |
+| `0921001` | Superseded prototype | never directly merged — inspected as reference only on `claude/artifact-preview-iframe-uqm74k` |
 
 Each pass targets a specific named scope. Do not mix scopes within a pass.
