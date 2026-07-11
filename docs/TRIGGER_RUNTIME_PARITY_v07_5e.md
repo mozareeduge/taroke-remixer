@@ -79,7 +79,7 @@ The `lineInspector()` panel in `src/app.js` now distinguishes consumed vs. selec
 
 - **Consumed samples** — tokens whose slot appeared in (or was derived by) the route template. Shown as clickable chip buttons that jump to the sample bank.
 - **Selected but not rendered** — tokens selected by the device for a slot that was omitted from the chosen route. Shown as locked chips with an explanatory tooltip.
-- **Trigger provenance** — when a trigger fires, a micro line shows: `Trigger: <name> matched slot <slot> (<literal>)`.
+- **Trigger provenance** — when a trigger fires, a micro line shows: `Trigger: <trigger name> matched slot <slot> (<source literal>)`.
 
 ## Article-helper derived consumption
 
@@ -91,6 +91,10 @@ The `{article:a}` placeholder reads the first `noun`-role input (or first input 
 > 1. the trigger is `enabled`,
 > 2. at least one entry in `consumedInputs` matches the trigger's `tray` (and, if non-empty, `term`), and
 > 3. `rng() * 100 < chance`.
+
+## Compatibility note
+
+No existing trigger definitions are modified by this change. The `enabled` field on every trigger in imported and default projects is preserved exactly as-is. In particular, no real *Grave* triggers are automatically enabled: any trigger that was `enabled: false` in a prior project remains disabled after migration through v07.5e.
 
 ## Punctuation cleanup
 
