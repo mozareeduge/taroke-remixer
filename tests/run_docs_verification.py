@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Documentation verifier for TAROKE RIMIXER v07.7 public documentation packet.
+Documentation verifier for TAROKE RIMIXER v07.7 / v07.8 release checkpoint.
 Python standard library only. Offline. Deterministic.
 """
 
@@ -496,6 +496,54 @@ for doc in PUBLIC_DOCS:
         f(f"no Claude session URL in {doc}", f"pattern found: {found}")
     else:
         p(f"no Claude session URL in {doc}")
+
+# ─── 25. v07.8 release metadata ────────────────────────────────────────────
+
+import json as _json
+
+# Package version should be 0.7.8
+pkg = read('package.json') or ''
+try:
+    pkg_version = _json.loads(pkg).get('version','')
+except Exception:
+    pkg_version = ''
+if pkg_version == '0.7.8':
+    p("package.json version is 0.7.8")
+else:
+    f("package.json version is 0.7.8", f"found: {pkg_version!r}")
+
+# Document title should not contain 'reset' (stale workbench label removed)
+index_html = read('index.html') or ''
+if 'reset' not in index_html.lower() or '<title>TAROKE RIMIXER</title>' in index_html:
+    p("index.html title does not contain stale 'reset' label")
+else:
+    f("index.html title does not contain stale 'reset' label", "found 'reset' in index.html title")
+
+# README should reference v07.8 checkpoint
+if 'v07.8' in readme:
+    p("README references v07.8")
+else:
+    f("README references v07.8")
+
+# CHANGELOG should have v07.8 section
+changelog = read('CHANGELOG.md') or ''
+if 'v07.8' in changelog:
+    p("CHANGELOG.md has v07.8 section")
+else:
+    f("CHANGELOG.md has v07.8 section")
+
+# RELEASE_v07_7.md should state 520 passed directly
+release_v77 = read('docs/RELEASE_v07_7.md') or ''
+if '520 passed, 0 failed' in release_v77:
+    p("RELEASE_v07_7.md states historical count 520 passed, 0 failed")
+else:
+    f("RELEASE_v07_7.md states historical count 520 passed, 0 failed")
+
+# Screenshot folder v07_8 should exist
+if os.path.isdir(os.path.join(ROOT, 'docs/screenshots/v07_8')):
+    p("screenshot dir exists: docs/screenshots/v07_8")
+else:
+    f("screenshot dir exists: docs/screenshots/v07_8")
 
 # ─── Summary ────────────────────────────────────────────────────────────────
 

@@ -32,6 +32,11 @@
   // Run-stage follow policy: true = follow new lines; updated by stage scroll listener
   let _runFollowing = true;
 
+  // Preview iframe preservation: true when buildPreview() triggered this render cycle
+  let _previewBuildPending = false;
+  // Holds the existing preview iframe node temporarily during non-build renders
+  let _savedPreviewIframe = null;
+
   const app = document.getElementById('app');
   const h = C.esc;
   const tray = n => project.materials.trays[n] || [];
@@ -145,6 +150,7 @@
   function buildPreview() {
     const work=document.querySelector('.work'); const rail=document.querySelector('.rail');
     const workST=work?work.scrollTop:0; const railST=rail?rail.scrollTop:0;
+    _previewBuildPending = true;
     try{
       ui.preview.srcdoc=C.exportProjectHtml(project);
       ui.preview.error=null;
@@ -214,7 +220,24 @@
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
-  function render(){ applyTheme(); app.innerHTML = `<div class="app">${topbar()}<main class="layout">${rail()}<section class="work" tabindex="-1"><div class="workInner">${autosaveStrip()}${work()}</div></section></main>${mobileTabs()}${ui.help?guide():''}${ui.selectedEvent?lineInspector():''}${ui.msg?`<div class="toast" role="status" aria-live="polite">${h(ui.msg)}</div>`:''}<input class="fileInput" type="file" accept=".html,.json,text/html,application/json" data-file></div>`; bind(); }
+  function render(){
+    applyTheme();
+    // Preserve the running preview iframe across non-build renders (e.g. toast, dismiss-draft)
+    // to avoid interrupting the embedded artifact runtime.
+    _savedPreviewIframe = null;
+    if(!_previewBuildPending && ui.step==='export' && ui.preview.srcdoc){
+      _savedPreviewIframe = app.querySelector('.livePreviewFrame');
+      if(_savedPreviewIframe) _savedPreviewIframe.remove();
+    }
+    app.innerHTML = `<div class="app">${topbar()}<main class="layout">${rail()}<section class="work" tabindex="-1"><div class="workInner">${autosaveStrip()}${work()}</div></section></main>${mobileTabs()}${ui.help?guide():''}${ui.selectedEvent?lineInspector():''}${ui.msg?`<div class="toast" role="status" aria-live="polite">${h(ui.msg)}</div>`:''}<input class="fileInput" type="file" accept=".html,.json,text/html,application/json" data-file></div>`;
+    bind();
+    if(_savedPreviewIframe){
+      const placeholder=app.querySelector('.livePreviewFrame');
+      if(placeholder&&placeholder.parentNode) placeholder.parentNode.replaceChild(_savedPreviewIframe,placeholder);
+      _savedPreviewIframe=null;
+    }
+    _previewBuildPending=false;
+  }
   function topbar(){ return `<header class="top"><div class="brand"><b>TAROKE RIMIXER</b><span>v07 reset / stripped functional workbench</span></div><nav class="toolbar"><button class="btn" data-new>New</button><button class="btn" data-open>Open</button><button class="btn" data-self-test>Self-test</button><button class="btn primary" data-goto-export>Export</button><button class="btn" data-help>Guide</button></nav><div class="status">local / editable / <span data-live-project-title>${h(project.project.title)}</span></div></header>`; }
   function rail(){ return `<aside class="rail" aria-label="Navigation">${STEPS.map(([id,label,k],i)=>`<button class="stepBtn ${ui.step===id?'active':''}" data-step="${id}" aria-current="${ui.step===id?'step':'false'}"><span class="stepNum">${String(i+1).padStart(2,'0')}</span><span><span class="stepLabel">${label}</span><br><span class="kicker">${k}</span></span><span class="state">${h(status(id))}</span></button>`).join('')}</aside>`; }
   function mobileTabs(){ return `<nav class="bottomTabs" aria-label="Chambers">${STEPS.map(([id,label])=>`<button class="${ui.step===id?'active':''}" data-step="${id}" aria-current="${ui.step===id?'step':'false'}">${label}<br><span>${h(status(id))}</span></button>`).join('')}</nav>`; }
@@ -418,7 +441,7 @@
     app.querySelector('[data-build-preview]')?.addEventListener('click',buildPreview);
     // Assign iframe srcdoc via DOM property (avoids attribute entity encoding)
     const previewFrame=app.querySelector('.livePreviewFrame');
-    if(previewFrame&&ui.preview.srcdoc) previewFrame.srcdoc=ui.preview.srcdoc;
+    if(previewFrame&&ui.preview.srcdoc&&!_savedPreviewIframe) previewFrame.srcdoc=ui.preview.srcdoc;
     app.querySelector('[data-save-html]')?.addEventListener('click',()=>download(C.exportProjectHtml(project),C.downloadName(project,'.taroke.html'),'text/html'));
     app.querySelector('[data-export-json]')?.addEventListener('click',()=>download(C.exportProjectJson(project),C.downloadName(project,'.taroke.json'),'application/json'));
     app.querySelector('[data-copy-json]')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(C.exportProjectJson(project));flash('JSON copied.');}catch(e){flash('Copy unavailable.');}});

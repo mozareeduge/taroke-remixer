@@ -81,7 +81,7 @@ The preview is built on demand. When you first visit Export, the status reads "L
 - Importing a new file, clicking New, or restoring a draft resets the preview state to UNBUILT.
 - After any of those operations, click **Build live artifact preview** again if you want a preview of the new project state.
 
-**Recreation note:** importing a new file or restoring a draft replaces the project and rebuilds the Export chamber's DOM. The previous iframe and its runtime state are discarded. This is expected behavior and does not affect the downloaded artifact or the JSON archive.
+**Recreation note:** the preview iframe is recreated only on deliberate project-replacement operations (New, Import, Restore) or an explicit Build / Rebuild / Refresh / Retry. Toast messages, Copy JSON, autosave-strip updates, and other incidental renders do not recreate the iframe or interrupt the running artifact.
 
 ---
 
