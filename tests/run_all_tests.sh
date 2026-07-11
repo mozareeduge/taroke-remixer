@@ -13,3 +13,4 @@ python3 tests/run_cdp_deep_qa.py
 python3 tests/run_a11y_cdp.py
 python3 tests/run_autosave_cdp.py
 python3 tests/run_import_fidelity_cdp.py
+python3 tests/run_interaction_continuity_cdp.py
