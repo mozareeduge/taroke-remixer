@@ -4,9 +4,9 @@ TAROKE RIMIXER is a visible-constraint generative-poetry workbench that runs ent
 
 **Live URL:** `https://mozareeduge.github.io/taroke-remixer/`
 
-**Current pass:** v07.7 public documentation packet.
+**Current pass:** v07.8 release checkpoint.
 
-**Current test count:** 520 passed, 0 failed (executable suite).
+**Current test count:** 534 passed, 0 failed (executable suite).
 
 ---
 

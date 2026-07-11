@@ -30,7 +30,9 @@ v07.7 is the public documentation pass for TAROKE RIMIXER. It introduces the pub
 
 After adding the documentation verifier to the suite:
 
-See `TEST_REPORT.md` for the current count. The verifier adds its own pass count to the total.
+**520 passed, 0 failed** (all 16 suites, verified 2026-07-11)
+
+This is the historical v07.7 total. v07.8 adds further tests; see `TEST_REPORT.md` for the current suite total.
 
 ---
 

@@ -1,4 +1,4 @@
-# Test report — v07.7 public documentation packet
+# Test report — v07.8 release checkpoint
 
 Command:
 
@@ -22,10 +22,14 @@ Result:
 - Trigger compatibility regression: 3 passed, 0 failed.
 - Trigger runtime parity (JS): 32 passed, 0 failed.
 - Trigger runtime parity CDP: 16 passed, 0 failed.
-- Live preview CDP: 68 passed, 0 failed.
-- Documentation verification: 105 passed, 0 failed.
+- Live preview CDP: 76 passed, 0 failed. (includes Section H: Iframe Stability — 8 new tests)
+- Documentation verification: 111 passed, 0 failed. (includes v07.8 metadata checks — 6 new tests)
 
-Total: 520 passed, 0 failed.
+Total: 534 passed, 0 failed.
+
+### v07.7 historical total
+
+520 passed, 0 failed (16 suites — verified 2026-07-11 before v07.8 additions).
 
 ## Import fidelity suite breakdown (JS — run_import_fidelity_tests.js)
 

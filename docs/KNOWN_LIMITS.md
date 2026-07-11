@@ -34,7 +34,7 @@ This document states the current known limitations of TAROKE RIMIXER honestly. I
 - **Tested viewport matrix:** 375×667, 390×844, 430×932, 844×390 (landscape), 1024×768, 1280×800, 1440×900. Automated coverage is for these viewports.
 - **Mobile and landscape interaction** has been manually reviewed and passed in the tested viewports, but some complex interactions (drag-and-drop token reordering, open select dropdowns) may behave differently on touch devices.
 - **Manual browser QA remains useful** for testing on actual devices, particularly iOS Safari and Android browsers.
-- **Live preview runtime recreation after Export re-render** is a known non-blocker. When a new file is imported or a draft is restored, the Export chamber rebuilds and the previous preview iframe is discarded. Clicking Build after the operation creates a fresh preview. This is working as designed.
+- **Live preview runtime recreation** occurs only on deliberate project-replacement operations: New, Import, Restore (which set preview state to UNBUILT), or an explicit Build / Rebuild / Refresh / Retry. Toast messages, Copy JSON, autosave-strip updates, and other non-project actions do not recreate the iframe or interrupt the running artifact.
 
 ---
 

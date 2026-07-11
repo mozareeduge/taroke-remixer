@@ -1,6 +1,6 @@
 {
   "name": "taroke-remixer",
-  "version": "0.7.0-layout-pass",
+  "version": "0.7.8",
   "private": true,
   "type": "commonjs",
   "scripts": {
