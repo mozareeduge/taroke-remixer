@@ -1,13 +1,16 @@
 # 09 — Master Claude Code Prompt
 
-Paste into a fresh strongest-model Claude Code session after placing this package at `docs/v08/program/`.
+Paste into a fresh claude-sonnet-4-6 / medium-effort Claude Code session after placing this package at `docs/v08/program/`.
+
+**Execution policy (correction requested by Mohammad, recorded in docs/v08/DECISIONS.md D-001):**
+The complete program uses claude-sonnet-4-6 at medium effort. Do not escalate to higher models or effort levels for any reason.
 
 ---
 
 TASK:
 Execute the TAROKE RIMIXER v08 hybrid editor rebuild as one coordinated multi-agent program composed of bounded, reviewed work packages.
 
-Use a dynamic workflow/ultracode or agent team with a medium size guideline. Do not implement the rebuild as one undifferentiated branch or one agent context.
+Use a dynamic workflow or agent team. Do not implement the rebuild as one undifferentiated branch or one agent context.
 
 REPOSITORY:
 mozareeduge/taroke-remixer
@@ -147,7 +150,7 @@ After acceptance:
 
 MODEL POLICY
 
-Strongest model/highest effort for architecture, domain, compatibility, integration, review, and release. Smaller agents only for bounded inventory/mechanical checks.
+claude-sonnet-4-6 at medium effort throughout. No escalation for architecture, domain, compatibility, integration, review, or release. All agents use model: claude-sonnet-4-6 and effort: medium. (Correction requested by Mohammad — see docs/v08/DECISIONS.md D-001.)
 
 STATUS
 
