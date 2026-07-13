@@ -1,0 +1,25 @@
+# TAROKE RIMIXER v08 Rebuild
+
+Read `docs/v08/program/README.md` and numeric program files.
+
+Immutable baseline:
+
+- tag `v07.8-release-checkpoint`
+- commit `f7183f01037bf963612d4b56561d3b8cdde306b5`
+- 534 passed
+
+Rules:
+
+1. Preserve v07 root until WP13.
+2. Preview v08 under `/next/`.
+3. JSON is archive authority.
+4. Explicit trays authoritative.
+5. Editor/artifact agree.
+6. Project mutation only through typed commands.
+7. Drag has keyboard/Move alternatives.
+8. Mobile independently designed.
+9. No old test removal without ledger.
+10. Fresh independent review per package.
+
+Commands/status live in `docs/v08/STATUS.md`.
+Procedures live in skills.

@@ -1,0 +1,122 @@
+[
+  {
+    "path": "00_MASTER_CHARTER.md",
+    "bytes": 3261
+  },
+  {
+    "path": "01_PRODUCT_AND_DOMAIN_MODEL.md",
+    "bytes": 2902
+  },
+  {
+    "path": "02_INFORMATION_AND_INTERACTION.md",
+    "bytes": 3585
+  },
+  {
+    "path": "03_VISUAL_SYSTEM.md",
+    "bytes": 1628
+  },
+  {
+    "path": "04_TECHNICAL_ARCHITECTURE.md",
+    "bytes": 3409
+  },
+  {
+    "path": "05_COMPATIBILITY_AND_MIGRATION.md",
+    "bytes": 1740
+  },
+  {
+    "path": "06_TEST_AND_QA_STRATEGY.md",
+    "bytes": 2506
+  },
+  {
+    "path": "07_AGENT_ORCHESTRATION_AND_WORK_PACKAGES.md",
+    "bytes": 2899
+  },
+  {
+    "path": "08_EXPERIENCE_ACCEPTANCE.md",
+    "bytes": 1524
+  },
+  {
+    "path": "09_MASTER_CLAUDE_CODE_PROMPT.md",
+    "bytes": 4316
+  },
+  {
+    "path": "10_ACCEPTANCE_RELEASE_AND_ROLLBACK.md",
+    "bytes": 1934
+  },
+  {
+    "path": "11_RESEARCH_RATIONALE.md",
+    "bytes": 1303
+  },
+  {
+    "path": "12_HUMAN_CHECKPOINTS.md",
+    "bytes": 691
+  },
+  {
+    "path": "README.md",
+    "bytes": 741
+  },
+  {
+    "path": "claude-assets/CLAUDE.md.template",
+    "bytes": 651
+  },
+  {
+    "path": "claude-assets/agents/compatibility-engineer.md",
+    "bytes": 411
+  },
+  {
+    "path": "claude-assets/agents/experience-reviewer.md",
+    "bytes": 350
+  },
+  {
+    "path": "claude-assets/agents/independent-reviewer.md",
+    "bytes": 353
+  },
+  {
+    "path": "claude-assets/agents/program-lead.md",
+    "bytes": 388
+  },
+  {
+    "path": "claude-assets/agents/test-architect.md",
+    "bytes": 374
+  },
+  {
+    "path": "claude-assets/agents/ux-domain-guardian.md",
+    "bytes": 355
+  },
+  {
+    "path": "claude-assets/hooks/teammate_gate.sh",
+    "bytes": 416
+  },
+  {
+    "path": "claude-assets/settings.json.template",
+    "bytes": 332
+  },
+  {
+    "path": "claude-assets/skills/baseline-audit/SKILL.md",
+    "bytes": 257
+  },
+  {
+    "path": "claude-assets/skills/compatibility-gate/SKILL.md",
+    "bytes": 277
+  },
+  {
+    "path": "claude-assets/skills/design-conformance/SKILL.md",
+    "bytes": 324
+  },
+  {
+    "path": "claude-assets/skills/experience-gate/SKILL.md",
+    "bytes": 264
+  },
+  {
+    "path": "claude-assets/skills/release-gate/SKILL.md",
+    "bytes": 231
+  },
+  {
+    "path": "claude-assets/skills/root-cause/SKILL.md",
+    "bytes": 261
+  },
+  {
+    "path": "claude-assets/skills/visual-regression/SKILL.md",
+    "bytes": 249
+  }
+]
