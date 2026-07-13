@@ -10,6 +10,7 @@ import editorReducer from "./editorSlice.js";
 import runtimeReducer from "./runtimeSlice.js";
 import historyReducer from "./historySlice.js";
 import importReceiptReducer from "./importReceiptSlice.js";
+import takesReducer from "./takesSlice.js";
 import { autosaveMiddleware } from "./autosave.js";
 import { undoMiddleware } from "./undoMiddleware.js";
 
@@ -21,6 +22,7 @@ export const store = configureStore({
     runtime: runtimeReducer,
     history: historyReducer,
     importReceipt: importReceiptReducer,
+    takes: takesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

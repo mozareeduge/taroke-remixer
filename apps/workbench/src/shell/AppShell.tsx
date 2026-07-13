@@ -4,6 +4,7 @@ import { Transport } from "./Transport.js";
 import { Navigator } from "./Navigator.js";
 import { Workspace } from "./Workspace.js";
 import { Inspector } from "./Inspector.js";
+import { ImportReceiptBanner } from "../panels/ImportReceiptBanner.js";
 
 export function AppShell() {
   const dispatch = useAppDispatch();
@@ -16,6 +17,7 @@ export function AppShell() {
       <a href="#tr-main-content" className="tr-skip-nav">
         Skip to main content
       </a>
+      <ImportReceiptBanner />
       <Transport />
       <div className="tr-shell__body">
         <button

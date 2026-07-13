@@ -82,4 +82,5 @@ export interface RootState {
   runtime: RuntimeState;
   history: HistoryState;
   importReceipt: ImportReceiptState;
+  takes: { takes: import("./takesSlice.js").Take[] };
 }

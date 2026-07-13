@@ -7,6 +7,7 @@ import selectionReducer from "../../store/selectionSlice.js";
 import editorReducer, { toggleSidebar, toggleInspector } from "../../store/editorSlice.js";
 import runtimeReducer from "../../store/runtimeSlice.js";
 import historyReducer from "../../store/historySlice.js";
+import takesReducer from "../../store/takesSlice.js";
 import importReceiptReducer from "../../store/importReceiptSlice.js";
 import { Transport } from "../../shell/Transport.js";
 import { Navigator } from "../../shell/Navigator.js";
@@ -23,6 +24,7 @@ function makeStore(editorOverrides?: Partial<{ sidebarOpen: boolean; inspectorOp
       runtime: runtimeReducer,
       history: historyReducer,
       importReceipt: importReceiptReducer,
+      takes: takesReducer,
     },
   });
   if (editorOverrides?.sidebarOpen === false) store.dispatch(toggleSidebar());

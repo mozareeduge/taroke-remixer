@@ -1,0 +1,119 @@
+import { useRef } from "react";
+import { useAppDispatch, useAppSelector } from "../store/hooks.js";
+import { setProject } from "../store/projectSlice.js";
+import { exportProjectJson, exportProjectHtml, extractProjectFromText, downloadName } from "@taroke/core";
+
+function download(filename: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function ArchivePanel() {
+  const dispatch = useAppDispatch();
+  const project = useAppSelector((s) => s.project.present);
+  const importRef = useRef<HTMLInputElement>(null);
+
+  function doExportJson() {
+    download(downloadName(project, ".taroke.json"), exportProjectJson(project), "application/json");
+  }
+
+  function doExportHtml() {
+    download(downloadName(project, ".taroke.html"), exportProjectHtml(project), "text/html");
+  }
+
+  function doImport(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = String(e.target?.result ?? "");
+      try {
+        const imported = extractProjectFromText(text);
+        dispatch(setProject(imported));
+      } catch (err) {
+        console.error("Import failed:", err);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  return (
+    <div className="tr-panel tr-panel--archive">
+      <div className="tr-panel__main">
+        <div className="tr-panel__section-head">EXPORT</div>
+        <div className="tr-archive__actions">
+          <button className="tr-btn tr-btn--primary" onClick={doExportJson}>
+            Export JSON (.taroke.json)
+          </button>
+          <p className="tr-archive__desc">Project data for editing in another session.</p>
+
+          <button className="tr-btn tr-btn--primary" onClick={doExportHtml}>
+            Export HTML (.taroke.html)
+          </button>
+          <p className="tr-archive__desc">Standalone artifact — runs in any browser, no server needed.</p>
+        </div>
+
+        <div className="tr-panel__section-head">IMPORT</div>
+        <div className="tr-archive__actions">
+          <input
+            ref={importRef}
+            type="file"
+            accept=".json,.html,.taroke.json,.taroke.html"
+            className="tr-visually-hidden"
+            aria-label="Import project file"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) doImport(file);
+              e.target.value = "";
+            }}
+          />
+          <button className="tr-btn tr-btn--ghost" onClick={() => importRef.current?.click()}>
+            Import .taroke.json or .taroke.html
+          </button>
+          <p className="tr-archive__desc">Replaces the current project. Undo is available.</p>
+        </div>
+
+        <div className="tr-panel__section-head">PROJECT INFO</div>
+        <table className="tr-table">
+          <tbody>
+            <tr className="tr-table__row">
+              <th className="tr-table__th tr-table__th--label">Title</th>
+              <td className="tr-table__td">{project.project.title || "(untitled)"}</td>
+            </tr>
+            <tr className="tr-table__row">
+              <th className="tr-table__th tr-table__th--label">Author</th>
+              <td className="tr-table__td">{project.project.author || "—"}</td>
+            </tr>
+            <tr className="tr-table__row">
+              <th className="tr-table__th tr-table__th--label">Source</th>
+              <td className="tr-table__td">{project.project.sourceTitle || "—"}</td>
+            </tr>
+            <tr className="tr-table__row">
+              <th className="tr-table__th tr-table__th--label">Version</th>
+              <td className="tr-table__td">{project.schemaVersion}</td>
+            </tr>
+            <tr className="tr-table__row">
+              <th className="tr-table__th tr-table__th--label">Banks</th>
+              <td className="tr-table__td">{Object.keys(project.materials.trays).length}</td>
+            </tr>
+            <tr className="tr-table__row">
+              <th className="tr-table__th tr-table__th--label">Devices</th>
+              <td className="tr-table__td">{project.lineDevices.length}</td>
+            </tr>
+            <tr className="tr-table__row">
+              <th className="tr-table__th tr-table__th--label">Patterns</th>
+              <td className="tr-table__td">{project.stanzaPatterns.length}</td>
+            </tr>
+            <tr className="tr-table__row">
+              <th className="tr-table__th tr-table__th--label">Triggers</th>
+              <td className="tr-table__td">{project.triggers.length}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

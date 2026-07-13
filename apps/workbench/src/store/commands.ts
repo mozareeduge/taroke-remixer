@@ -112,6 +112,22 @@ export function setBankLabel(project: TarokeProject, bankName: string, label: st
   });
 }
 
+export function addBank(project: TarokeProject, key: string, label: string, role = "literal"): CommandResult {
+  return cmd(project, "Add bank", (d) => {
+    if (!d.materials.trays[key]) {
+      d.materials.trays[key] = [];
+      d.materials.bankMeta[key] = { label, role, desc: "custom sample bank" };
+    }
+  });
+}
+
+export function removeBank(project: TarokeProject, bankName: string): CommandResult {
+  return cmd(project, "Remove bank", (d) => {
+    delete d.materials.trays[bankName];
+    delete d.materials.bankMeta[bankName];
+  });
+}
+
 // ── Line device commands ───────────────────────────────────────────────────────
 
 export function addLineDevice(project: TarokeProject, device: LineDevice): CommandResult {
