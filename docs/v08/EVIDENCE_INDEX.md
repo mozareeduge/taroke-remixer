@@ -33,13 +33,21 @@ Rollback: how to revert
 **Branch:** claude/v08-wp00-program-bootstrap  
 **Status:** IN PROGRESS  
 
-Evidence to be recorded after merge:
-- 534 passed, 0 failed (all 16 v07 suites)
-- control documents created
-- claude assets installed
-- execution-policy corrections applied
-- test migration ledger established
-- independent review outcome
+**Commit:** 6c106cc  
+**Tests:** 534 passed, 0 failed (all 16 v07 suites — 14+38+35+16+10+5+50+28+19+30+51+3+32+16+76+111)  
+**Independent Review:** APPROVED (2026-07-13) — no P0/P1 findings  
+**Gate conditions:**
+- [x] 534 tests pass
+- [x] v07 root unchanged (src/, index.html, styles.css, tests/, package.json not in diff)
+- [x] model policy: claude-sonnet-4-6 / medium throughout
+- [x] program design authority unchanged (only execution-policy language corrected)
+- [x] all 7 control documents created
+- [x] all 6 agent definitions validated (model + effort pinned)
+- [x] hooks validated and installed
+- [x] test ledger established (534 tests across 16 suites mapped)
+- [x] independent reviewer approved
+- [ ] PR merged (pending)
+- [ ] STATUS updated post-merge
 
 ---
 

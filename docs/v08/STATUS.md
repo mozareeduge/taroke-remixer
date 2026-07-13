@@ -28,7 +28,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 
 | WP   | Name                        | Branch                              | Status     | Tests | PR | Commit |
 |------|-----------------------------|-------------------------------------|------------|-------|----|--------|
-| WP00 | Program Bootstrap           | claude/v08-wp00-program-bootstrap   | IN PROGRESS| —     | —  | —      |
+| WP00 | Program Bootstrap           | claude/v08-wp00-program-bootstrap   | REVIEW APPROVED — PR OPEN | 534   | pending | 6c106cc |
 | WP01 | Workspace/Toolchain         | claude/v08-wp01-toolchain           | NOT STARTED| —     | —  | —      |
 | WP02 | Core/Schema Boundary        | claude/v08-wp02-core-schema         | NOT STARTED| —     | —  | —      |
 | WP03 | State/Commands/Undo         | claude/v08-wp03-state               | NOT STARTED| —     | —  | —      |
