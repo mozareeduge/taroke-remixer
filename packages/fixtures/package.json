@@ -1,0 +1,17 @@
+{
+  "name": "@taroke/fixtures",
+  "version": "0.8.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@taroke/schema": "*",
+    "typescript": "^5.6.2"
+  }
+}
