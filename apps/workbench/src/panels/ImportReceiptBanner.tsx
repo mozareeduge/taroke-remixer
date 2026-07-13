@@ -36,8 +36,8 @@ export function ImportReceiptBanner() {
         <ul className="tr-import-receipt__issues" aria-label="Import issues">
           {receipt.issues.map((issue, i) => (
             <li key={i} className="tr-import-receipt__issue">
-              <span className={`tr-import-receipt__severity tr-import-receipt__severity--${issue.severity}`}>
-                {issue.severity.toUpperCase()}
+              <span className={`tr-import-receipt__level tr-import-receipt__level--${issue.level}`}>
+                {issue.level.toUpperCase()}
               </span>
               {" "}{issue.message}
             </li>

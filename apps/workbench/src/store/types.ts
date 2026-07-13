@@ -1,4 +1,5 @@
 import type { TarokeProject, RunState, ValidationIssue } from "@taroke/schema";
+import type { TakesState } from "./takesSlice.js";
 
 // ── Project state ──────────────────────────────────────────────────────────────
 
@@ -82,5 +83,5 @@ export interface RootState {
   runtime: RuntimeState;
   history: HistoryState;
   importReceipt: ImportReceiptState;
-  takes: { takes: import("./takesSlice.js").Take[] };
+  takes: TakesState;
 }

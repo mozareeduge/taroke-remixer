@@ -10,7 +10,7 @@ export interface Take {
   capturedAt: string;
 }
 
-interface TakesState {
+export interface TakesState {
   takes: Take[];
 }
 
