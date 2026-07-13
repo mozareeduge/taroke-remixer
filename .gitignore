@@ -4,3 +4,23 @@ __pycache__/
 # Temporary acceptance fixtures — user artwork, not committed
 tests/fixtures/acceptance_*.taroke.json
 tests/fixtures/real_*.taroke.json
+
+# v08 workspace build artifacts
+node_modules/
+apps/workbench/dist/
+apps/workbench/.vite/
+apps/workbench/storybook-static/
+.storybook-out/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+# tsc emit artifacts (src dirs are TS only; Vite/Vitest use ts-node/esbuild)
+apps/workbench/src/**/*.js
+apps/workbench/src/**/*.js.map
+apps/workbench/src/**/*.d.ts
+apps/workbench/src/**/*.d.ts.map
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
