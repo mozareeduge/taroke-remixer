@@ -22,6 +22,9 @@ export function Workspace() {
 
   return (
     <main id="tr-main-content" className="tr-workspace" aria-label="Workspace">
+      <div className="tr-workspace__panel-id" aria-hidden="true">
+        {activePanel.toUpperCase()}
+      </div>
       {panel}
     </main>
   );
