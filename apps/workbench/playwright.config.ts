@@ -9,7 +9,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "chromium", use: { ...devices["Desktop Chrome"], executablePath: process.env["CHROMIUM_PATH"] ?? "/opt/pw-browsers/chromium" } },
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
     { name: "mobile-portrait", use: { ...devices["iPhone 14"] } },
