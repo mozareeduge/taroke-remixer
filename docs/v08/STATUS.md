@@ -17,7 +17,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 4. Review DECISIONS.md for all recorded decisions
 5. Review DESIGN_CONFLICTS.md before touching any domain model
 6. Read TEST_MIGRATION_LEDGER.md before touching any test
-7. Run `./tests/run_all_tests.sh` to verify 534 still pass
+7. Run `python3 scripts/verify_v07_baseline.py` to verify 534 still pass
 8. Inspect the branch for the next WP before creating it
 9. Do not modify design authority documents
 10. Do not start Checkpoint B work before Checkpoint A verdict from Mohammad
@@ -28,8 +28,8 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 
 | WP   | Name                        | Branch                              | Status     | Tests | PR | Commit |
 |------|-----------------------------|-------------------------------------|------------|-------|----|--------|
-| WP00 | Program Bootstrap           | claude/v08-wp00-program-bootstrap   | REVIEW APPROVED — PR OPEN | 534   | pending | 6c106cc |
-| WP01 | Workspace/Toolchain         | claude/v08-wp01-toolchain           | NOT STARTED| —     | —  | —      |
+| WP00 | Program Bootstrap           | claude/v08-wp00-program-bootstrap   | MERGED (#4) | 534   | #4 | c6589e3 |
+| WP01 | Workspace/Toolchain (recovery) | claude/v08-wp01-toolchain-recovery | IN PROGRESS | 534 | — | 54b04e8 |
 | WP02 | Core/Schema Boundary        | claude/v08-wp02-core-schema         | NOT STARTED| —     | —  | —      |
 | WP03 | State/Commands/Undo         | claude/v08-wp03-state               | NOT STARTED| —     | —  | —      |
 | WP04 | UI Foundation/Shell         | claude/v08-wp04-ui-shell            | NOT STARTED| —     | —  | —      |
@@ -49,22 +49,13 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 
 ## Current Focus
 
-**WP00** in progress on branch `claude/v08-wp00-program-bootstrap`.
+**WP01 (recovery)** in progress on branch `claude/v08-wp01-toolchain-recovery`.
 
-WP00 scope: control docs, claude assets installation, execution-policy corrections, test ledger, CI foundations. No functional change.
+WP00 merged 2026-07-13 (PR #4). Recovery audit (branch `claude/taroke-v08-recovery-audit-ajf7b3`) is the canonical reference for phase decisions through WP05.
 
-WP00 gate (must all pass before merge):
-- [ ] 534 tests pass
-- [ ] v07 root unchanged
-- [ ] model policy is Sonnet 4.6 / medium throughout
-- [ ] program design authority unchanged
-- [ ] control documents complete
-- [ ] agent definitions validated and installed
-- [ ] hooks validated and installed
-- [ ] test ledger established
-- [ ] independent reviewer approves
-- [ ] PR merged
-- [ ] STATUS updated
+Original PRs #5–#9 are frozen pending recovery rebuilds. Do NOT merge them.
+
+WP01 recovery scope: workspace scaffold + CI with correct Playwright Chromium + verifier; deploy-to-main bot removed; no pre-built artifacts committed.
 
 ---
 
@@ -118,4 +109,4 @@ See `docs/v08/EVIDENCE_INDEX.md` for per-WP evidence records.
 
 ---
 
-*Last updated: WP00 initialization — 2026-07-13*
+*Last updated: WP00 merged (PR #4) — 2026-07-13*
