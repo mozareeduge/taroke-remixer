@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git tag -d v07.8-release-checkpoint*)"
+    ]
+  },
+  "hooks": {
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/teammate_gate.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
