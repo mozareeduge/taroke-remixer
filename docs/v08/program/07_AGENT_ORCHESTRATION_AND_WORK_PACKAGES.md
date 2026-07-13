@@ -2,7 +2,10 @@
 
 ## Operating model
 
-One strongest-model lead owns the program and uses a medium dynamic workflow or agent team.
+One claude-sonnet-4-6 lead owns the program and uses a medium dynamic workflow or agent team.
+
+**Execution policy (correction requested by Mohammad, recorded in docs/v08/DECISIONS.md D-001):**
+The complete program uses claude-sonnet-4-6 at medium effort throughout. No model escalation for architecture, review, debugging, compatibility, or release work. All custom agent definitions use `model: claude-sonnet-4-6` and `effort: medium`.
 
 The lead maintains:
 
