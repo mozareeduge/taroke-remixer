@@ -33,7 +33,7 @@ Rollback: how to revert
 **Branch:** claude/v08-wp00-program-bootstrap  
 **Status:** IN PROGRESS  
 
-**Commit:** 8bd5acf  
+**Commit:** c1d8855 (latest; adds verifier + corrects reviewer classification)  
 **Tests:** 534 passed, 0 failed (all 16 v07 suites — 14+38+35+16+10+5+50+28+19+30+51+3+32+16+76+111)  
 **Verifier:** `python3 scripts/verify_v07_baseline.py` (deterministic; parses per-suite counts; fails on any mismatch)  
 
