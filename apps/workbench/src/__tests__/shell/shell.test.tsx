@@ -97,9 +97,9 @@ describe("Workspace", () => {
     expect(screen.getByRole("main")).toBeInTheDocument();
   });
 
-  it("shows current panel id uppercased", () => {
+  it("shows the materials panel by default (BANKS heading)", () => {
     wrap(<Workspace />);
-    expect(screen.getByText("MATERIALS")).toBeInTheDocument();
+    expect(screen.getByText("BANKS")).toBeInTheDocument();
   });
 });
 
