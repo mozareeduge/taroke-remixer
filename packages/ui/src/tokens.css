@@ -1,0 +1,51 @@
+/* TAROKE RIMIXER v08 — Design Tokens */
+/* Archaeological modernism: dark field, monospaced, apparatus register */
+
+:root {
+  /* ── Surface / background ──────────────────────────────────────────────── */
+  --tr-bg:         #050604;
+  --tr-panel:      #11120d;
+  --tr-panel2:     #171811;
+  --tr-well:       #000000;
+  --tr-border:     #38362b;
+
+  /* ── Text ──────────────────────────────────────────────────────────────── */
+  --tr-text:       #f4ecd8;
+  --tr-muted:      #9d9277;
+  --tr-dim:        #5c5846;
+
+  /* ── Semantic state ────────────────────────────────────────────────────── */
+  --tr-accent:     #a7ff3f;  /* active / selected */
+  --tr-warn:       #ffb84d;  /* warning */
+  --tr-danger:     #ff5a2a;  /* danger / error */
+  --tr-stale:      #5c5846;  /* stale / disabled */
+  --tr-focus:      #7de7ff;  /* focus ring */
+
+  /* ── Semantic contexts ─────────────────────────────────────────────────── */
+  --tr-cue:        #a7ff3f;
+  --tr-surface-bg: #000000;
+
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --tr-font:       ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --tr-font-size:  13px;
+  --tr-line-height: 1.5;
+
+  /* ── Spacing ───────────────────────────────────────────────────────────── */
+  --tr-gap-xs: 4px;
+  --tr-gap-sm: 8px;
+  --tr-gap-md: 12px;
+  --tr-gap-lg: 20px;
+  --tr-gap-xl: 32px;
+
+  /* ── Borders ───────────────────────────────────────────────────────────── */
+  --tr-radius: 2px;
+  --tr-border-width: 1px;
+  --tr-border-color: var(--tr-border);
+
+  /* ── Component dimensions ──────────────────────────────────────────────── */
+  --tr-transport-h: 40px;
+  --tr-navigator-w: 180px;
+  --tr-inspector-w: 280px;
+  --tr-row-h: 28px;
+  --tr-row-h-lg: 36px;
+}
