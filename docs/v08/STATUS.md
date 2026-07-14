@@ -33,7 +33,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 | WP02 | Core/Schema Boundary (recovery) | claude/v08-wp02-core-schema-recovery | MERGED (#11) | 534 | #11 | 735bcaa |
 | WP03 | State/Commands/Undo (recovery) | claude/v08-wp03-state-commands-recovery | MERGED (#12+#13) | 152 | #12+#13 | 539c0fa+6810bd8 |
 | WP04 | UI Foundation/Shell (recovery) | claude/v08-wp04-ui-shell-recovery | MERGED (#14) | 152 | #14 | 5a64cef |
-| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | IN PROGRESS | 152 | TBD | — |
+| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | READY FOR MERGE | 166 | #15 | 1e514dc |
 | [A]  | Human Checkpoint A          | —                                   | AWAITING REVIEW | — | — | — |
 | WP06 | Materials                   | claude/v08-wp06-materials           | NOT STARTED| —     | —  | —      |
 | WP07 | Instruments                 | claude/v08-wp07-instruments         | NOT STARTED| —     | —  | —      |
@@ -52,7 +52,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 **Human Checkpoint A** — recovery program complete; awaiting Mohammad's verdict before WP06.
 
 WP00 merged 2026-07-13 (PR #4). WP01–WP04 all merged (PRs #10–#14). WP05 recovery branch
-in progress; will be READY FOR MERGE once PR is created.
+READY FOR MERGE as PR #15. Merge in order; do not begin WP06 before Checkpoint A verdict.
 
 **Do NOT merge WP05 or begin WP06 until Checkpoint A verdict is received.**
 
@@ -122,4 +122,4 @@ See `docs/v08/EVIDENCE_INDEX.md` for per-WP evidence records.
 
 ---
 
-*Last updated: WP05 recovery in progress; Human Checkpoint A AWAITING REVIEW — 2026-07-14*
+*Last updated: WP05 recovery READY FOR MERGE (PR #15); Human Checkpoint A AWAITING REVIEW — 2026-07-14*
