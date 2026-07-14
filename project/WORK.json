@@ -227,7 +227,7 @@
             "id": "TAROKE-WP04-RECOVER",
             "title": "Clean shell/design-foundation PR: IA, a11y, mobile, Storybook",
             "type": "implementation",
-            "status": "active",
+            "status": "complete",
             "depends_on": [
                 "TAROKE-WP03-RECOVER"
             ],
@@ -265,7 +265,7 @@
             "id": "TAROKE-WP05-COMPLETE",
             "title": "Complete vertical slice: full authored journey, deploy /next/",
             "type": "implementation",
-            "status": "planned",
+            "status": "active",
             "depends_on": [
                 "TAROKE-WP03-RECOVER",
                 "TAROKE-WP04-RECOVER"
