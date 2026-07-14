@@ -229,7 +229,7 @@
       "type": "implementation",
       "status": "active",
       "depends_on": [
-        "TAROKE-WP01-RECOVER"
+        "TAROKE-WP03-RECOVER"
       ],
       "authority": [
         "docs/v08/program/02_INFORMATION_AND_INTERACTION.md",
