@@ -61,21 +61,45 @@ RESULT_RE = re.compile(r"(\d+)\s+passed,\s+(\d+)\s+failed", re.IGNORECASE)
 
 def find_chromium():
     """Return the first usable Chromium binary path, or None."""
-    candidates = [
+    import glob, shutil
+
+    # 1. TAROKE_CHROMIUM_PATH — explicit binary path override
+    explicit = os.environ.get("TAROKE_CHROMIUM_PATH", "").strip()
+    if explicit and os.path.isfile(explicit) and os.access(explicit, os.X_OK):
+        return explicit
+
+    # 2. PLAYWRIGHT_BROWSERS_PATH — directory where Playwright stores browsers
+    pw_base = os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "").strip()
+    if pw_base and os.path.isdir(pw_base):
+        for pat in ["chromium*/chrome-linux/chrome", "chromium*/chrome"]:
+            matches = sorted(glob.glob(os.path.join(pw_base, pat)))
+            for m in matches:
+                if os.path.isfile(m) and os.access(m, os.X_OK):
+                    return m
+
+    # 3. Common default Playwright cache locations
+    home = os.path.expanduser("~")
+    for base in [f"{home}/.cache/ms-playwright", "/root/.cache/ms-playwright"]:
+        if os.path.isdir(base):
+            for pat in ["chromium*/chrome-linux/chrome", "chromium*/chrome"]:
+                matches = sorted(glob.glob(os.path.join(base, pat)))
+                for m in matches:
+                    if os.path.isfile(m) and os.access(m, os.X_OK):
+                        return m
+
+    # 4. Hardcoded container paths (this execution environment)
+    for c in [
         "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
         "/opt/pw-browsers/chromium/chrome-linux/chrome",
-        "chromium-browser",
-        "chromium",
-        "google-chrome",
-    ]
-    import shutil
-    for c in candidates:
-        if os.path.isabs(c):
-            if os.path.exists(c):
-                return c
-        else:
-            if shutil.which(c):
-                return c
+    ]:
+        if os.path.exists(c):
+            return c
+
+    # 5. System Chromium fallback (not recommended — apt version differs)
+    for c in ["chromium-browser", "chromium", "google-chrome"]:
+        if shutil.which(c):
+            return c
+
     return None
 
 

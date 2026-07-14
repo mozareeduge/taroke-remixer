@@ -24,9 +24,11 @@ jobs:
         run: pip3 install websocket-client requests
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
+      - name: Export Playwright Chromium binary path
+        run: |
+          CHROMIUM=$(find ~/.cache/ms-playwright -name "chrome" -maxdepth 5 -type f 2>/dev/null | sort | head -1 || true)
+          [ -n "$CHROMIUM" ] && echo "PLAYWRIGHT_BROWSERS_PATH=$(dirname $(dirname $(dirname $CHROMIUM)))" >> $GITHUB_ENV || true
       - name: Run v07 baseline (deterministic verifier)
-        env:
-          TAROKE_CHROMIUM_PATH: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
         run: python3 scripts/verify_v07_baseline.py
         timeout-minutes: 15
 
