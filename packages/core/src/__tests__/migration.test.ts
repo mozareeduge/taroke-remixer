@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { migrateProject, defaultProject, validateProject } from "../migration.js";
-import { SCHEMA_VERSION } from "@taroke/schema";
 
 describe("migrateProject", () => {
   it("returns a valid project from empty input", () => {
     const p = migrateProject({});
-    expect(p.schemaVersion).toBe(SCHEMA_VERSION);
+    // Literal assertion — ensures "0.7-reset" is the actual value, not just that constants match
+    expect(p.schemaVersion).toBe("0.7-reset");
     expect(p.materials.trays).toBeDefined();
     expect(p.lineDevices.length).toBeGreaterThan(0);
     expect(p.triggers.length).toBeGreaterThan(0);
@@ -94,6 +94,12 @@ describe("migrateProject", () => {
     expect(second.schemaVersion).toBe(first.schemaVersion);
     expect(second.materials.trays["above"]!.length).toBe(first.materials.trays["above"]!.length);
     expect(second.lineDevices.length).toBe(first.lineDevices.length);
+  });
+
+  it("preserves unknown top-level fields (unknown-field passthrough)", () => {
+    const input = { _author_custom: "keep-me", materials: { trays: { above: [] } } };
+    const result = migrateProject(input as Parameters<typeof migrateProject>[0]);
+    expect((result as Record<string, unknown>)._author_custom).toBe("keep-me");
   });
 
   it("merges importRepairs provenance across passes", () => {

@@ -3,12 +3,16 @@ import { exportProjectJson, exportProjectHtml, extractProjectFromText, downloadN
 import { defaultProject } from "../migration.js";
 
 describe("exportProjectJson / extractProjectFromText round-trip", () => {
-  it("round-trips JSON correctly", () => {
+  it("round-trips JSON correctly via extractProjectFromText", () => {
     const project = defaultProject();
     const json = exportProjectJson(project);
-    const parsed = JSON.parse(json);
-    expect(parsed.schemaVersion).toBe(project.schemaVersion);
-    expect(parsed.project.title).toBe(project.project.title);
+    const extracted = extractProjectFromText(json);
+    // Literal schema-version assertion — regression guard against reversion to "0.8.0"
+    expect(extracted.schemaVersion).toBe("0.7-reset");
+    expect(extracted.project.title).toBe(project.project.title);
+    expect(Object.keys(extracted.materials.trays)).toContain("above");
+    expect(extracted.lineDevices.length).toBeGreaterThan(0);
+    expect(extracted.triggers.length).toBeGreaterThan(0);
   });
 });
 
