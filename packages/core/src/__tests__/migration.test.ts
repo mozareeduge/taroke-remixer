@@ -99,7 +99,7 @@ describe("migrateProject", () => {
   it("preserves unknown top-level fields (unknown-field passthrough)", () => {
     const input = { _author_custom: "keep-me", materials: { trays: { above: [] } } };
     const result = migrateProject(input as Parameters<typeof migrateProject>[0]);
-    expect((result as Record<string, unknown>)._author_custom).toBe("keep-me");
+    expect((result as unknown as Record<string, unknown>)["_author_custom"]).toBe("keep-me");
   });
 
   it("merges importRepairs provenance across passes", () => {
