@@ -11,6 +11,7 @@ import runtimeReducer from "../../store/runtimeSlice.js";
 import historyReducer from "../../store/historySlice.js";
 import importReceiptReducer from "../../store/importReceiptSlice.js";
 import takesReducer from "../../store/takesSlice.js";
+import surfaceReducer from "../../store/surfaceSlice.js";
 import { MaterialsPanel } from "../../panels/MaterialsPanel.js";
 import { InstrumentsPanel } from "../../panels/InstrumentsPanel.js";
 import { CompositionPanel } from "../../panels/CompositionPanel.js";
@@ -28,6 +29,7 @@ function makeStore() {
       history: historyReducer,
       importReceipt: importReceiptReducer,
       takes: takesReducer,
+      surface: surfaceReducer,
     },
   });
 }
@@ -156,9 +158,10 @@ describe("PerformancePanel", () => {
     expect(screen.getByText("CUE")).toBeInTheDocument();
   });
 
-  it("renders Generate button", () => {
+  it("renders Audition button in Cue section", () => {
     wrap(<PerformancePanel />);
-    expect(screen.getByRole("button", { name: /Generate/ })).toBeInTheDocument();
+    // Cue has an Audition button (private preview, aria-label "Generate next event")
+    expect(screen.getByRole("button", { name: /Generate next event/i })).toBeInTheDocument();
   });
 
   it("renders SURFACE section heading", () => {
@@ -166,13 +169,39 @@ describe("PerformancePanel", () => {
     expect(screen.getByText("SURFACE")).toBeInTheDocument();
   });
 
-  it("clicking Generate produces output", () => {
+  it("clicking Cue Audition shows a Cue preview (line or breath)", () => {
     wrap(<PerformancePanel />);
-    fireEvent.click(screen.getByRole("button", { name: /Generate/ }));
-    // After generating, either UNMIX or a breath indicator should appear
-    const hasUnmix = screen.queryByText("UNMIX") !== null;
-    const hasBreath = screen.queryByText("— breath —") !== null;
-    expect(hasUnmix || hasBreath).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: /Generate next event/i }));
+    // After Cue audition: Cue section shows either a line preview or a breath marker
+    const hasCueLine = screen.queryByText(/tr-cue__line/) !== null
+      || document.querySelector(".tr-cue__line") !== null
+      || document.querySelector(".tr-cue__breath") !== null
+      || screen.queryByText("— breath —") !== null
+      || screen.queryByRole("status") !== null
+      || !!document.querySelector(".tr-cue__output");
+    expect(hasCueLine).toBe(true);
+  });
+
+  // REGRESSION: Cue is a private audition — it must never append to Surface history.
+  it("REGRESSION: Cue Generate does not append to Surface history", () => {
+    wrap(<PerformancePanel />);
+    // Surface starts empty
+    expect(screen.getByText("Generate events to see surface output.")).toBeInTheDocument();
+    // Click Cue Generate multiple times to ensure we get at least one line event
+    for (let i = 0; i < 6; i++) {
+      fireEvent.click(screen.getByRole("button", { name: /Generate next event/i }));
+    }
+    // Surface MUST still show the empty placeholder — Cue is private audition
+    expect(screen.getByText("Generate events to see surface output.")).toBeInTheDocument();
+  });
+
+  // REGRESSION: Surface must have its own separate generate/run action.
+  it("REGRESSION: Surface has its own generate action separate from Cue", () => {
+    wrap(<PerformancePanel />);
+    // Surface has a "Generate ▶" button with aria-label distinguishing it from Cue
+    const surfaceGenBtn = screen.queryByRole("button", { name: /Surface: generate/i })
+      ?? screen.queryByLabelText(/Surface: generate/i);
+    expect(surfaceGenBtn).not.toBeNull();
   });
 });
 

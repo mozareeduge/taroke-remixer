@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { recordEvent } from "../store/runtimeSlice.js";
 import { captureTake, clearTakes, removeTake } from "../store/takesSlice.js";
+import { appendSurfaceLine, clearSurface } from "../store/surfaceSlice.js";
 import { generateEvent } from "@taroke/core";
 import type { TarokeEvent, LineEvent, RunState } from "@taroke/schema";
 
@@ -9,38 +10,49 @@ export function PerformancePanel() {
   const dispatch = useAppDispatch();
   const project = useAppSelector((s) => s.project.present);
   const runState = useAppSelector((s) => s.runtime.runState);
-  // Store-backed takes — persist across panel navigation
   const takes = useAppSelector((s) => s.takes.takes);
+  // Store-backed Surface history
+  const surfaceLines = useAppSelector((s) => s.surface.lines);
 
-  const [surfaceLines, setSurfaceLines] = useState<string[]>([]);
-  const [currentEvent, setCurrentEvent] = useState<TarokeEvent | null>(null);
-  // Only the queue is held locally; tick/scene/stanza come from Redux runState.
-  const localQueue = useRef<RunState["queue"]>([...runState.queue]);
+  // Cue: private audition state — never written to Surface or Takes
+  const [cueEvent, setCueEvent] = useState<TarokeEvent | null>(null);
+  const cueQueueRef = useRef<RunState["queue"]>([...runState.queue]);
 
-  function doGenerate() {
-    // Build state from Redux (tick/scene/stanza) + local queue filtered to current devices.
-    const knownDeviceIds = new Set(project.lineDevices.map((d) => d.id));
-    const safeQueue = localQueue.current.filter(
-      (entry) => entry.type !== "device" || !entry.deviceId || knownDeviceIds.has(entry.deviceId),
+  // Surface: the committed event shown in UNMIX, persists across Cue clicks
+  const [surfaceEvent, setSurfaceEvent] = useState<TarokeEvent | null>(null);
+  const surfaceQueueRef = useRef<RunState["queue"]>([...runState.queue]);
+
+  // Build a safe queue filtered to known devices
+  function safeQueue(queue: RunState["queue"]): RunState["queue"] {
+    const knownIds = new Set(project.lineDevices.map((d) => d.id));
+    return queue.filter(
+      (entry) => entry.type !== "device" || !entry.deviceId || knownIds.has(entry.deviceId),
     );
-    const state: Partial<RunState> = { ...runState, queue: safeQueue };
+  }
+
+  // CUE — private audition: previews next event WITHOUT committing to Surface or advancing tick
+  function doCueAudition() {
+    const state: Partial<RunState> = { ...runState, queue: safeQueue(cueQueueRef.current) };
     const ev = generateEvent(project, state);
-    // Advance the local queue to whatever generateEvent left in state.queue
-    localQueue.current = state.queue ?? [];
+    cueQueueRef.current = state.queue ?? [];
+    setCueEvent(ev);
+  }
+
+  // SURFACE — committed generation: advances tick, appends to store-backed Surface history
+  function doSurfaceGenerate() {
+    const state: Partial<RunState> = { ...runState, queue: safeQueue(surfaceQueueRef.current) };
+    const ev = generateEvent(project, state);
+    surfaceQueueRef.current = state.queue ?? [];
     dispatch(recordEvent(ev));
-    setCurrentEvent(ev);
+    setSurfaceEvent(ev);
     if (ev.type === "line" && ev.surface) {
-      setSurfaceLines((prev) => {
-        const next = [...prev, ev.surface];
-        const retention = project.surface?.retention ?? 28;
-        return next.slice(-retention);
-      });
+      dispatch(appendSurfaceLine(ev.surface));
     }
   }
 
   function doCaptureTake() {
-    if (!currentEvent || currentEvent.type !== "line") return;
-    const ev = currentEvent as LineEvent;
+    if (!surfaceEvent || surfaceEvent.type !== "line") return;
+    const ev = surfaceEvent as LineEvent;
     dispatch(captureTake({
       id: `take_${Date.now()}`,
       tick: ev.tick,
@@ -51,60 +63,74 @@ export function PerformancePanel() {
     }));
   }
 
-  const lineEvent = currentEvent?.type === "line" ? (currentEvent as LineEvent) : null;
+  const cueLineEvent = cueEvent?.type === "line" ? (cueEvent as LineEvent) : null;
+  const surfaceLineEvent = surfaceEvent?.type === "line" ? (surfaceEvent as LineEvent) : null;
 
   return (
     <div className="tr-panel tr-panel--performance">
       <div className="tr-panel__main">
 
-        {/* CUE */}
+        {/* CUE — private audition; never writes to Surface */}
         <section className="tr-perf__section" aria-labelledby="cue-head">
           <div id="cue-head" className="tr-panel__section-head">CUE</div>
           <div className="tr-cue">
             <button
               className="tr-btn tr-btn--primary tr-cue__generate"
-              onClick={doGenerate}
+              onClick={doCueAudition}
               aria-label="Generate next event"
             >
-              Generate ▶
+              Audition ▶
             </button>
-            {currentEvent && (
+            {cueEvent && (
               <div
-                className={["tr-cue__output", currentEvent.type === "breath" ? "tr-cue__output--breath" : ""].filter(Boolean).join(" ")}
+                className={["tr-cue__output", cueEvent.type === "breath" ? "tr-cue__output--breath" : ""].filter(Boolean).join(" ")}
                 aria-live="polite"
                 aria-atomic="true"
               >
-                {currentEvent.type === "breath" ? (
+                {cueEvent.type === "breath" ? (
                   <span className="tr-cue__breath" role="status">— breath —</span>
-                ) : lineEvent ? (
-                  <p className="tr-cue__line">{lineEvent.surface}</p>
+                ) : cueLineEvent ? (
+                  <p className="tr-cue__line">{cueLineEvent.surface}</p>
                 ) : null}
               </div>
             )}
           </div>
         </section>
 
-        {/* SURFACE */}
+        {/* SURFACE — store-backed history; has its own generate action */}
         <section className="tr-perf__section" aria-labelledby="surface-head">
           <div id="surface-head" className="tr-panel__section-head">
             SURFACE
-            <button className="tr-btn tr-btn--ghost tr-btn--sm" onClick={() => setSurfaceLines([])}>
+            <button
+              className="tr-btn tr-btn--ghost tr-btn--sm"
+              onClick={() => dispatch(clearSurface())}
+              aria-label="Clear surface history"
+            >
               Clear
+            </button>
+          </div>
+          <div className="tr-surface__controls">
+            <button
+              className="tr-btn tr-btn--secondary tr-surface__generate"
+              onClick={doSurfaceGenerate}
+              aria-label="Surface: generate and record next event"
+            >
+              Generate ▶
             </button>
           </div>
           <div className="tr-surface" aria-live="polite" aria-label="Surface output stream">
             {surfaceLines.length === 0 ? (
               <p className="tr-panel__empty">Generate events to see surface output.</p>
             ) : (
-              surfaceLines.map((line, i) => (
+              surfaceLines.map((line: string, i: number) => (
                 <p key={i} className="tr-surface__line">{line}</p>
               ))
             )}
           </div>
         </section>
 
-        {/* UNMIX */}
-        {lineEvent && (
+        {/* UNMIX — provenance for most recent Surface event */}
+        {surfaceLineEvent && (
           <section className="tr-perf__section" aria-labelledby="unmix-head">
             <div id="unmix-head" className="tr-panel__section-head">
               UNMIX
@@ -120,13 +146,13 @@ export function PerformancePanel() {
               <tbody>
                 <tr className="tr-table__row">
                   <th scope="row" className="tr-table__th tr-table__th--label">Device</th>
-                  <td className="tr-table__td">{lineEvent.deviceName}</td>
+                  <td className="tr-table__td">{surfaceLineEvent.deviceName}</td>
                 </tr>
                 <tr className="tr-table__row">
                   <th scope="row" className="tr-table__th tr-table__th--label">Route</th>
-                  <td className="tr-table__td">{lineEvent.route}</td>
+                  <td className="tr-table__td">{surfaceLineEvent.route}</td>
                 </tr>
-                {lineEvent.consumedInputs.map((ci) => (
+                {surfaceLineEvent.consumedInputs.map((ci) => (
                   <tr key={ci.slot} className="tr-table__row">
                     <th scope="row" className="tr-table__th tr-table__th--label">{ci.slot} / {ci.tray}</th>
                     <td className="tr-table__td">
@@ -136,17 +162,17 @@ export function PerformancePanel() {
                     </td>
                   </tr>
                 ))}
-                {lineEvent.trigger && (
+                {surfaceLineEvent.trigger && (
                   <tr className="tr-table__row">
                     <th scope="row" className="tr-table__th tr-table__th--label">Trigger</th>
                     <td className="tr-table__td">
-                      {lineEvent.trigger.name} → {lineEvent.trigger.type}: {lineEvent.trigger.text}
+                      {surfaceLineEvent.trigger.name} → {surfaceLineEvent.trigger.type}: {surfaceLineEvent.trigger.text}
                     </td>
                   </tr>
                 )}
                 <tr className="tr-table__row">
                   <th scope="row" className="tr-table__th tr-table__th--label">Surface</th>
-                  <td className="tr-table__td tr-table__td--surface">{lineEvent.surface}</td>
+                  <td className="tr-table__td tr-table__td--surface">{surfaceLineEvent.surface}</td>
                 </tr>
               </tbody>
             </table>

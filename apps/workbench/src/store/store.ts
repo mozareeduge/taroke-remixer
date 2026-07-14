@@ -11,6 +11,7 @@ import runtimeReducer from "./runtimeSlice.js";
 import historyReducer from "./historySlice.js";
 import importReceiptReducer from "./importReceiptSlice.js";
 import takesReducer from "./takesSlice.js";
+import surfaceReducer from "./surfaceSlice.js";
 import { autosaveMiddleware } from "./autosave.js";
 import { undoMiddleware } from "./undoMiddleware.js";
 
@@ -23,6 +24,7 @@ export const store = configureStore({
     history: historyReducer,
     importReceipt: importReceiptReducer,
     takes: takesReducer,
+    surface: surfaceReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
