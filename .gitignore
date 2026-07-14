@@ -6,6 +6,7 @@ tests/fixtures/acceptance_*.taroke.json
 tests/fixtures/real_*.taroke.json
 
 # v08 workspace build artifacts
+next/
 node_modules/
 apps/workbench/dist/
 apps/workbench/.vite/
