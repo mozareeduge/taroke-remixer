@@ -1,0 +1,76 @@
+/* TAROKE RIMIXER v08 — Design Tokens */
+/* Archaeological modernism: dark field, monospaced, apparatus register */
+
+:root {
+  /* ── Surface / background ──────────────────────────────────────────────── */
+  --tr-bg:         #050604;
+  --tr-panel:      #11120d;
+  --tr-panel2:     #171811;
+  --tr-well:       #000000;
+  --tr-border:     #38362b;
+
+  /* ── Text ──────────────────────────────────────────────────────────────── */
+  --tr-text:       #f4ecd8;
+  --tr-muted:      #9d9277;
+  --tr-dim:        #857f67;  /* AA: ~5:1 on --tr-bg */
+
+  /* ── Semantic state ────────────────────────────────────────────────────── */
+  --tr-accent:     #a7ff3f;  /* active / selected */
+  --tr-warn:       #ffb84d;  /* warning */
+  --tr-danger:     #ff5a2a;  /* danger / error */
+  --tr-stale:      #857f67;  /* stale / disabled — AA: ~5:1 on --tr-bg */
+  --tr-focus:      #7de7ff;  /* focus ring */
+
+  /* ── Semantic contexts ─────────────────────────────────────────────────── */
+  --tr-cue:        #a7ff3f;
+  --tr-surface-bg: #000000;
+
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --tr-font:       ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --tr-font-size:  13px;
+  --tr-line-height: 1.5;
+
+  /* ── Spacing ───────────────────────────────────────────────────────────── */
+  --tr-gap-xs: 4px;
+  --tr-gap-sm: 8px;
+  --tr-gap-md: 12px;
+  --tr-gap-lg: 20px;
+  --tr-gap-xl: 32px;
+
+  /* ── Borders ───────────────────────────────────────────────────────────── */
+  --tr-radius: 2px;
+  --tr-border-width: 1px;
+  --tr-border-color: var(--tr-border);
+
+  /* ── Component dimensions ──────────────────────────────────────────────── */
+  --tr-transport-h: 40px;
+  --tr-navigator-w: 180px;
+  --tr-inspector-w: 280px;
+  --tr-row-h: 28px;
+  --tr-row-h-lg: 36px;
+}
+
+/* ── Global accessibility resets ──────────────────────────────────────────── */
+/* Wire --tr-focus token to the browser's keyboard-navigation indicator */
+:focus-visible {
+  outline: 2px solid var(--tr-focus);
+  outline-offset: 2px;
+}
+
+/* Skip-nav link: visually hidden until keyboard-focused (WCAG 2.4.1) */
+.tr-skip-nav {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--tr-panel);
+  color: var(--tr-focus);
+  font-family: var(--tr-font);
+  font-size: var(--tr-font-size);
+  text-decoration: none;
+  outline: 2px solid var(--tr-focus);
+}
+.tr-skip-nav:focus {
+  top: 0;
+}
