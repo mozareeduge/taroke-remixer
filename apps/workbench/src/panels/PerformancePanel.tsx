@@ -14,12 +14,19 @@ export function PerformancePanel() {
 
   const [surfaceLines, setSurfaceLines] = useState<string[]>([]);
   const [currentEvent, setCurrentEvent] = useState<TarokeEvent | null>(null);
-  const localRunState = useRef<Partial<RunState>>({ ...runState, queue: [...runState.queue] });
+  // Only the queue is held locally; tick/scene/stanza come from Redux runState.
+  const localQueue = useRef<RunState["queue"]>([...runState.queue]);
 
   function doGenerate() {
-    const state = localRunState.current;
+    // Build state from Redux (tick/scene/stanza) + local queue filtered to current devices.
+    const knownDeviceIds = new Set(project.lineDevices.map((d) => d.id));
+    const safeQueue = localQueue.current.filter(
+      (entry) => entry.type !== "device" || !entry.deviceId || knownDeviceIds.has(entry.deviceId),
+    );
+    const state: Partial<RunState> = { ...runState, queue: safeQueue };
     const ev = generateEvent(project, state);
-    state.tick = (state.tick ?? 0) + 1;
+    // Advance the local queue to whatever generateEvent left in state.queue
+    localQueue.current = state.queue ?? [];
     dispatch(recordEvent(ev));
     setCurrentEvent(ev);
     if (ev.type === "line" && ev.surface) {

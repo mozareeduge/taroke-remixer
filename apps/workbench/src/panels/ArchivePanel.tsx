@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { setProject } from "../store/projectSlice.js";
 import { exportProjectJson, exportProjectHtml, extractProjectFromText, downloadName } from "@taroke/core";
@@ -17,6 +17,7 @@ export function ArchivePanel() {
   const dispatch = useAppDispatch();
   const project = useAppSelector((s) => s.project.present);
   const importRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   function doExportJson() {
     download(downloadName(project, ".taroke.json"), exportProjectJson(project), "application/json");
@@ -27,6 +28,7 @@ export function ArchivePanel() {
   }
 
   function doImport(file: File) {
+    setImportError(null);
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = String(e.target?.result ?? "");
@@ -34,8 +36,12 @@ export function ArchivePanel() {
         const imported = extractProjectFromText(text);
         dispatch(setProject(imported));
       } catch (err) {
-        console.error("Import failed:", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        setImportError(`Could not import "${file.name}": ${msg}`);
       }
+    };
+    reader.onerror = () => {
+      setImportError(`Could not read "${file.name}".`);
     };
     reader.readAsText(file);
   }
@@ -74,6 +80,11 @@ export function ArchivePanel() {
             Import .taroke.json or .taroke.html
           </button>
           <p className="tr-archive__desc">Replaces the current project. Undo is available.</p>
+          {importError && (
+            <p className="tr-archive__error" role="alert" aria-live="assertive">
+              {importError}
+            </p>
+          )}
         </div>
 
         <div className="tr-panel__section-head">PROJECT INFO</div>
