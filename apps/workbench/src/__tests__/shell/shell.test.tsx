@@ -156,4 +156,20 @@ describe("AppShell", () => {
     fireEvent.click(reopenBtn); // reopen
     expect(screen.getByRole("navigation")).toBeInTheDocument();
   });
+
+  it("skip-nav link is the first link and points to #tr-main-content (a11y WCAG 2.4.1)", () => {
+    wrap(<AppShell />);
+    const skipLink = screen.getByText("Skip to main content");
+    expect(skipLink.tagName).toBe("A");
+    expect(skipLink).toHaveAttribute("href", "#tr-main-content");
+    // Must be before the Transport banner in DOM order
+    const banner = screen.getByRole("banner");
+    expect(banner.compareDocumentPosition(skipLink) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  });
+
+  it("main landmark has id=tr-main-content for skip-nav target", () => {
+    wrap(<AppShell />);
+    const main = screen.getByRole("main");
+    expect(main).toHaveAttribute("id", "tr-main-content");
+  });
 });
