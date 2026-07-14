@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "claude/v08-*"]
+  pull_request:
+    branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── v07 baseline ──────────────────────────────────────────────
+  v07-baseline:
+    name: v07 baseline (534 tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Python test deps
+        run: pip3 install websocket-client requests
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Export Playwright Chromium binary path
+        run: |
+          CHROMIUM=$(find ~/.cache/ms-playwright -name "chrome" -maxdepth 5 -type f 2>/dev/null | sort | head -1 || true)
+          [ -n "$CHROMIUM" ] && echo "PLAYWRIGHT_BROWSERS_PATH=$(dirname $(dirname $(dirname $CHROMIUM)))" >> $GITHUB_ENV || true
+      - name: Run v07 baseline (deterministic verifier)
+        run: python3 scripts/verify_v07_baseline.py
+        timeout-minutes: 15
+
+  # ── v08 typecheck ─────────────────────────────────────────────
+  v08-typecheck:
+    name: v08 TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Typecheck all packages
+        run: npm run typecheck
+
+  # ── v08 unit tests ────────────────────────────────────────────
+  v08-unit:
+    name: v08 unit tests (Vitest)
+    runs-on: ubuntu-latest
+    needs: v08-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Run unit tests
+        run: npm run test:workbench
+
+  # ── v08 build ─────────────────────────────────────────────────
+  v08-build-next:
+    name: v08 build /next/
+    runs-on: ubuntu-latest
+    needs: v08-unit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Build /next/
+        run: npm run build:next
+      - name: Upload /next/ artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: next/
+          retention-days: 7
+
+  # ── v08 E2E (Chromium) ────────────────────────────────────────
+  v08-e2e-chromium:
+    name: v08 E2E Chromium
+    runs-on: ubuntu-latest
+    needs: v08-build-next
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/workbench
+      - name: Download /next/ build
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: next/
+      - name: Run E2E (Chromium)
+        run: npm run test:e2e -- --project=chromium
+        working-directory: apps/workbench

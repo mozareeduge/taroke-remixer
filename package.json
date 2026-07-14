@@ -3,8 +3,17 @@
   "version": "0.7.8",
   "private": true,
   "type": "commonjs",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "test": "bash tests/run_all_tests.sh",
-    "test:core": "node tests/run_core_tests.js"
+    "test:core": "node tests/run_core_tests.js",
+    "test:workbench": "npm run test --workspace=apps/workbench",
+    "test:e2e": "npm run test:e2e --workspace=apps/workbench",
+    "build:next": "npm run build --workspace=apps/workbench",
+    "storybook": "npm run storybook --workspace=apps/workbench",
+    "typecheck": "npm run typecheck --workspaces --if-present"
   }
 }
