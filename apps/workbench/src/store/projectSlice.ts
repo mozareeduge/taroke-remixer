@@ -27,16 +27,18 @@ const projectSlice = createSlice({
       state.isDirty = false;
     },
 
-    // Apply a pre-computed command result (with patches for undo history)
+    // Apply a pre-computed command result (with patches for undo history).
+    // Set skipHistory: true when dispatching from undo/redo to prevent re-entry
+    // into the undoMiddleware recording path.
     mutateProject: {
       reducer(
         state,
-        action: PayloadAction<{ present: TarokeProject; label: string; patches: unknown[]; inversePatches: unknown[] }>,
+        action: PayloadAction<{ present: TarokeProject; label: string; patches: unknown[]; inversePatches: unknown[]; skipHistory?: boolean }>,
       ) {
         state.present = action.payload.present;
         state.isDirty = true;
       },
-      prepare(payload: { label: string; present: TarokeProject; patches: unknown[]; inversePatches: unknown[] }) {
+      prepare(payload: { label: string; present: TarokeProject; patches: unknown[]; inversePatches: unknown[]; skipHistory?: boolean }) {
         return { payload };
       },
     },

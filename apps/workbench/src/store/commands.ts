@@ -1,6 +1,4 @@
-import { produceWithPatches, enablePatches, type Patch } from "immer";
-
-enablePatches();
+import { produceWithPatches, type Patch } from "immer";
 import { uid } from "@taroke/core";
 import type { TarokeProject, Token, LineDevice, Route, StanzaPattern, StanzaSlot, FlowScene, Trigger, DeviceInput } from "@taroke/schema";
 

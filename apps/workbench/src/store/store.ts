@@ -1,8 +1,10 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { enablePatches } from "immer";
-// Must be called before any reducer or middleware that uses Immer patches
-enablePatches();
 import projectReducer from "./projectSlice.js";
+// enablePatches() runs at module-body time (after all imports resolve),
+// which is before any Redux action is dispatched. This is the single
+// authoritative call — commands.ts must not duplicate it.
+enablePatches();
 import selectionReducer from "./selectionSlice.js";
 import editorReducer from "./editorSlice.js";
 import runtimeReducer from "./runtimeSlice.js";
