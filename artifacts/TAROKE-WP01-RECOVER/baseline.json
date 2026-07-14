@@ -1,0 +1,31 @@
+{
+  "timestamp": "2026-07-14T14:05:00+00:00",
+  "task": "TAROKE-WP01-RECOVER",
+  "baseline_tag": "v07.8-release-checkpoint",
+  "baseline_sha": "f7183f01",
+  "merge_sha": "be91655e",
+  "verifier": "python3 scripts/verify_v07_baseline.py",
+  "result": {
+    "total_passed": 534,
+    "total_failed": 0,
+    "gate": "PASS"
+  },
+  "suites": [
+    {"label": "run_core_tests",                 "passed": 14,  "failed": 0, "expected": 14,  "verdict": "OK"},
+    {"label": "run_core_extended_tests",        "passed": 38,  "failed": 0, "expected": 38,  "verdict": "OK"},
+    {"label": "run_import_fidelity_tests",      "passed": 35,  "failed": 0, "expected": 35,  "verdict": "OK"},
+    {"label": "run_trigger_compatibility",      "passed": 3,   "failed": 0, "expected": 3,   "verdict": "OK"},
+    {"label": "run_trigger_runtime_parity_js",  "passed": 32,  "failed": 0, "expected": 32,  "verdict": "OK"},
+    {"label": "run_browser_functional_cdp",     "passed": 16,  "failed": 0, "expected": 16,  "verdict": "OK"},
+    {"label": "run_user_notes_regression_cdp",  "passed": 10,  "failed": 0, "expected": 10,  "verdict": "OK"},
+    {"label": "run_route_template_regression",  "passed": 5,   "failed": 0, "expected": 5,   "verdict": "OK"},
+    {"label": "run_cdp_deep_qa",                "passed": 50,  "failed": 0, "expected": 50,  "verdict": "OK"},
+    {"label": "run_a11y_cdp",                   "passed": 28,  "failed": 0, "expected": 28,  "verdict": "OK"},
+    {"label": "run_autosave_cdp",               "passed": 19,  "failed": 0, "expected": 19,  "verdict": "OK"},
+    {"label": "run_import_fidelity_cdp",        "passed": 30,  "failed": 0, "expected": 30,  "verdict": "OK"},
+    {"label": "run_interaction_continuity_cdp", "passed": 51,  "failed": 0, "expected": 51,  "verdict": "OK"},
+    {"label": "run_trigger_runtime_parity_cdp", "passed": 16,  "failed": 0, "expected": 16,  "verdict": "OK"},
+    {"label": "run_live_preview_cdp",           "passed": 76,  "failed": 0, "expected": 76,  "verdict": "OK"},
+    {"label": "run_docs_verification",          "passed": 111, "failed": 0, "expected": 111, "verdict": "OK"}
+  ]
+}

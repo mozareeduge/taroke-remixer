@@ -95,7 +95,7 @@
       "id": "TAROKE-WP01-RECOVER",
       "title": "Clean toolchain/CI PR from current main",
       "type": "implementation",
-      "status": "active",
+      "status": "complete",
       "depends_on": [
         "TAROKE-WP00-CERTIFY"
       ],
@@ -145,7 +145,7 @@
       "id": "TAROKE-WP02-RECOVER",
       "title": "Clean core/schema PR: typed models, migration, import receipt, parity",
       "type": "implementation",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "TAROKE-WP01-RECOVER"
       ],
@@ -227,7 +227,7 @@
       "id": "TAROKE-WP04-RECOVER",
       "title": "Clean shell/design-foundation PR: IA, a11y, mobile, Storybook",
       "type": "implementation",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "TAROKE-WP01-RECOVER"
       ],
