@@ -95,7 +95,7 @@
       "id": "TAROKE-WP01-RECOVER",
       "title": "Clean toolchain/CI PR from current main",
       "type": "implementation",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "TAROKE-WP00-CERTIFY"
       ],
