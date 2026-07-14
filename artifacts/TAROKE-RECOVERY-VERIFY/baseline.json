@@ -1,0 +1,31 @@
+{
+  "verified_at": "2026-07-14",
+  "branch": "claude/project-loom-install-l3glrq",
+  "sha": "410f32e",
+  "chromium": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+  "prerequisite": "pip install websocket-client requests (missing in environment; installed during verification)",
+  "result": "GATE PASSED",
+  "total_passed": 534,
+  "total_failed": 0,
+  "expected_passed": 534,
+  "expected_failed": 0,
+  "suites": [
+    {"name": "run_core_tests", "passed": 14, "failed": 0},
+    {"name": "run_core_extended_tests", "passed": 38, "failed": 0},
+    {"name": "run_import_fidelity_tests", "passed": 35, "failed": 0},
+    {"name": "run_trigger_compatibility", "passed": 3, "failed": 0},
+    {"name": "run_trigger_runtime_parity_js", "passed": 32, "failed": 0},
+    {"name": "run_browser_functional_cdp", "passed": 16, "failed": 0},
+    {"name": "run_user_notes_regression_cdp", "passed": 10, "failed": 0},
+    {"name": "run_route_template_regression", "passed": 5, "failed": 0},
+    {"name": "run_cdp_deep_qa", "passed": 50, "failed": 0},
+    {"name": "run_a11y_cdp", "passed": 28, "failed": 0},
+    {"name": "run_autosave_cdp", "passed": 19, "failed": 0},
+    {"name": "run_import_fidelity_cdp", "passed": 30, "failed": 0},
+    {"name": "run_interaction_continuity_cdp", "passed": 51, "failed": 0},
+    {"name": "run_trigger_runtime_parity_cdp", "passed": 16, "failed": 0},
+    {"name": "run_live_preview_cdp", "passed": 76, "failed": 0},
+    {"name": "run_docs_verification", "passed": 111, "failed": 0}
+  ],
+  "note": "websocket-client and requests must be pre-installed; verifier uses /opt/pw-browsers path (hardcoded). CI environment must also install these deps and configure Playwright Chromium path correctly."
+}

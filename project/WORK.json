@@ -5,7 +5,7 @@
       "id": "TAROKE-RECOVERY-VERIFY",
       "title": "Reconcile real repository state — branches, PRs, CI, tests, deployment",
       "type": "verification",
-      "status": "ready",
+      "status": "complete",
       "depends_on": [],
       "authority": [
         "project/BRIEF.md",
@@ -20,7 +20,11 @@
           "artifacts/**",
           "scripts/**"
         ],
-        "exclude": ["src/**", "index.html", "styles.css"]
+        "exclude": [
+          "src/**",
+          "index.html",
+          "styles.css"
+        ]
       },
       "deliverables": [
         "artifacts/TAROKE-RECOVERY-VERIFY/summary.md",
@@ -28,44 +32,73 @@
         "artifacts/TAROKE-RECOVERY-VERIFY/baseline.json"
       ],
       "verification": [
-        {"kind": "command", "value": "python scripts/loom.py validate"},
-        {"kind": "file", "value": "artifacts/TAROKE-RECOVERY-VERIFY/summary.md"}
+        {
+          "kind": "command",
+          "value": "python scripts/loom.py validate"
+        },
+        {
+          "kind": "file",
+          "value": "artifacts/TAROKE-RECOVERY-VERIFY/summary.md"
+        }
       ],
       "review_required": false,
       "human_checkpoint": false,
-      "notes": "Read-only verification. Do not merge during this task. Write full evidence under artifacts/TAROKE-RECOVERY-VERIFY/."
+      "notes": "Read-only verification. Do not merge during this task. Write full evidence under artifacts/TAROKE-RECOVERY-VERIFY/.",
+      "evidence": [
+        "artifacts/TAROKE-RECOVERY-VERIFY/baseline.json",
+        "artifacts/TAROKE-RECOVERY-VERIFY/branches.json",
+        "artifacts/TAROKE-RECOVERY-VERIFY/summary.md"
+      ]
     },
     {
       "id": "TAROKE-WP00-CERTIFY",
       "title": "Certify WP00 merged; integrate Loom without duplicating v08 program",
       "type": "verification",
-      "status": "planned",
-      "depends_on": ["TAROKE-RECOVERY-VERIFY"],
+      "status": "complete",
+      "depends_on": [
+        "TAROKE-RECOVERY-VERIFY"
+      ],
       "authority": [
         "docs/v08/STATUS.md",
         "docs/v08/EVIDENCE_INDEX.md",
         "docs/v08/program/07_AGENT_ORCHESTRATION_AND_WORK_PACKAGES.md"
       ],
       "scope": {
-        "include": ["project/**", "scripts/**", ".claude/**", "artifacts/**"]
+        "include": [
+          "project/**",
+          "scripts/**",
+          ".claude/**",
+          "artifacts/**"
+        ]
       },
       "deliverables": [
         "artifacts/TAROKE-WP00-CERTIFY/summary.md"
       ],
       "verification": [
-        {"kind": "command", "value": "python scripts/loom.py validate"},
-        {"kind": "command", "value": "python3 scripts/verify_v07_baseline.py"}
+        {
+          "kind": "command",
+          "value": "python scripts/loom.py validate"
+        },
+        {
+          "kind": "command",
+          "value": "python3 scripts/verify_v07_baseline.py"
+        }
       ],
       "review_required": false,
       "human_checkpoint": false,
-      "notes": "Verify WP00 actually merged to main. Retain 534/0. No production behavior change."
+      "notes": "Verify WP00 actually merged to main. Retain 534/0. No production behavior change.",
+      "evidence": [
+        "artifacts/TAROKE-WP00-CERTIFY/summary.md"
+      ]
     },
     {
       "id": "TAROKE-WP01-RECOVER",
       "title": "Clean toolchain/CI PR from current main",
       "type": "implementation",
       "status": "planned",
-      "depends_on": ["TAROKE-WP00-CERTIFY"],
+      "depends_on": [
+        "TAROKE-WP00-CERTIFY"
+      ],
       "authority": [
         "docs/v08/program/04_TECHNICAL_ARCHITECTURE.md",
         "docs/v08/program/06_TEST_AND_QA_STRATEGY.md",
@@ -74,19 +107,35 @@
       ],
       "scope": {
         "include": [
-          "apps/**", "packages/**", ".github/**",
-          "package.json", "tsconfig*.json", "vite.config.*",
-          "playwright.config.*", "vitest.config.*"
+          "apps/**",
+          "packages/**",
+          ".github/**",
+          "package.json",
+          "tsconfig*.json",
+          "vite.config.*",
+          "playwright.config.*",
+          "vitest.config.*"
         ],
-        "exclude": ["src/**", "index.html", "styles.css", "docs/v08/program/**"]
+        "exclude": [
+          "src/**",
+          "index.html",
+          "styles.css",
+          "docs/v08/program/**"
+        ]
       },
       "deliverables": [
         "artifacts/TAROKE-WP01-RECOVER/summary.md",
         "artifacts/TAROKE-WP01-RECOVER/baseline.json"
       ],
       "verification": [
-        {"kind": "command", "value": "python3 scripts/verify_v07_baseline.py"},
-        {"kind": "review", "value": "independent review of toolchain PR"}
+        {
+          "kind": "command",
+          "value": "python3 scripts/verify_v07_baseline.py"
+        },
+        {
+          "kind": "review",
+          "value": "independent review of toolchain PR"
+        }
       ],
       "review_required": true,
       "human_checkpoint": false,
@@ -97,7 +146,9 @@
       "title": "Clean core/schema PR: typed models, migration, import receipt, parity",
       "type": "implementation",
       "status": "planned",
-      "depends_on": ["TAROKE-WP01-RECOVER"],
+      "depends_on": [
+        "TAROKE-WP01-RECOVER"
+      ],
       "authority": [
         "docs/v08/program/01_PRODUCT_AND_DOMAIN_MODEL.md",
         "docs/v08/program/04_TECHNICAL_ARCHITECTURE.md",
@@ -106,18 +157,31 @@
       ],
       "scope": {
         "include": [
-          "packages/schema/**", "packages/core/**",
-          "packages/artifact-runtime/**", "packages/fixtures/**"
+          "packages/schema/**",
+          "packages/core/**",
+          "packages/artifact-runtime/**",
+          "packages/fixtures/**"
         ],
-        "exclude": ["src/**", "index.html", "styles.css", "docs/v08/program/**"]
+        "exclude": [
+          "src/**",
+          "index.html",
+          "styles.css",
+          "docs/v08/program/**"
+        ]
       },
       "deliverables": [
         "artifacts/TAROKE-WP02-RECOVER/summary.md",
         "artifacts/TAROKE-WP02-RECOVER/parity.json"
       ],
       "verification": [
-        {"kind": "command", "value": "python3 scripts/verify_v07_baseline.py"},
-        {"kind": "review", "value": "compatibility review: schema, migration, parity"}
+        {
+          "kind": "command",
+          "value": "python3 scripts/verify_v07_baseline.py"
+        },
+        {
+          "kind": "review",
+          "value": "compatibility review: schema, migration, parity"
+        }
       ],
       "review_required": true,
       "human_checkpoint": false,
@@ -128,21 +192,32 @@
       "title": "Clean state/commands PR: Redux, undo/redo, autosave, v07 import path",
       "type": "implementation",
       "status": "planned",
-      "depends_on": ["TAROKE-WP02-RECOVER"],
+      "depends_on": [
+        "TAROKE-WP02-RECOVER"
+      ],
       "authority": [
         "docs/v08/program/04_TECHNICAL_ARCHITECTURE.md",
         "docs/v08/program/05_COMPATIBILITY_AND_MIGRATION.md",
         "docs/v08/program/06_TEST_AND_QA_STRATEGY.md"
       ],
       "scope": {
-        "include": ["apps/workbench/store/**", "apps/workbench/commands/**"]
+        "include": [
+          "apps/workbench/store/**",
+          "apps/workbench/commands/**"
+        ]
       },
       "deliverables": [
         "artifacts/TAROKE-WP03-RECOVER/summary.md"
       ],
       "verification": [
-        {"kind": "command", "value": "python3 scripts/verify_v07_baseline.py"},
-        {"kind": "review", "value": "adversarial review: undo/redo, autosave coexistence, import transaction"}
+        {
+          "kind": "command",
+          "value": "python3 scripts/verify_v07_baseline.py"
+        },
+        {
+          "kind": "review",
+          "value": "adversarial review: undo/redo, autosave coexistence, import transaction"
+        }
       ],
       "review_required": true,
       "human_checkpoint": false,
@@ -153,7 +228,9 @@
       "title": "Clean shell/design-foundation PR: IA, a11y, mobile, Storybook",
       "type": "implementation",
       "status": "planned",
-      "depends_on": ["TAROKE-WP01-RECOVER"],
+      "depends_on": [
+        "TAROKE-WP01-RECOVER"
+      ],
       "authority": [
         "docs/v08/program/02_INFORMATION_AND_INTERACTION.md",
         "docs/v08/program/03_VISUAL_SYSTEM.md",
@@ -161,15 +238,24 @@
         "docs/v08/program/08_EXPERIENCE_ACCEPTANCE.md"
       ],
       "scope": {
-        "include": ["packages/ui/**", "apps/workbench/shell/**"]
+        "include": [
+          "packages/ui/**",
+          "apps/workbench/shell/**"
+        ]
       },
       "deliverables": [
         "artifacts/TAROKE-WP04-RECOVER/summary.md",
         "artifacts/TAROKE-WP04-RECOVER/a11y.json"
       ],
       "verification": [
-        {"kind": "command", "value": "python3 scripts/verify_v07_baseline.py"},
-        {"kind": "review", "value": "design-conformance and a11y review"}
+        {
+          "kind": "command",
+          "value": "python3 scripts/verify_v07_baseline.py"
+        },
+        {
+          "kind": "review",
+          "value": "design-conformance and a11y review"
+        }
       ],
       "review_required": true,
       "human_checkpoint": false,
@@ -180,7 +266,10 @@
       "title": "Complete vertical slice: full authored journey, deploy /next/",
       "type": "implementation",
       "status": "planned",
-      "depends_on": ["TAROKE-WP03-RECOVER", "TAROKE-WP04-RECOVER"],
+      "depends_on": [
+        "TAROKE-WP03-RECOVER",
+        "TAROKE-WP04-RECOVER"
+      ],
       "authority": [
         "docs/v08/program/00_MASTER_CHARTER.md",
         "docs/v08/program/01_PRODUCT_AND_DOMAIN_MODEL.md",
@@ -190,7 +279,11 @@
         "docs/v08/program/12_HUMAN_CHECKPOINTS.md"
       ],
       "scope": {
-        "include": ["apps/**", "packages/**", ".github/**"]
+        "include": [
+          "apps/**",
+          "packages/**",
+          ".github/**"
+        ]
       },
       "deliverables": [
         "artifacts/TAROKE-WP05-COMPLETE/summary.md",
@@ -200,11 +293,26 @@
         "docs/v08/HUMAN_CHECKPOINT_A.md"
       ],
       "verification": [
-        {"kind": "command", "value": "python3 scripts/verify_v07_baseline.py"},
-        {"kind": "review", "value": "complete journey on Chromium, Firefox, WebKit"},
-        {"kind": "review", "value": "7-viewport screenshots"},
-        {"kind": "review", "value": "axe no serious/critical; focus-visible; skip-nav; contrast AA"},
-        {"kind": "review", "value": "novice, expert, mobile/accessibility reviews P0/P1 fixed"}
+        {
+          "kind": "command",
+          "value": "python3 scripts/verify_v07_baseline.py"
+        },
+        {
+          "kind": "review",
+          "value": "complete journey on Chromium, Firefox, WebKit"
+        },
+        {
+          "kind": "review",
+          "value": "7-viewport screenshots"
+        },
+        {
+          "kind": "review",
+          "value": "axe no serious/critical; focus-visible; skip-nav; contrast AA"
+        },
+        {
+          "kind": "review",
+          "value": "novice, expert, mobile/accessibility reviews P0/P1 fixed"
+        }
       ],
       "review_required": true,
       "human_checkpoint": false,
@@ -215,16 +323,23 @@
       "title": "Human Checkpoint A — Mohammad reviews and verdicts on /next/",
       "type": "checkpoint",
       "status": "planned",
-      "depends_on": ["TAROKE-WP05-COMPLETE"],
+      "depends_on": [
+        "TAROKE-WP05-COMPLETE"
+      ],
       "authority": [
         "docs/v08/program/12_HUMAN_CHECKPOINTS.md"
       ],
-      "scope": {"include": []},
+      "scope": {
+        "include": []
+      },
       "deliverables": [
         "docs/v08/HUMAN_CHECKPOINT_A.md"
       ],
       "verification": [
-        {"kind": "file", "value": "docs/v08/HUMAN_CHECKPOINT_A.md"}
+        {
+          "kind": "file",
+          "value": "docs/v08/HUMAN_CHECKPOINT_A.md"
+        }
       ],
       "review_required": false,
       "human_checkpoint": true,

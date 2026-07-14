@@ -1,0 +1,64 @@
+{
+  "verified_at": "2026-07-14",
+  "main": {
+    "sha": "b3eca6b8d248b9642e12f7aaa98bbfbec7d515e5",
+    "description": "WP00 merged + post-merge STATUS update",
+    "v07_baseline": "534/0 PASS (verified locally with websocket-client installed)"
+  },
+  "tag": {
+    "name": "v07.8-release-checkpoint",
+    "sha": "f7183f01037bf963612d4b56561d3b8cdde306b5",
+    "status": "present"
+  },
+  "recovery_branches": {
+    "claude/v08-wp01-toolchain-recovery": {
+      "sha": "54b04e885f60233d63b580673af4763335327a68",
+      "base": "fdd5130e1e04ef657ea40f5c0fb3e3a504a061c9",
+      "based_on_current_main": false,
+      "pr": "#10 OPEN/DRAFT",
+      "pr_base_correct": true,
+      "independent_review": false,
+      "ci_known_issue": "TAROKE_CHROMIUM_PATH env var not read by verifier — apt fallback in CI"
+    },
+    "claude/v08-wp02-core-schema-recovery": {
+      "sha": "0fa99fc456e678ee42b6c6a817ec7f9b9e4f93c2",
+      "base": "fdd5130e1e04ef657ea40f5c0fb3e3a504a061c9",
+      "based_on_current_main": false,
+      "stacked_on": "v08-wp01-toolchain-recovery",
+      "pr": "NONE",
+      "independent_review": false
+    },
+    "claude/v08-wp03-state-commands-recovery": {
+      "sha": "0f8351aac4e4f36b0743a01430631390c6d46767",
+      "base": "fdd5130e1e04ef657ea40f5c0fb3e3a504a061c9",
+      "based_on_current_main": false,
+      "stacked_on": "v08-wp02-core-schema-recovery",
+      "pr": "NONE",
+      "independent_review": false
+    },
+    "claude/v08-wp04-ui-shell-recovery": {
+      "sha": "d2eb59654140e99aa6249aa4248539dbd00fef2a",
+      "base": "fdd5130e1e04ef657ea40f5c0fb3e3a504a061c9",
+      "based_on_current_main": false,
+      "stacked_on": "v08-wp03-state-commands-recovery",
+      "pr": "NONE",
+      "independent_review": false
+    },
+    "claude/v08-wp05-vertical-slice-recovery": {
+      "sha": "7788bf6e3b991ff041351d68c1d9be1f442fdd2c",
+      "base": "fdd5130e1e04ef657ea40f5c0fb3e3a504a061c9",
+      "based_on_current_main": false,
+      "stacked_on": "v08-wp04-ui-shell-recovery",
+      "pr": "NONE",
+      "checkpoint_a_doc": "present on this branch (docs/v08/HUMAN_CHECKPOINT_A.md)",
+      "independent_review": "reported but not verified with fresh evidence"
+    }
+  },
+  "original_prs": {
+    "#5": "CLOSED (superseded by #10) — 2026-07-13",
+    "#6": "OPEN/DRAFT — WP02 original stale stack — needs closing",
+    "#7": "OPEN/DRAFT — WP03 original stale stack — needs closing",
+    "#8": "OPEN/DRAFT — WP04 original stale stack — needs closing",
+    "#9": "OPEN/DRAFT — WP05 original stale stack — needs closing"
+  }
+}
