@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { enablePatches } from "immer";
+// commands.ts uses produceWithPatches; patches plugin must be activated before any call
+enablePatches();
 import {
   setProjectTitle,
   addToken,
