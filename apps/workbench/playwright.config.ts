@@ -9,11 +9,35 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"], executablePath: process.env["CHROMIUM_PATH"] ?? "/opt/pw-browsers/chromium" } },
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
-    { name: "webkit", use: { ...devices["Desktop Safari"] } },
-    { name: "mobile-portrait", use: { ...devices["iPhone 14"] } },
-    { name: "mobile-landscape", use: { ...devices["iPhone 14 landscape"] } },
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        // /opt/pw-browsers/chromium is a symlink to the pre-installed Chromium binary
+        executablePath: process.env["CHROMIUM_PATH"] ?? "/opt/pw-browsers/chromium",
+        channel: undefined,
+      },
+    },
+    // Firefox and WebKit are not available in this CI environment (chromium only)
+    // { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    // { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    // Mobile viewports via Chromium device emulation (Pixel 5 = Android, 393×851 portrait)
+    {
+      name: "mobile-portrait",
+      use: {
+        ...devices["Pixel 5"],
+        executablePath: process.env["CHROMIUM_PATH"] ?? "/opt/pw-browsers/chromium",
+        channel: undefined,
+      },
+    },
+    {
+      name: "mobile-landscape",
+      use: {
+        ...devices["Pixel 5 landscape"],
+        executablePath: process.env["CHROMIUM_PATH"] ?? "/opt/pw-browsers/chromium",
+        channel: undefined,
+      },
+    },
   ],
   webServer: {
     command: "npm run preview --workspace=apps/workbench",
