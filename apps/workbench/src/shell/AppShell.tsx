@@ -12,6 +12,10 @@ export function AppShell() {
 
   return (
     <div className="tr-shell">
+      {/* Skip-nav: first focusable element; visually hidden until focused (a11y WCAG 2.4.1) */}
+      <a href="#tr-main-content" className="tr-skip-nav">
+        Skip to main content
+      </a>
       <Transport />
       <div className="tr-shell__body">
         <button

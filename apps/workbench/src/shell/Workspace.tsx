@@ -4,7 +4,7 @@ export function Workspace() {
   const activePanel = useAppSelector((s) => s.editor.activePanel);
 
   return (
-    <main className="tr-workspace" aria-label="Workspace">
+    <main id="tr-main-content" className="tr-workspace" aria-label="Workspace">
       <div className="tr-workspace__inner">
         <span className="tr-workspace__panel-id">{activePanel.toUpperCase()}</span>
         <p className="tr-workspace__placeholder">

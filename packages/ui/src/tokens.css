@@ -12,13 +12,13 @@
   /* ── Text ──────────────────────────────────────────────────────────────── */
   --tr-text:       #f4ecd8;
   --tr-muted:      #9d9277;
-  --tr-dim:        #5c5846;
+  --tr-dim:        #857f67;  /* AA: ~5:1 on --tr-bg */
 
   /* ── Semantic state ────────────────────────────────────────────────────── */
   --tr-accent:     #a7ff3f;  /* active / selected */
   --tr-warn:       #ffb84d;  /* warning */
   --tr-danger:     #ff5a2a;  /* danger / error */
-  --tr-stale:      #5c5846;  /* stale / disabled */
+  --tr-stale:      #857f67;  /* stale / disabled — AA: ~5:1 on --tr-bg */
   --tr-focus:      #7de7ff;  /* focus ring */
 
   /* ── Semantic contexts ─────────────────────────────────────────────────── */
@@ -48,4 +48,29 @@
   --tr-inspector-w: 280px;
   --tr-row-h: 28px;
   --tr-row-h-lg: 36px;
+}
+
+/* ── Global accessibility resets ──────────────────────────────────────────── */
+/* Wire --tr-focus token to the browser's keyboard-navigation indicator */
+:focus-visible {
+  outline: 2px solid var(--tr-focus);
+  outline-offset: 2px;
+}
+
+/* Skip-nav link: visually hidden until keyboard-focused (WCAG 2.4.1) */
+.tr-skip-nav {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--tr-panel);
+  color: var(--tr-focus);
+  font-family: var(--tr-font);
+  font-size: var(--tr-font-size);
+  text-decoration: none;
+  outline: 2px solid var(--tr-focus);
+}
+.tr-skip-nav:focus {
+  top: 0;
 }
