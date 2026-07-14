@@ -1,0 +1,35 @@
+{
+  "project": {
+    "id": "taroke-rimixer-v08",
+    "name": "TAROKE RIMIXER v08 Rebuild",
+    "kind": "mixed",
+    "repository": "mozareeduge/taroke-remixer"
+  },
+  "model": {
+    "name": "claude-sonnet-4-6",
+    "effort": "medium"
+  },
+  "context": {
+    "state_token_target": 1800,
+    "standard_pack_budget": 9000,
+    "deep_pack_budget": 16000,
+    "review_pack_budget": 9000,
+    "worker_return_budget": 1000
+  },
+  "execution": {
+    "continue_across_ready_tasks": true,
+    "default_review_required": true,
+    "stop_only_at": [
+      "human_checkpoint",
+      "hard_blocker"
+    ]
+  },
+  "evidence_root": "artifacts",
+  "authority_files": [
+    "project/BRIEF.md",
+    "project/AUTHORITY.md",
+    "docs/v08/program/00_MASTER_CHARTER.md",
+    "docs/v08/STATUS.md",
+    "docs/v08/EXECUTION_DAG.md"
+  ]
+}
