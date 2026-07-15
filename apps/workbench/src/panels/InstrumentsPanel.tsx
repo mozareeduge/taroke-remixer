@@ -290,15 +290,14 @@ export function InstrumentsPanel() {
                   key={rt.id}
                   className={["tr-route", primary?.type === "route" && primary.routeId === rt.id ? "tr-route--selected" : ""].filter(Boolean).join(" ")}
                 >
-                  <div
-                    className="tr-route__header"
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={primary?.type === "route" && primary.routeId === rt.id}
-                    onClick={() => dispatch(selectRoute({ deviceId: activeDevice.id, routeId: rt.id }))}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") dispatch(selectRoute({ deviceId: activeDevice.id, routeId: rt.id })); }}
-                  >
-                    <span className="tr-route__name">{rt.name}</span>
+                  <div className="tr-route__header">
+                    <button
+                      className="tr-btn tr-btn--ghost tr-route__select-btn"
+                      aria-pressed={primary?.type === "route" && primary.routeId === rt.id}
+                      onClick={() => dispatch(selectRoute({ deviceId: activeDevice.id, routeId: rt.id }))}
+                    >
+                      <span className="tr-route__name">{rt.name}</span>
+                    </button>
                     <input
                       type="number"
                       className="tr-input tr-input--num"
@@ -306,13 +305,12 @@ export function InstrumentsPanel() {
                       min={0}
                       max={999}
                       onChange={(e) => dispatch(mutateProject(setRouteWeight(project, activeDevice.id, rt.id, Number(e.target.value))))}
-                      onClick={(e) => e.stopPropagation()}
                       aria-label={`Weight for route ${rt.name}`}
                     />
                     <button
                       className="tr-btn tr-btn--icon"
                       aria-label={`Remove route ${rt.name}`}
-                      onClick={(e) => { e.stopPropagation(); dispatch(mutateProject(removeRoute(project, activeDevice.id, rt.id))); }}
+                      onClick={() => dispatch(mutateProject(removeRoute(project, activeDevice.id, rt.id)))}
                     >✕</button>
                   </div>
                   <div className="tr-route__editor">

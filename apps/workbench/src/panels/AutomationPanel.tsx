@@ -43,16 +43,18 @@ export function AutomationPanel() {
             <div
               key={tr.id}
               className={["tr-trigger", primary?.type === "trigger" && primary.triggerId === tr.id ? "tr-trigger--selected" : ""].filter(Boolean).join(" ")}
-              onClick={() => dispatch(selectTrigger(tr.id))}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") dispatch(selectTrigger(tr.id)); }}
             >
               <div className="tr-trigger__header">
-                <span className="tr-trigger__name">{tr.name}</span>
+                <button
+                  className="tr-btn tr-btn--ghost tr-trigger__select-btn"
+                  aria-pressed={primary?.type === "trigger" && primary.triggerId === tr.id}
+                  onClick={() => dispatch(selectTrigger(tr.id))}
+                >
+                  <span className="tr-trigger__name">{tr.name}</span>
+                </button>
                 <button
                   className={["tr-btn tr-btn--ghost tr-btn--sm", tr.enabled ? "" : "tr-btn--dim"].filter(Boolean).join(" ")}
-                  onClick={(e) => { e.stopPropagation(); dispatch(mutateProject(toggleTriggerEnabled(project, tr.id))); }}
+                  onClick={() => dispatch(mutateProject(toggleTriggerEnabled(project, tr.id)))}
                   aria-label={`${tr.enabled ? "Disable" : "Enable"} trigger ${tr.name}`}
                 >
                   {tr.enabled ? "ON" : "OFF"}
@@ -60,13 +62,13 @@ export function AutomationPanel() {
                 <button
                   className="tr-btn tr-btn--icon"
                   aria-label={`Remove trigger ${tr.name}`}
-                  onClick={(e) => { e.stopPropagation(); dispatch(mutateProject(removeTrigger(project, tr.id))); }}
+                  onClick={() => dispatch(mutateProject(removeTrigger(project, tr.id)))}
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="tr-trigger__row" onClick={(e) => e.stopPropagation()}>
+              <div className="tr-trigger__row">
                 <span className="tr-trigger__label">WHEN</span>
                 <select
                   className="tr-select"
@@ -98,7 +100,7 @@ export function AutomationPanel() {
                 <span className="tr-trigger__pct">%</span>
               </div>
 
-              <div className="tr-trigger__row" onClick={(e) => e.stopPropagation()}>
+              <div className="tr-trigger__row">
                 <span className="tr-trigger__label">THEN</span>
                 <select
                   className="tr-select"

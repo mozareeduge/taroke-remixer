@@ -199,12 +199,14 @@ export function CompositionPanel() {
                 <div
                   key={sc.id}
                   className={["tr-scene", primary?.type === "scene" && primary.sceneId === sc.id ? "tr-scene--selected" : ""].filter(Boolean).join(" ")}
-                  onClick={() => dispatch(selectScene(sc.id))}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") dispatch(selectScene(sc.id)); }}
                 >
-                  <span className="tr-scene__name">{sc.name}</span>
+                  <button
+                    className="tr-btn tr-btn--ghost tr-scene__select-btn"
+                    aria-pressed={primary?.type === "scene" && primary.sceneId === sc.id}
+                    onClick={() => dispatch(selectScene(sc.id))}
+                  >
+                    <span className="tr-scene__name">{sc.name}</span>
+                  </button>
                   <input
                     type="number"
                     className="tr-input tr-input--num"
@@ -212,20 +214,19 @@ export function CompositionPanel() {
                     min={0}
                     max={100}
                     onChange={(e) => dispatch(mutateProject(setSceneChance(project, sc.id, Number(e.target.value))))}
-                    onClick={(e) => e.stopPropagation()}
                     aria-label={`Chance for scene ${sc.name}`}
                   />
                   <span className="tr-scene__mode">{sc.mode}</span>
                   <button
                     className={["tr-btn tr-btn--ghost tr-btn--sm", sc.enabled ? "" : "tr-btn--dim"].filter(Boolean).join(" ")}
-                    onClick={(e) => { e.stopPropagation(); dispatch(mutateProject(toggleSceneEnabled(project, sc.id))); }}
+                    onClick={() => dispatch(mutateProject(toggleSceneEnabled(project, sc.id)))}
                   >
                     {sc.enabled ? "ON" : "OFF"}
                   </button>
                   <button
                     className="tr-btn tr-btn--icon"
                     aria-label={`Remove scene ${sc.name}`}
-                    onClick={(e) => { e.stopPropagation(); dispatch(mutateProject(removeFlowScene(project, sc.id))); }}
+                    onClick={() => dispatch(mutateProject(removeFlowScene(project, sc.id)))}
                   >
                     ✕
                   </button>
