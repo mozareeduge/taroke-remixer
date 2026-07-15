@@ -249,7 +249,7 @@ describe("surfaceSlice", () => {
 // ── takesSlice ─────────────────────────────────────────────────────────────────
 
 describe("takesSlice", () => {
-  const sampleTake = { id: "t1", label: "Take 1", surface: "walked the gorge", eventType: "line" as const };
+  const sampleTake = { id: "t1", tick: 3, surface: "walked the gorge", trace: "PATH>above>rock", deviceName: "PATH", route: "r1" };
 
   it("initial state has empty takes", () => {
     const state = takesReducer(undefined, { type: "@@INIT" });
@@ -259,8 +259,8 @@ describe("takesSlice", () => {
   it("captureTake appends to takes with capturedAt timestamp", () => {
     const state = takesReducer(undefined, captureTake(sampleTake));
     expect(state.takes).toHaveLength(1);
-    expect(state.takes[0].label).toBe("Take 1");
-    expect(state.takes[0].capturedAt).toBeDefined();
+    expect(state.takes[0]?.surface).toBe("walked the gorge");
+    expect(state.takes[0]?.capturedAt).toBeDefined();
   });
 
   it("removeTake removes by id", () => {
