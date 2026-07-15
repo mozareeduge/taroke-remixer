@@ -53,6 +53,7 @@ export function AutomationPanel() {
                 <button
                   className={["tr-btn tr-btn--ghost tr-btn--sm", tr.enabled ? "" : "tr-btn--dim"].filter(Boolean).join(" ")}
                   onClick={(e) => { e.stopPropagation(); dispatch(mutateProject(toggleTriggerEnabled(project, tr.id))); }}
+                  aria-label={`${tr.enabled ? "Disable" : "Enable"} trigger ${tr.name}`}
                 >
                   {tr.enabled ? "ON" : "OFF"}
                 </button>

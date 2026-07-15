@@ -186,6 +186,7 @@ export function PerformancePanel() {
               TAKES
               <button
                 className="tr-btn tr-btn--ghost tr-btn--sm"
+                aria-label="Clear all takes"
                 onClick={() => dispatch(clearTakes())}
               >
                 Clear all

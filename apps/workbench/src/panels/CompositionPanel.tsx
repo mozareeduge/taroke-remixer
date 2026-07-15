@@ -103,12 +103,14 @@ export function CompositionPanel() {
               <button
                 className="tr-btn tr-btn--ghost tr-btn--sm"
                 onClick={() => dispatch(mutateProject(toggleStanzaEnabled(project, activeStanza.id)))}
+                aria-label={`${activeStanza.enabled ? "Disable" : "Enable"} ${activeStanza.name}`}
               >
                 {activeStanza.enabled ? "Enabled" : "Disabled"}
               </button>
               <button
                 className="tr-btn tr-btn--ghost tr-btn--sm"
                 onClick={() => dispatch(mutateProject(removeStanzaPattern(project, activeStanza.id)))}
+                aria-label={`Remove ${activeStanza.name}`}
               >
                 Remove
               </button>

@@ -78,6 +78,7 @@ export function InstrumentsPanel() {
               <button
                 className={["tr-btn tr-btn--ghost tr-btn--sm", activeDevice.enabled ? "" : "tr-btn--dim"].filter(Boolean).join(" ")}
                 onClick={() => dispatch(mutateProject(toggleDeviceEnabled(project, activeDevice.id)))}
+                aria-label={`${activeDevice.enabled ? "Disable" : "Enable"} ${activeDevice.name}`}
               >
                 {activeDevice.enabled ? "Enabled" : "Disabled"}
               </button>
