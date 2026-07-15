@@ -111,13 +111,15 @@ def banner(title):
     print("=" * width)
 
 
-def run_suite(label, cmd, expected_count, timeout_s=300):
+def run_suite(label, cmd, expected_count, timeout_s=300, extra_env=None):
     """
     Run one suite.  Return (passed, failed, skipped_reason).
     skipped_reason is None on normal execution.
     """
     print(f"\n── {label} ", end="", flush=True)
     env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
     try:
         result = subprocess.run(
             cmd,
@@ -201,7 +203,8 @@ def main():
             gate_ok = False
             continue
 
-        p, f, skip_reason = run_suite(label, cmd, expected)
+        extra = {"TAROKE_CHROMIUM_PATH": chromium} if (is_browser and chromium) else None
+        p, f, skip_reason = run_suite(label, cmd, expected, extra_env=extra)
 
         if skip_reason:
             suite_rows.append((label, None, None, expected, f"ERROR: {skip_reason}"))
