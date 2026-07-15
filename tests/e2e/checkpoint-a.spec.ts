@@ -566,17 +566,18 @@ test("28 — Composition: Move to start and Move to end buttons are present and 
   const endCount = await toEndBtns.count();
   expect(startCount + endCount, "Expected Move to start/end buttons for slots").toBeGreaterThan(0);
 
-  // If there are 3+ slots, click Move to end on the first slot — it should become last
+  // Default stanza must have 3+ slots for Move-to-end to produce a verifiable change
   const slotLabels = page.locator(".tr-slot__type");
   const totalSlots = await slotLabels.count();
-  if (totalSlots >= 3) {
-    const firstLabel = await slotLabels.first().textContent();
-    const enabledToEnd = toEndBtns.filter({ hasNot: page.locator("[disabled]") }).first();
-    await enabledToEnd.click();
-    await page.waitForTimeout(200);
-    const newLastLabel = await slotLabels.last().textContent();
-    expect(newLastLabel, "Move to end should place slot at last position").toBe(firstLabel);
-  }
+  expect(totalSlots, "Need ≥3 slots to verify Move to end").toBeGreaterThanOrEqual(3);
+
+  // Click Move to end on the first slot — it should become last
+  const firstLabel = await slotLabels.first().textContent();
+  const enabledToEnd = toEndBtns.filter({ hasNot: page.locator("[disabled]") }).first();
+  await enabledToEnd.click();
+  await page.waitForTimeout(200);
+  const newLastLabel = await slotLabels.last().textContent();
+  expect(newLastLabel, "Move to end should place slot at last position").toBe(firstLabel);
 });
 
 // ── 29. Instruments: device input slot is editable ───────────────────────────
@@ -586,25 +587,20 @@ test("29 — Instruments: device input fields are editable", async ({ page }) =>
   await clickNav(page, "Instruments");
   await expect(page.getByText("DEVICES").first()).toBeVisible();
 
-  // PATH device should be auto-selected and has inputs
+  // PATH device is auto-selected and always has inputs in the default project
   const slotInputs = page.locator("[data-input-slot]");
-  const count = await slotInputs.count();
-  if (count === 0) {
-    // Device has no inputs — verify + Input button is present for adding
-    const addInputBtn = page.getByRole("button", { name: /\+ Input/i });
-    await expect(addInputBtn).toBeVisible();
-    return;
-  }
+  // Fail hard if no editable inputs — the feature must be present
+  await expect(slotInputs.first()).toBeVisible({ timeout: 3000 });
+  expect(await slotInputs.count(), "Expected editable slot inputs for PATH device").toBeGreaterThan(0);
 
-  // Edit the first slot name
+  // Edit the first slot name — typing multiple characters must not lose focus (stable key fix)
   const firstSlot = slotInputs.first();
   const original = await firstSlot.inputValue();
   await firstSlot.fill("edited-slot");
-  await firstSlot.dispatchEvent("change");
   await page.waitForTimeout(200);
+  // Input must retain the full value (not just the last character, which would indicate key-remount)
   await expect(firstSlot).toHaveValue("edited-slot");
 
   // Revert
   await firstSlot.fill(original);
-  await firstSlot.dispatchEvent("change");
 });

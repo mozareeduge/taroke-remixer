@@ -103,14 +103,14 @@ export function InstrumentsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {activeDevice.inputs.map((inp) => (
-                  <tr key={inp.slot} className="tr-table__row">
+                {activeDevice.inputs.map((inp, inputIdx) => (
+                  <tr key={inputIdx} className="tr-table__row">
                     <td className="tr-table__td">
                       <input
                         className="tr-input tr-input--mono"
                         value={inp.slot}
                         onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.slot, { slot: e.target.value })))}
-                        aria-label={`Slot name for input ${inp.slot}`}
+                        aria-label="Slot name"
                         data-input-slot={inp.slot}
                       />
                     </td>
@@ -119,7 +119,7 @@ export function InstrumentsPanel() {
                         className="tr-select tr-select--sm"
                         value={inp.tray}
                         onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.slot, { tray: e.target.value })))}
-                        aria-label={`Bank for input ${inp.slot}`}
+                        aria-label="Bank"
                       >
                         {Object.keys(project.materials.trays).map((b) => (
                           <option key={b} value={b}>{project.materials.bankMeta[b]?.label ?? b}</option>
@@ -131,7 +131,7 @@ export function InstrumentsPanel() {
                         className="tr-input"
                         value={inp.role}
                         onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.slot, { role: e.target.value })))}
-                        aria-label={`Role for input ${inp.slot}`}
+                        aria-label="Role"
                       />
                     </td>
                     <td className="tr-table__td tr-table__td--action">
