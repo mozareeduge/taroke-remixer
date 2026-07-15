@@ -289,13 +289,15 @@ export function InstrumentsPanel() {
                 <div
                   key={rt.id}
                   className={["tr-route", primary?.type === "route" && primary.routeId === rt.id ? "tr-route--selected" : ""].filter(Boolean).join(" ")}
-                  onClick={() => dispatch(selectRoute({ deviceId: activeDevice.id, routeId: rt.id }))}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") dispatch(selectRoute({ deviceId: activeDevice.id, routeId: rt.id })); }}
-                  aria-pressed={primary?.type === "route" && primary.routeId === rt.id}
                 >
-                  <div className="tr-route__header">
+                  <div
+                    className="tr-route__header"
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={primary?.type === "route" && primary.routeId === rt.id}
+                    onClick={() => dispatch(selectRoute({ deviceId: activeDevice.id, routeId: rt.id }))}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") dispatch(selectRoute({ deviceId: activeDevice.id, routeId: rt.id })); }}
+                  >
                     <span className="tr-route__name">{rt.name}</span>
                     <input
                       type="number"
