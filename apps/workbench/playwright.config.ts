@@ -1,22 +1,23 @@
 import { defineConfig, devices } from "@playwright/test";
 import { existsSync } from "fs";
 
-// In CI, Playwright installs its own browser (chromium headless shell).
-// In local dev (remote session), use the pre-installed binary from /opt/pw-browsers.
-// The pre-installed binary is Playwright 1.47 era so requires headless:false to avoid
-// the headless-shell binary lookup that 1.61+ does for default headless mode.
-const localChromium = "/opt/pw-browsers/chromium";
+// Chromium resolution strategy:
+// 1. CHROMIUM_PATH env var — explicit path (CI or manual override)
+// 2. /opt/pw-browsers/chromium_headless_shell-1194 — pre-installed headless shell (rev 1194)
+//    compatible with Playwright's default headless mode
+// 3. Playwright's own downloaded headless shell (CI after npx playwright install)
+const localHeadlessShell = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
 const chromiumPath: string | undefined =
-  process.env["CHROMIUM_PATH"] ?? (existsSync(localChromium) ? localChromium : undefined);
+  process.env["CHROMIUM_PATH"] ??
+  (existsSync(localHeadlessShell) ? localHeadlessShell : undefined);
 
-// When using the local pre-installed binary, run non-headless (Xvfb/DISPLAY required).
-// When in CI (chromiumPath undefined), let Playwright use its downloaded headless shell.
+// Use headless mode (default) with executablePath so the pre-installed binary works.
+// In CI, chromiumPath is undefined and Playwright uses its own downloaded headless shell.
 const chromiumOverride = chromiumPath
   ? {
       executablePath: chromiumPath,
       channel: undefined as undefined,
-      headless: false as false,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
     }
   : {};
 
