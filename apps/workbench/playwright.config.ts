@@ -1,4 +1,24 @@
 import { defineConfig, devices } from "@playwright/test";
+import { existsSync } from "fs";
+
+// In CI, Playwright installs its own browser (chromium headless shell).
+// In local dev (remote session), use the pre-installed binary from /opt/pw-browsers.
+// The pre-installed binary is Playwright 1.47 era so requires headless:false to avoid
+// the headless-shell binary lookup that 1.61+ does for default headless mode.
+const localChromium = "/opt/pw-browsers/chromium";
+const chromiumPath: string | undefined =
+  process.env["CHROMIUM_PATH"] ?? (existsSync(localChromium) ? localChromium : undefined);
+
+// When using the local pre-installed binary, run non-headless (Xvfb/DISPLAY required).
+// When in CI (chromiumPath undefined), let Playwright use its downloaded headless shell.
+const chromiumOverride = chromiumPath
+  ? {
+      executablePath: chromiumPath,
+      channel: undefined as undefined,
+      headless: false as false,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    }
+  : {};
 
 export default defineConfig({
   testDir: "../../tests/e2e",
@@ -11,37 +31,22 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: {
-        ...devices["Desktop Chrome"],
-        // /opt/pw-browsers/chromium is a symlink to the pre-installed Chromium binary
-        executablePath: process.env["CHROMIUM_PATH"] ?? "/opt/pw-browsers/chromium",
-        channel: undefined,
-      },
+      use: { ...devices["Desktop Chrome"], ...chromiumOverride },
     },
-    // Firefox and WebKit are not available in this CI environment (chromium only)
-    // { name: "firefox", use: { ...devices["Desktop Firefox"] } },
-    // { name: "webkit", use: { ...devices["Desktop Safari"] } },
-    // Mobile viewports via Chromium device emulation (Pixel 5 = Android, 393×851 portrait)
     {
       name: "mobile-portrait",
-      use: {
-        ...devices["Pixel 5"],
-        executablePath: process.env["CHROMIUM_PATH"] ?? "/opt/pw-browsers/chromium",
-        channel: undefined,
-      },
+      use: { ...devices["Pixel 5"], ...chromiumOverride },
     },
     {
       name: "mobile-landscape",
-      use: {
-        ...devices["Pixel 5 landscape"],
-        executablePath: process.env["CHROMIUM_PATH"] ?? "/opt/pw-browsers/chromium",
-        channel: undefined,
-      },
+      use: { ...devices["Pixel 5 landscape"], ...chromiumOverride },
     },
   ],
   webServer: {
-    command: "npm run preview --workspace=apps/workbench",
-    url: "http://localhost:4173",
+    // Run from apps/workbench — vite preview serves outDir (../../next) at base /next/
+    command: "npm run preview",
+    // Wait for the v08 app to respond before running tests
+    url: "http://localhost:4173/next/",
     reuseExistingServer: !process.env["CI"],
   },
 });

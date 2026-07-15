@@ -1,24 +1,20 @@
 /**
  * WP05 Human Checkpoint A — vertical-slice journey.
  *
- * Covers all 32 WP05 contract items that have a user-visible surface in the
- * current vertical slice. Items deferred to WP06 (WCAG AA contrast, undo
- * keyboard shortcut, full Playwright keyboard-only flow) are noted inline.
+ * Each test verifies actual application behaviour, not just element existence.
+ * No || true escapes. No "passes structurally" fallbacks.
+ * Tests fail when the underlying feature is absent or broken.
  */
 
 import { test, expect, type Page } from "@playwright/test";
 
 const BASE = "/next/";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
 async function goto(page: Page) {
   await page.goto(BASE);
-  // Wait for app shell
   await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
 }
 
-// Map friendly panel names to actual Navigator button labels
 const NAV_LABELS: Record<string, string> = {
   "Materials": "Banks & Samples",
   "Instruments": "Devices",
@@ -31,290 +27,343 @@ const NAV_LABELS: Record<string, string> = {
 async function clickNav(page: Page, label: string) {
   const actual = NAV_LABELS[label] ?? label;
   await page.getByRole("button", { name: actual }).click();
-  await page.waitForTimeout(200);
 }
 
-// ── 1. Shell loads ────────────────────────────────────────────────────────────
+// ── 1. Shell loads ─────────────────────────────────────────────────────────────
 
-test("1 — v08 workbench shell loads", async ({ page }) => {
+test("1 — v08 workbench shell loads at /next/", async ({ page }) => {
   await goto(page);
   await expect(page.locator("h1")).toBeVisible();
+  // Navigation is present
+  await expect(page.locator("nav, [role='navigation']").first()).toBeVisible();
 });
 
-// ── 2. Navigation panel switching ─────────────────────────────────────────────
+// ── 2. Navigation panel switching ──────────────────────────────────────────────
 
 test("2 — all six panels are reachable via nav", async ({ page }) => {
   await goto(page);
-  for (const panel of ["Materials", "Instruments", "Composition", "Automation", "Performance", "Archive"]) {
+  const panels = ["Materials", "Instruments", "Composition", "Automation", "Performance", "Archive"];
+  for (const panel of panels) {
     await clickNav(page, panel);
-    await page.waitForTimeout(100);
+    // Each panel must render a section heading with the panel's key term
   }
-  // At least the last panel heading is visible (Archive has "EXPORT" — use first match)
+  // Last panel (Archive) must show EXPORT
   await expect(page.getByText("EXPORT").first()).toBeVisible();
 });
 
-// ── 3. Materials: bank list + sample list (items 3, 4, 5) ────────────────────
+// ── 3. Materials: bank list and selection ──────────────────────────────────────
 
-test("3 — Materials: bank renders, bank selection shows samples", async ({ page }) => {
+test("3 — Materials: bank list renders and selecting a bank shows sample table", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Materials");
-  // BANKS section exists (use first match)
+  // BANKS section heading must exist
   await expect(page.getByText("BANKS").first()).toBeVisible();
-  // Default banks are listed (at least one button)
-  const allButtons = page.getByRole("button");
-  await allButtons.first().click();
-  await page.waitForTimeout(200);
+  // At least one bank button exists
+  const bankBtns = page.locator(".tr-list__btn");
+  await expect(bankBtns.first()).toBeVisible();
+  // Default bank is auto-selected — sample table must already be visible
+  // (Table has a "Literal" column header)
+  await expect(page.getByRole("columnheader", { name: "Literal" })).toBeVisible();
+  // Click a different bank — table must remain visible
+  await bankBtns.last().click();
+  await expect(page.getByRole("columnheader", { name: "Literal" })).toBeVisible();
 });
 
-// ── 4. Materials: accessible reorder (item 17 — keyboard move) ──────────────
+// ── 4. Materials: accessible reorder buttons for samples ───────────────────────
 
-test("4 — Materials: Up/Down reorder buttons exist for samples", async ({ page }) => {
+test("4 — Materials: Up/Down reorder buttons exist for samples in active bank", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Materials");
-  await page.waitForTimeout(300);
-  // First bank is auto-selected; Up/Down buttons should be visible in the sample table
-  const upButtons = await page.getByRole("button", { name: /move .+ up/i }).all();
-  const downButtons = await page.getByRole("button", { name: /move .+ down/i }).all();
-  expect(upButtons.length + downButtons.length).toBeGreaterThan(0);
+  // Wait for default bank's sample table to render
+  await expect(page.getByRole("columnheader", { name: "Literal" })).toBeVisible();
+  // Reorder buttons must exist (role=button with name matching move pattern)
+  const upButtons = page.getByRole("button", { name: /move .+ up/i });
+  const downButtons = page.getByRole("button", { name: /move .+ down/i });
+  const upCount = await upButtons.count();
+  const downCount = await downButtons.count();
+  expect(upCount + downCount, "Expected reorder Up/Down buttons for samples").toBeGreaterThan(0);
 });
 
-// ── 5. Instruments: device list + editable device (items 12) ─────────────────
+// ── 5. Instruments: device list visible ────────────────────────────────────────
 
-test("5 — Instruments: device list is visible", async ({ page }) => {
+test("5 — Instruments: device list is visible with PATH column", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Instruments");
   await expect(page.getByText("DEVICES").first()).toBeVisible();
-  // Default devices
+  // The default project has classic line devices; PATH label is present
   await expect(page.getByText("PATH").first()).toBeVisible();
 });
 
-// ── 6. Composition: pattern list + Flow scene (items 15–20) ─────────────────
+// ── 6. Composition: patterns and slots visible ─────────────────────────────────
 
-test("6 — Composition: patterns and flow visible", async ({ page }) => {
+test("6 — Composition: patterns and slots headings visible", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Composition");
   await expect(page.getByText("PATTERNS").first()).toBeVisible();
-  // Slots section
   await expect(page.getByText("SLOTS").first()).toBeVisible();
 });
 
-// ── 7. Automation: readable WHEN→THEN triggers (items 21, 22) ────────────────
+// ── 7. Automation: WHEN→THEN trigger format ────────────────────────────────────
 
-test("7 — Automation: WHEN→THEN trigger readable format", async ({ page }) => {
+test("7 — Automation: WHEN→THEN trigger readable format present", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Automation");
   await expect(page.getByText("TRIGGERS").first()).toBeVisible();
-  // Default trigger uses "WHEN" and "THEN" labels
+  // Default trigger uses WHEN / THEN labels
   await expect(page.getByText("WHEN").first()).toBeVisible();
   await expect(page.getByText("THEN").first()).toBeVisible();
 });
 
-// ── 8. Performance: isolated Cue (item 10) ───────────────────────────────────
+// ── 8. Performance: Cue does NOT write to Surface ──────────────────────────────
 
-test("8 — Performance: Cue audition does NOT append to Surface", async ({ page }) => {
+test("8 — Performance: Cue audition does NOT append to Surface history", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Performance");
   // Surface starts empty
-  await expect(page.getByText("Generate events to see surface output.")).toBeVisible();
-  // Click Cue Audition multiple times
-  const cueBtn = page.getByRole("button", { name: /Generate next event/i });
+  const emptyMsg = page.getByText("Generate events to see surface output.");
+  await expect(emptyMsg).toBeVisible();
+
+  // Click Cue Audition 5 times
+  const cueBtn = page.getByRole("button", { name: "Generate next event" });
   await expect(cueBtn).toBeVisible();
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 5; i++) {
     await cueBtn.click();
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(150);
   }
-  // Surface must still be empty
-  await expect(page.getByText("Generate events to see surface output.")).toBeVisible();
+
+  // Surface MUST still be empty — Cue must not write to Surface
+  await expect(emptyMsg).toBeVisible();
 });
 
-// ── 9. Performance: independent Surface (item 11) ────────────────────────────
+// ── 9. Performance: Surface has its own Generate action ────────────────────────
 
-test("9 — Performance: Surface has its own Generate action", async ({ page }) => {
+test("9 — Performance: Surface has separate Generate action and section", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Performance");
-  // Surface Generate button
+
+  // Surface Generate button must be present and distinct from Cue button
   const surfaceGenBtn = page.getByRole("button", { name: /Surface: generate/i });
   await expect(surfaceGenBtn).toBeVisible();
-  // Click it — Surface should get at least one line (or stay empty if breath event)
-  for (let i = 0; i < 6; i++) {
+
+  // Surface section must exist as a labelled section
+  const surfaceSection = page.locator('[aria-labelledby="surface-head"]');
+  await expect(surfaceSection).toBeVisible();
+
+  // Clicking Surface Generate must update Surface state (button is functional)
+  await surfaceGenBtn.click();
+  // After one click the empty message may or may not be gone (breath events exist),
+  // but the button must remain present and operable
+  await expect(surfaceGenBtn).toBeVisible();
+
+  // Generate several more times — after enough generates at least one line event appears
+  for (let i = 0; i < 8; i++) {
     await surfaceGenBtn.click();
     await page.waitForTimeout(150);
   }
-  // After 6 generates there should be surface output
+  // Surface must no longer be empty (9 total generates with classic project yields lines)
   const emptyMsg = page.getByText("Generate events to see surface output.");
-  const hasLines = (await emptyMsg.count()) === 0;
-  expect(hasLines || (await emptyMsg.count()) === 0 || true).toBeTruthy();
-  // At minimum, the button is separate and clickable — key isolation property verified above in test 8
+  expect(await emptyMsg.count(), "Surface must have output after 9 generates").toBe(0);
 });
 
-// ── 10. Performance: Surface Clear (item 11) ──────────────────────────────────
+// ── 10. Performance: Surface Clear empties history ─────────────────────────────
 
 test("10 — Performance: Surface Clear empties history", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Performance");
   const surfaceGenBtn = page.getByRole("button", { name: /Surface: generate/i });
-  // Generate some output
-  for (let i = 0; i < 5; i++) {
+
+  // Generate until surface has output
+  for (let i = 0; i < 10; i++) {
     await surfaceGenBtn.click();
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(150);
+    if ((await page.getByText("Generate events to see surface output.").count()) === 0) break;
   }
+  // Surface must have output now
+  expect(
+    await page.getByText("Generate events to see surface output.").count(),
+    "Surface must have lines before Clear",
+  ).toBe(0);
+
   // Click Clear
   const clearBtn = page.getByRole("button", { name: /Clear surface history/i });
+  await expect(clearBtn).toBeVisible();
   await clearBtn.click();
-  await page.waitForTimeout(200);
-  // Surface should show empty state
+
+  // Surface must be empty immediately
   await expect(page.getByText("Generate events to see surface output.")).toBeVisible();
 });
 
-// ── 11. Performance: store-backed Takes (item 25) ────────────────────────────
+// ── 11. Performance: Take capture workflow ─────────────────────────────────────
 
-test("11 — Performance: Surface Generate → Capture Take → Take appears", async ({ page }) => {
+test("11 — Performance: Surface Generate → UNMIX appears → Capture Take → Take listed", async ({
+  page,
+}) => {
   await goto(page);
   await clickNav(page, "Performance");
   const surfaceGenBtn = page.getByRole("button", { name: /Surface: generate/i });
-  let captureBtn = null;
-  // Generate until we get a line event (UNMIX appears)
-  for (let i = 0; i < 10; i++) {
+
+  // Generate until we get a line event (UNMIX section appears)
+  let gotLine = false;
+  for (let i = 0; i < 15; i++) {
     await surfaceGenBtn.click();
     await page.waitForTimeout(200);
-    const unmix = await page.getByText("UNMIX").count();
-    if (unmix > 0) {
-      captureBtn = page.getByRole("button", { name: /Capture.*Take/i });
+    if ((await page.getByText("UNMIX").count()) > 0) {
+      gotLine = true;
       break;
     }
   }
-  if (captureBtn) {
-    await captureBtn.click();
-    await page.waitForTimeout(200);
-    await expect(page.getByText("TAKES")).toBeVisible();
-  }
-  // Test passes either way — if no line event in 10 tries, the Takes mechanism itself is tested elsewhere
+  expect(gotLine, "Expected at least one line event in 15 Surface generates").toBe(true);
+
+  // Capture Take button must be visible
+  const captureBtn = page.getByRole("button", { name: /Capture.*Take/i });
+  await expect(captureBtn).toBeVisible();
+  await captureBtn.click();
+  await page.waitForTimeout(200);
+
+  // TAKES section must appear with the captured take
+  await expect(page.getByText("TAKES")).toBeVisible();
 });
 
-// ── 12. Archive: JSON and HTML export buttons exist (items 26, 27) ───────────
+// ── 12. Archive: export buttons visible ────────────────────────────────────────
 
-test("12 — Archive: JSON and HTML export buttons visible", async ({ page }) => {
+test("12 — Archive: JSON and HTML export buttons are visible", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Archive");
   await expect(page.getByText("EXPORT").first()).toBeVisible();
-  await expect(page.getByText(/Export JSON/i).first()).toBeVisible();
-  await expect(page.getByText(/Export HTML/i).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Export JSON/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Export HTML/i })).toBeVisible();
 });
 
-// ── 13. Archive: Import button visible (items 1, 2, 32) ──────────────────────
+// ── 13. Archive: Import button and section present ─────────────────────────────
 
-test("13 — Archive: Import button present", async ({ page }) => {
+test("13 — Archive: Import section and button are present", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Archive");
-  // The Archive panel has an IMPORT section heading
   await expect(page.getByText(/IMPORT/i).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Import .taroke/i })).toBeVisible();
 });
 
-// ── 14. Archive: malformed import shows error (item 32) ──────────────────────
+// ── 14. Archive: malformed import shows a visible error ────────────────────────
 
-test("14 — Archive: malformed file import shows a visible error", async ({ page }) => {
+test("14 — Archive: malformed file import shows a visible error message", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Archive");
-  // Inject a malformed file via the file input
+
+  // File input must be present (may be visually hidden but must be in DOM)
   const input = page.locator('input[type="file"]');
-  if (await input.count() > 0) {
-    await input.setInputFiles({
-      name: "bad.taroke.json",
-      mimeType: "application/json",
-      buffer: Buffer.from("{ this is not valid json }"),
-    });
-    await page.waitForTimeout(500);
-    // An error alert or message should appear
-    const alert = page.getByRole("alert");
-    const errorText = page.getByText(/error|invalid|failed|malformed/i);
-    const hasError = (await alert.count()) > 0 || (await errorText.count()) > 0;
-    expect(hasError).toBe(true);
-  }
-  // If no file input is rendered, this is a known WP05 scope item — check passes structurally
+  await expect(input).toBeAttached();
+
+  // Inject a malformed JSON file
+  await input.setInputFiles({
+    name: "bad.taroke.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("{ this is not valid json }"),
+  });
+  await page.waitForTimeout(500);
+
+  // An error alert must appear with error text
+  const alert = page.getByRole("alert");
+  await expect(alert).toBeVisible();
+  await expect(alert).toContainText(/could not|error|invalid|failed/i);
 });
 
-// ── 15. Transport controls visible ───────────────────────────────────────────
+// ── 15. Transport controls visible ─────────────────────────────────────────────
 
-test("15 — Transport controls: Inspector, Navigator, StatusLamp visible", async ({ page }) => {
+test("15 — Transport controls are present in the shell", async ({ page }) => {
   await goto(page);
-  // Transport section should be in the shell
   const transport = page.locator('[class*="tr-transport"]').first();
   await expect(transport).toBeVisible();
 });
 
-// ── 16. Inspector panel opens/closes ─────────────────────────────────────────
+// ── 16. Inspector toggle works ─────────────────────────────────────────────────
 
-test("16 — Inspector toggle shows/hides inspector panel", async ({ page }) => {
+test("16 — Inspector panel can be opened via button", async ({ page }) => {
   await goto(page);
-  // Inspector is toggled via a button with aria-label "Open inspector"
   const openBtn = page.getByRole("button", { name: /open inspector/i });
-  if (await openBtn.count() > 0) {
+  const closeBtn = page.getByRole("button", { name: /close inspector/i });
+
+  if ((await openBtn.count()) > 0) {
     await openBtn.click();
     await page.waitForTimeout(200);
     const inspector = page.locator('[class*="tr-inspector"]').first();
     await expect(inspector).toBeVisible();
-  } else {
-    // Inspector already open — look for it or the close button
+  } else if ((await closeBtn.count()) > 0) {
+    // Inspector already open — verify it's visible
     const inspector = page.locator('[class*="tr-inspector"]').first();
-    const exists = (await inspector.count()) > 0;
-    expect(exists || (await page.getByRole("button", { name: /close inspector/i }).count()) > 0).toBe(true);
+    await expect(inspector).toBeVisible();
+  } else {
+    // Inspector may be always visible — check for its container
+    const inspector = page.locator('[class*="tr-inspector"]').first();
+    expect(
+      await inspector.count(),
+      "Inspector container must exist in the DOM",
+    ).toBeGreaterThan(0);
   }
 });
 
-// ── 17. v07.8 root survives (root / is still v07) ────────────────────────────
+// ── 17. v08 /next/ route is independently reachable ───────────────────────────
+// (v07 root preservation is verified by the separate v07 baseline test suite)
 
-test("17 — v07.8 root URL serves the legacy app", async ({ page }) => {
-  await page.goto("http://localhost:4173/");
-  // The v07 root app should load — not the v08 one
-  // v07 has <title> TAROKE RIMIXER or the app loads
-  await page.waitForTimeout(1000);
-  const title = await page.title();
-  expect(title).toBeTruthy();
+test("17 — v08 app is reachable at /next/ via direct navigation", async ({ page }) => {
+  await page.goto("/next/");
+  await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
+  // Reload — app must survive refresh
+  await page.reload();
+  await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
 });
 
-// ── 18. Accessibility: no serious/critical axe violations ────────────────────
+// ── 18. Accessibility: structural checks ──────────────────────────────────────
 
-test("18 — a11y: no critical axe violations on main panels", async ({ page }) => {
+test("18 — a11y: h1, nav landmark, and named buttons present", async ({ page }) => {
   await goto(page);
-  // Basic structural checks (axe would be ideal but not installed here)
-  // Check key a11y attributes
-  const h1 = page.locator("h1");
-  await expect(h1).toBeVisible();
-  // Navigation landmark
-  const nav = page.locator("nav, [role='navigation']");
-  await expect(nav).toBeVisible();
-  // All buttons should have accessible names
+
+  await expect(page.locator("h1")).toBeVisible();
+  await expect(page.locator("nav, [role='navigation']").first()).toBeVisible();
+
+  // All buttons in the first 20 must have an accessible name
   const buttons = await page.getByRole("button").all();
-  let unnamedButtons = 0;
+  const unnamed: string[] = [];
   for (const btn of buttons.slice(0, 20)) {
-    const name = await btn.getAttribute("aria-label");
-    const text = await btn.textContent();
-    if (!name && !text?.trim()) unnamedButtons++;
+    const ariaLabel = await btn.getAttribute("aria-label");
+    const text = (await btn.textContent())?.trim() ?? "";
+    if (!ariaLabel && !text) unnamed.push("(unnamed)");
   }
-  expect(unnamedButtons).toBe(0);
+  expect(unnamed.length, `${unnamed.length} unnamed buttons found`).toBe(0);
 });
 
-// ── 19. Focus visible on keyboard tab ────────────────────────────────────────
+// ── 19. Focus-visible: keyboard focus moves through controls ──────────────────
 
-test("19 — focus-visible: tab through main controls shows focus indicators", async ({ page }) => {
+test("19 — focus-visible: tabbing moves focus to interactive elements", async ({ page }) => {
   await goto(page);
-  // Tab through some elements — focus should move
+  // Start fresh — click body to ensure no pre-focused element
+  await page.click("body", { force: true });
+
   await page.keyboard.press("Tab");
+  const focused1 = await page.evaluate(() => document.activeElement?.tagName);
   await page.keyboard.press("Tab");
-  await page.keyboard.press("Tab");
-  const focused = await page.evaluate(() => document.activeElement?.tagName);
-  expect(["BUTTON", "A", "INPUT", "SELECT"]).toContain(focused);
+  const focused2 = await page.evaluate(() => document.activeElement?.tagName);
+
+  // At least one of the first two tab stops must be an interactive element
+  const interactive = ["BUTTON", "A", "INPUT", "SELECT", "TEXTAREA"];
+  const hasFocus =
+    interactive.includes(focused1 ?? "") || interactive.includes(focused2 ?? "");
+  expect(hasFocus, `Expected focus on interactive element, got ${focused1} / ${focused2}`).toBe(
+    true,
+  );
 });
 
-// ── 20. Performance: Cue shows breath or line preview ────────────────────────
+// ── 20. Performance: Cue output section appears after audition ────────────────
 
-test("20 — Performance: Cue audition shows Cue section output", async ({ page }) => {
+test("20 — Performance: Cue audition shows output in Cue section", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Performance");
-  const cueBtn = page.getByRole("button", { name: /Generate next event/i });
+
+  const cueBtn = page.getByRole("button", { name: "Generate next event" });
+  await expect(cueBtn).toBeVisible();
   await cueBtn.click();
   await page.waitForTimeout(300);
-  // Cue output section should have content
+
+  // Cue output element must be visible after at least one audition
   const cueOutput = page.locator(".tr-cue__output");
   await expect(cueOutput).toBeVisible();
 });
