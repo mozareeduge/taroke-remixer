@@ -233,6 +233,19 @@ describe("ArchivePanel", () => {
     expect(screen.getByText("Title")).toBeInTheDocument();
     expect(screen.getByText("Grave sample")).toBeInTheDocument();
   });
+
+  it("shows role=alert error message when a malformed file is imported", async () => {
+    wrap(<ArchivePanel />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(input).not.toBeNull();
+    const badFile = new File(["{ not valid json }"], "bad.taroke.json", { type: "application/json" });
+    fireEvent.change(input, { target: { files: [badFile] } });
+    // Allow onload to fire asynchronously
+    await new Promise((r) => setTimeout(r, 100));
+    const alert = screen.queryByRole("alert");
+    expect(alert).not.toBeNull();
+    expect(alert?.textContent).toMatch(/could not|error|invalid|failed/i);
+  });
 });
 
 // ── Takes (store-backed) ───────────────────────────────────────────────────────
