@@ -1,7 +1,7 @@
 # Human Checkpoint A — WP05 Vertical Slice Gate
 
 **Program**: TAROKE Remixer v08 WP05 Vertical Slice  
-**Candidate commit**: `d596279` on `claude/v08-wp05-vertical-slice-recovery` (= PR #15)  
+**Candidate commit**: `a05010e` on `claude/v08-wp05-vertical-slice-recovery` (= PR #15)  
 **Prepared**: 2026-07-15  
 **Reviewer**: Mohammad (designated authority)  
 **Status**: AWAITING REVIEW

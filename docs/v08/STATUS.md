@@ -33,7 +33,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 | WP02 | Core/Schema Boundary (recovery) | claude/v08-wp02-core-schema-recovery | MERGED (#11) | 534 | #11 | 735bcaa |
 | WP03 | State/Commands/Undo (recovery) | claude/v08-wp03-state-commands-recovery | MERGED (#12+#13) | 152 | #12+#13 | 539c0fa+6810bd8 |
 | WP04 | UI Foundation/Shell (recovery) | claude/v08-wp04-ui-shell-recovery | MERGED (#14) | 152 | #14 | 5a64cef |
-| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | AWAITING REVIEW | 177 | #15 | d596279 |
+| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | AWAITING REVIEW | 177 | #15 | a05010e |
 | [A]  | Human Checkpoint A          | —                                   | AWAITING REVIEW | — | — | — |
 | WP06 | Materials                   | claude/v08-wp06-materials           | NOT STARTED| —     | —  | —      |
 | WP07 | Instruments                 | claude/v08-wp07-instruments         | NOT STARTED| —     | —  | —      |
@@ -52,7 +52,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 **Human Checkpoint A** — WP05 candidate complete; awaiting Mohammad's verdict before WP06.
 
 WP00 merged 2026-07-13 (PR #4). WP01–WP04 all merged (PRs #10–#14). WP05 recovery branch
-is the Checkpoint A candidate on PR #15 (commit `d596279`). Do not merge or begin WP06
+is the Checkpoint A candidate on PR #15 (commit `a05010e`). Do not merge or begin WP06
 before Checkpoint A verdict.
 
 **Do NOT merge WP05 or begin WP06 until Checkpoint A verdict is received.**
@@ -64,7 +64,7 @@ Original PRs #5–#9 are frozen; close them after the recovery branches merge.
 Recovery audit branch: `claude/taroke-v08-recovery-audit-ajf7b3` — canonical reference for
 all phase decisions through WP05.
 
-**Evidence summary (2026-07-15 — candidate commit d596279)**
+**Evidence summary (2026-07-15 — candidate commit a05010e)**
 - v07 baseline: 534 passed, 0 failed (verified locally; CI fix pushed in 7166ef9)
 - v08 unit/component: 177 passed, 0 failed (9 test files; +9 tests for surfaceSlice, takesSlice, ArchivePanel error)
 - TypeScript: 0 errors
@@ -129,4 +129,4 @@ See `docs/v08/EVIDENCE_INDEX.md` for per-WP evidence records.
 
 ---
 
-*Last updated: WP05 candidate commit d596279; CI CDP fix; a11y label improvements; 177 unit tests; 21-test E2E journey; independent review clean; Human Checkpoint A AWAITING REVIEW — 2026-07-15*
+*Last updated: WP05 candidate commit a05010e; CI CDP fix; a11y label improvements; 177 unit tests; 21-test E2E journey; independent review clean; Human Checkpoint A AWAITING REVIEW — 2026-07-15*
