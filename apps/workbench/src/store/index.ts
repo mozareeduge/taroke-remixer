@@ -10,4 +10,6 @@ export * from "./historySlice.js";
 export * from "./importReceiptSlice.js";
 export * from "./commands.js";
 export * from "./autosave.js";
+export * from "./surfaceSlice.js";
+export * from "./takesSlice.js";
 export { useAppDispatch, useAppSelector } from "./hooks.js";

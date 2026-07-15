@@ -2,6 +2,9 @@ import { produceWithPatches, type Patch } from "immer";
 import { uid } from "@taroke/core";
 import type { TarokeProject, Token, LineDevice, Route, StanzaPattern, StanzaSlot, FlowScene, Trigger, DeviceInput } from "@taroke/schema";
 
+// Re-export uid so callers don't need to import from core separately
+export { uid };
+
 // ── Command result ─────────────────────────────────────────────────────────────
 
 export interface CommandResult {
@@ -169,7 +172,7 @@ export function removeDeviceInput(project: TarokeProject, deviceId: string, slot
   });
 }
 
-export function addRoute(project: TarokeProject, deviceId: string, route: Route): CommandResult {
+export function addRouteObj(project: TarokeProject, deviceId: string, route: Route): CommandResult {
   return cmd(project, "Add route", (d) => {
     const dev = d.lineDevices.find((x) => x.id === deviceId);
     if (dev) dev.routes.push(route);
@@ -258,6 +261,44 @@ export function setSlotChance(project: TarokeProject, stanzaId: string, slotId: 
     const s = d.stanzaPatterns.find((x) => x.id === stanzaId);
     const slot = s?.slots.find((sl) => sl.id === slotId);
     if (slot) slot.chance = chance;
+  });
+}
+
+export function updateSlotLabel(project: TarokeProject, stanzaId: string, slotId: string, label: string): CommandResult {
+  return cmd(project, "Set slot label", (d) => {
+    const s = d.stanzaPatterns.find((x) => x.id === stanzaId);
+    const slot = s?.slots.find((sl) => sl.id === slotId);
+    if (slot) slot.label = label;
+  });
+}
+
+export function setSlotDevice(project: TarokeProject, stanzaId: string, slotId: string, deviceId: string): CommandResult {
+  return cmd(project, "Set slot device", (d) => {
+    const s = d.stanzaPatterns.find((x) => x.id === stanzaId);
+    const slot = s?.slots.find((sl) => sl.id === slotId);
+    if (slot) slot.deviceId = deviceId;
+  });
+}
+
+export function setSlotRepeat(project: TarokeProject, stanzaId: string, slotId: string, repeat: "once" | "loop"): CommandResult {
+  return cmd(project, "Set slot repeat", (d) => {
+    const s = d.stanzaPatterns.find((x) => x.id === stanzaId);
+    const slot = s?.slots.find((sl) => sl.id === slotId);
+    if (slot) slot.repeat = repeat;
+  });
+}
+
+export function reorderStanzaPatterns(project: TarokeProject, orderedIds: string[]): CommandResult {
+  return cmd(project, "Reorder patterns", (d) => {
+    const map = new Map(d.stanzaPatterns.map((s) => [s.id, s]));
+    d.stanzaPatterns = orderedIds.map((id) => map.get(id)).filter(Boolean) as StanzaPattern[];
+  });
+}
+
+export function setScenePattern(project: TarokeProject, sceneId: string, stanzaId: string): CommandResult {
+  return cmd(project, "Set scene pattern", (d) => {
+    const s = d.flowScenes.find((x) => x.id === sceneId);
+    if (s) s.stanzaId = stanzaId;
   });
 }
 
@@ -374,3 +415,79 @@ export function setCasePolicy(project: TarokeProject, casePolicy: string): Comma
 export function setCompoundPolicy(project: TarokeProject, compoundPolicy: string): CommandResult {
   return cmd(project, "Set compound policy", (d) => { d.forms.compoundPolicy = compoundPolicy; });
 }
+
+// ── Device shorthand aliases ───────────────────────────────────────────────────
+
+export function addDevice(project: TarokeProject, name: string): CommandResult {
+  const device: LineDevice = {
+    id: uid("ld"),
+    name,
+    enabled: true,
+    description: "",
+    inputs: [],
+    routes: [],
+  };
+  return cmd(project, "Add device", (d) => { d.lineDevices.push(device); });
+}
+
+export function removeDevice(project: TarokeProject, deviceId: string): CommandResult {
+  return removeLineDevice(project, deviceId);
+}
+
+export function toggleDevice(project: TarokeProject, deviceId: string): CommandResult {
+  return toggleDeviceEnabled(project, deviceId);
+}
+
+export function updateDeviceInputSlot(project: TarokeProject, deviceId: string, idx: number, slot: string): CommandResult {
+  return cmd(project, "Rename input slot", (d) => {
+    const dev = d.lineDevices.find((x) => x.id === deviceId);
+    if (dev?.inputs[idx]) dev.inputs[idx]!.slot = slot.trim();
+  });
+}
+
+export function updateDeviceInputTray(project: TarokeProject, deviceId: string, idx: number, tray: string): CommandResult {
+  return cmd(project, "Change input bank", (d) => {
+    const dev = d.lineDevices.find((x) => x.id === deviceId);
+    if (dev?.inputs[idx]) dev.inputs[idx]!.tray = tray;
+  });
+}
+
+export function updateDeviceInputRole(project: TarokeProject, deviceId: string, idx: number, role: string): CommandResult {
+  return cmd(project, "Change input role", (d) => {
+    const dev = d.lineDevices.find((x) => x.id === deviceId);
+    if (dev?.inputs[idx]) dev.inputs[idx]!.role = role;
+  });
+}
+
+export function reorderDeviceInputs(project: TarokeProject, deviceId: string, newOrder: number[]): CommandResult {
+  return cmd(project, "Reorder device inputs", (d) => {
+    const dev = d.lineDevices.find((x) => x.id === deviceId);
+    if (!dev) return;
+    const reordered = newOrder.map((i) => dev.inputs[i]).filter(Boolean) as DeviceInput[];
+    dev.inputs = reordered;
+  });
+}
+
+export function updateRouteName(project: TarokeProject, deviceId: string, routeId: string, name: string): CommandResult {
+  return cmd(project, "Rename route", (d) => {
+    const dev = d.lineDevices.find((x) => x.id === deviceId);
+    const route = dev?.routes.find((r) => r.id === routeId);
+    if (route) route.name = name;
+  });
+}
+
+// addRoute shorthand — creates a new default route
+export function addRoute(project: TarokeProject, deviceId: string, routeOverride?: Partial<Route>): CommandResult {
+  const route: Route = {
+    id: uid("rt"),
+    name: `Route ${(project.lineDevices.find((d) => d.id === deviceId)?.routes.length ?? 0) + 1}`,
+    weight: 50,
+    template: "",
+    ...routeOverride,
+  };
+  return cmd(project, "Add route", (d) => {
+    const dev = d.lineDevices.find((x) => x.id === deviceId);
+    if (dev) dev.routes.push(route);
+  });
+}
+

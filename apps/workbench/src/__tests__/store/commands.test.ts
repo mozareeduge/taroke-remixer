@@ -12,7 +12,7 @@ import {
   addLineDevice,
   updateDeviceName,
   toggleDeviceEnabled,
-  addRoute,
+  addRouteObj as addRoute,
   updateRouteTemplate,
   setTriggerCondition,
   setTriggerChance,

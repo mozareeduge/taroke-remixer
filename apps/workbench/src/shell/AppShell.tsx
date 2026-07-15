@@ -12,6 +12,8 @@ export function AppShell() {
 
   return (
     <div className="tr-shell">
+      {/* Visually hidden h1 for a11y (screen readers & WCAG 2.4.6) */}
+      <h1 className="tr-visually-hidden">TAROKE RIMIXER</h1>
       {/* Skip-nav: first focusable element; visually hidden until focused (a11y WCAG 2.4.1) */}
       <a href="#tr-main-content" className="tr-skip-nav">
         Skip to main content

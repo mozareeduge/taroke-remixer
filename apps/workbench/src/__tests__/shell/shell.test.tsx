@@ -13,6 +13,8 @@ import { Navigator } from "../../shell/Navigator.js";
 import { Workspace } from "../../shell/Workspace.js";
 import { Inspector } from "../../shell/Inspector.js";
 import { AppShell } from "../../shell/AppShell.js";
+import surfaceReducer from "../../store/surfaceSlice.js";
+import takesReducer from "../../store/takesSlice.js";
 
 function makeStore(editorOverrides?: Partial<{ sidebarOpen: boolean; inspectorOpen: boolean }>) {
   const store = configureStore({
@@ -23,6 +25,8 @@ function makeStore(editorOverrides?: Partial<{ sidebarOpen: boolean; inspectorOp
       runtime: runtimeReducer,
       history: historyReducer,
       importReceipt: importReceiptReducer,
+      surface: surfaceReducer,
+      takes: takesReducer,
     },
   });
   if (editorOverrides?.sidebarOpen === false) store.dispatch(toggleSidebar());
@@ -100,6 +104,12 @@ describe("Workspace", () => {
   it("shows current panel id uppercased", () => {
     wrap(<Workspace />);
     expect(screen.getByText("MATERIALS")).toBeInTheDocument();
+  });
+
+  it("renders MaterialsPanel for materials panel", () => {
+    wrap(<Workspace />);
+    // MaterialsPanel renders a "Banks" heading
+    expect(screen.getByText("Banks")).toBeInTheDocument();
   });
 });
 

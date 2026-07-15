@@ -1,4 +1,6 @@
 import type { TarokeProject, RunState, ValidationIssue } from "@taroke/schema";
+import type { SurfaceState } from "./surfaceSlice.js";
+import type { TakesState } from "./takesSlice.js";
 
 // ── Project state ──────────────────────────────────────────────────────────────
 
@@ -82,4 +84,9 @@ export interface RootState {
   runtime: RuntimeState;
   history: HistoryState;
   importReceipt: ImportReceiptState;
+  surface: SurfaceState;
+  takes: TakesState;
 }
+
+// Re-export for convenience
+export type { SurfaceState, TakesState };
