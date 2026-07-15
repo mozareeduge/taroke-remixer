@@ -1,4 +1,5 @@
 import type { TarokeProject, RunState, ValidationIssue } from "@taroke/schema";
+import type { ImportReceipt } from "@taroke/core";
 import type { TakesState } from "./takesSlice.js";
 import type { SurfaceState } from "./surfaceSlice.js";
 
@@ -73,6 +74,7 @@ export interface ImportReceiptState {
   timestamp: string | null;
   issues: ValidationIssue[];
   repairCount: number;
+  fullReceipt: ImportReceipt | null;
 }
 
 // ── Root ──────────────────────────────────────────────────────────────────────

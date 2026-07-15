@@ -1,9 +1,147 @@
-import { THEME_TOKENS } from "@taroke/schema";
+import { THEME_TOKENS, SCHEMA_VERSION, EDITOR_VERSION } from "@taroke/schema";
 import type { TarokeProject } from "@taroke/schema";
 import { esc } from "./utils.js";
 import { normalizeIdLabel } from "./utils.js";
-import { migrateProject } from "./migration.js";
+import { migrateProject, validateProject } from "./migration.js";
 import { IRREGULAR_PLURALS, IRREGULAR_VERB3 } from "@taroke/schema";
+
+export interface ImportReceipt {
+  filename: string;
+  sourceFormat: "json" | "html" | "unknown";
+  sourceSchema: string | null;
+  resultingSchema: string;
+  editorVersion: string;
+  migrationPath: string;
+  orderedBankIds: string[];
+  bankCount: number;
+  tokenCount: number;
+  deviceCount: number;
+  routeCount: number;
+  patternCount: number;
+  flowSceneCount: number;
+  triggerCount: number;
+  warnings: string[];
+  errors: string[];
+  duplicateIdFindings: { originalId: string; newId: string; bank: string; index: number }[];
+  repairCount: number;
+  repairDetails: string[];
+  classicDefaultsApplied: { devices: boolean; patterns: boolean; scenes: boolean; triggers: boolean };
+  authoredBankOrderPreserved: boolean;
+}
+
+export function importProjectWithReceipt(
+  text: string,
+  filename: string,
+): { project: TarokeProject; receipt: ImportReceipt } {
+  const s = String(text ?? "");
+
+  // Detect format
+  const isHtml = /<html/i.test(s) || /<script[^>]*taroke-project/i.test(s);
+  const sourceFormat: ImportReceipt["sourceFormat"] = isHtml ? "html" : s.trim().startsWith("{") ? "json" : "unknown";
+
+  // Extract raw JSON
+  const m = s.match(/<script[^>]*id=["']taroke-project["'][^>]*>([\s\S]*?)<\/script>/i);
+  const rawJson = m
+    ? (m[1] ?? "").replace(/<\\\/script/gi, "</script").replace(/<\\!--/g, "<!--")
+    : s;
+
+  let rawInput: Record<string, unknown>;
+  try {
+    rawInput = JSON.parse(rawJson) as Record<string, unknown>;
+  } catch {
+    throw new Error(`Cannot parse as JSON: ${filename}`);
+  }
+
+  // Capture source schema before migration
+  const sourceSchema = typeof rawInput["schemaVersion"] === "string" ? rawInput["schemaVersion"] : null;
+
+  // Capture original bank order before migration
+  const rawMaterials = rawInput["materials"] as Record<string, unknown> | undefined;
+  const rawTraysObj = rawMaterials?.["trays"] as Record<string, unknown> | undefined;
+  const rawLegacyDict = rawInput["dictionary"] as Record<string, unknown> | undefined;
+  const preTrays = rawTraysObj ?? rawLegacyDict;
+  const preBankIds = preTrays ? Object.keys(preTrays) : null;
+
+  // Detect which collections would use classic defaults
+  function hasProp(obj: unknown, key: string) {
+    return obj != null && Object.prototype.hasOwnProperty.call(obj, key);
+  }
+  const classicDefaultsApplied = {
+    devices: !hasProp(rawInput, "lineDevices") && !hasProp(rawInput, "lineMachines"),
+    patterns: !hasProp(rawInput, "stanzaPatterns"),
+    scenes: !hasProp(rawInput, "flowScenes"),
+    triggers: !hasProp(rawInput, "triggers") && !hasProp(rawInput, "rareEvents"),
+  };
+
+  // Determine migration path
+  const migrationSteps: string[] = [];
+  if (hasProp(rawInput, "dictionary")) migrationSteps.push("legacy-dictionary→trays");
+  if (hasProp(rawInput, "lineMachines")) migrationSteps.push("lineMachines→lineDevices");
+  if (hasProp(rawInput, "rareEvents")) migrationSteps.push("rareEvents→triggers");
+  if (!sourceSchema) migrationSteps.push("no-schema");
+  else if (sourceSchema !== SCHEMA_VERSION) migrationSteps.push(`schema-upgrade:${sourceSchema}→${SCHEMA_VERSION}`);
+  const migrationPath = migrationSteps.length ? migrationSteps.join(", ") : "current-schema";
+
+  // Run migration
+  const project = migrateProject(rawInput);
+
+  // Run validation to get truthful warnings/errors
+  const issues = validateProject(project);
+  const warnings = issues.filter((i) => i.level === "warning" || i.level === "note").map((i) => `[${i.area}] ${i.message}`);
+  const errors = issues.filter((i) => i.level === "error").map((i) => `[${i.area}] ${i.message}`);
+
+  // Read repairs from migrated meta (set by migrateProject)
+  const repairs = Array.isArray(project.meta?.importRepairs) ? project.meta.importRepairs : [];
+  const duplicateIdFindings = repairs.map((r) => ({
+    originalId: r?.originalId ?? "",
+    newId: r?.newId ?? "",
+    bank: r?.bank ?? "",
+    index: r?.index ?? 0,
+  }));
+  const repairDetails = repairs.map(
+    (r) => `Token ${r?.originalId} in bank "${r?.bank}" (index ${r?.index}) reassigned → ${r?.newId}`,
+  );
+
+  // Post-migration bank data
+  const orderedBankIds = Object.keys(project.materials?.trays ?? {});
+  const bankCount = orderedBankIds.length;
+  const tokenCount = orderedBankIds.reduce((n, k) => n + (project.materials?.trays[k]?.length ?? 0), 0);
+  const deviceCount = (project.lineDevices ?? []).length;
+  const routeCount = (project.lineDevices ?? []).reduce((n, d) => n + (d.routes?.length ?? 0), 0);
+  const patternCount = (project.stanzaPatterns ?? []).length;
+  const flowSceneCount = (project.flowScenes ?? []).length;
+  const triggerCount = (project.triggers ?? []).length;
+
+  // Check if authored bank order was preserved
+  const authoredBankOrderPreserved = preBankIds === null ||
+    (preBankIds.length === orderedBankIds.length && preBankIds.every((id, i) => id === orderedBankIds[i]));
+
+  const receipt: ImportReceipt = {
+    filename,
+    sourceFormat,
+    sourceSchema,
+    resultingSchema: SCHEMA_VERSION,
+    editorVersion: EDITOR_VERSION,
+    migrationPath,
+    orderedBankIds,
+    bankCount,
+    tokenCount,
+    deviceCount,
+    routeCount,
+    patternCount,
+    flowSceneCount,
+    triggerCount,
+    warnings,
+    errors,
+    duplicateIdFindings,
+    repairCount: repairs.length,
+    repairDetails,
+    classicDefaultsApplied,
+    authoredBankOrderPreserved,
+  };
+
+  return { project, receipt };
+}
 
 export function downloadName(project: TarokeProject, ext: string): string {
   return normalizeIdLabel(project.project?.title ?? "taroke_rimix") + ext;

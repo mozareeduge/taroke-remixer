@@ -1,10 +1,22 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectBank, selectToken } from "../store/selectionSlice.js";
 import {
-  addToken, removeToken, setTokenWeight, updateTokenLiteral, addBank, removeBank, reorderTokens,
+  addToken, removeToken, setTokenWeight, updateTokenLiteral,
+  addBank, removeBank, reorderTokens, setTokenOverride,
 } from "../store/commands.js";
+import { formToken, KEEP_UNCHANGED_SENTINEL } from "@taroke/core";
+
+// Forms available per bank role. Unknown roles fall back to ["literal"].
+const ROLE_FORMS: Record<string, { key: string; label: string }[]> = {
+  noun:      [{ key: "literal", label: "Literal" }, { key: "singular", label: "Singular" }, { key: "plural", label: "Plural" }],
+  verb:      [{ key: "literal", label: "Literal" }, { key: "thirdSingular", label: "3rd singular" }, { key: "imperative", label: "Imperative" }],
+  adjective: [{ key: "literal", label: "Literal" }],
+  adverb:    [{ key: "literal", label: "Literal" }],
+  mixed:     [{ key: "literal", label: "Literal" }],
+};
+const DEFAULT_FORMS = [{ key: "literal", label: "Literal" }];
 
 export function MaterialsPanel() {
   const dispatch = useAppDispatch();
@@ -20,15 +32,25 @@ export function MaterialsPanel() {
   const [newSample, setNewSample] = useState("");
   const [newBankKey, setNewBankKey] = useState("");
   const [newBankLabel, setNewBankLabel] = useState("");
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+  const addRef = useRef<HTMLInputElement>(null);
 
   const tokens = activeBank ? (project.materials.trays[activeBank] ?? []) : [];
   const bankMeta = activeBank ? project.materials.bankMeta[activeBank] : null;
+  const bankRole = bankMeta?.role ?? "literal";
   const totalWeight = tokens.reduce((s, t) => s + (t.weight || 0), 0);
+
+  const selectedTokenId =
+    primary?.type === "token" && primary.bankName === activeBank ? primary.tokenId : null;
+  const selectedToken = tokens.find((t) => t.id === selectedTokenId) ?? null;
+  const forms = ROLE_FORMS[bankRole] ?? DEFAULT_FORMS;
 
   function doAddSample() {
     if (!activeBank || !newSample.trim()) return;
     dispatch(mutateProject(addToken(project, activeBank, newSample)));
     setNewSample("");
+    addRef.current?.focus();
   }
 
   function doAddBank() {
@@ -37,6 +59,43 @@ export function MaterialsPanel() {
     dispatch(mutateProject(addBank(project, key, newBankLabel.trim())));
     setNewBankKey("");
     setNewBankLabel("");
+  }
+
+  function moveToken(idx: number, to: number) {
+    if (!activeBank) return;
+    const ids = tokens.map((t) => t.id);
+    const [moved] = ids.splice(idx, 1);
+    ids.splice(to, 0, moved!);
+    dispatch(mutateProject(reorderTokens(project, activeBank, ids)));
+  }
+
+  // Drag/drop reorder
+  function onDragStart(i: number) { setDragFrom(i); }
+  function onDragOver(e: React.DragEvent, i: number) { e.preventDefault(); setDragOver(i); }
+  function onDrop(e: React.DragEvent, i: number) {
+    e.preventDefault();
+    if (dragFrom === null || dragFrom === i || !activeBank) { setDragFrom(null); setDragOver(null); return; }
+    moveToken(dragFrom, i);
+    setDragFrom(null);
+    setDragOver(null);
+  }
+  function onDragEnd() { setDragFrom(null); setDragOver(null); }
+
+  // Forms override helpers
+  function getOverride(tokId: string, form: string): string {
+    const ov = (project.forms?.overrides?.[tokId] as Record<string, string> | undefined) ?? {};
+    const v = ov[form];
+    return v === KEEP_UNCHANGED_SENTINEL ? "" : (v ?? "");
+  }
+  function isKept(tokId: string, form: string): boolean {
+    const ov = (project.forms?.overrides?.[tokId] as Record<string, string> | undefined) ?? {};
+    return ov[form] === KEEP_UNCHANGED_SENTINEL;
+  }
+  function toggleKeep(tokId: string, form: string, currently: boolean) {
+    dispatch(mutateProject(setTokenOverride(project, tokId, form, currently ? "" : KEEP_UNCHANGED_SENTINEL)));
+  }
+  function setOverride(tokId: string, form: string, val: string) {
+    dispatch(mutateProject(setTokenOverride(project, tokId, form, val)));
   }
 
   return (
@@ -81,11 +140,12 @@ export function MaterialsPanel() {
           <>
             <div className="tr-panel__section-head">
               {bankMeta?.label ?? activeBank.toUpperCase()}
-              <span className="tr-panel__section-meta">{bankMeta?.role} · {tokens.length} samples</span>
+              <span className="tr-panel__section-meta">{bankRole} · {tokens.length} samples</span>
             </div>
             <table className="tr-table">
               <thead>
                 <tr>
+                  <th className="tr-table__th" aria-hidden="true"></th>
                   <th className="tr-table__th">Literal</th>
                   <th className="tr-table__th tr-table__th--num">Wt</th>
                   <th className="tr-table__th tr-table__th--num">Share</th>
@@ -94,22 +154,24 @@ export function MaterialsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {tokens.map((tok, idx) => {
-                  function moveToken(delta: number) {
-                    if (!activeBank) return;
-                    const ids = tokens.map((t) => t.id);
-                    const newIdx = idx + delta;
-                    if (newIdx < 0 || newIdx >= ids.length) return;
-                    ids.splice(idx, 1);
-                    ids.splice(newIdx, 0, tok.id);
-                    dispatch(mutateProject(reorderTokens(project, activeBank, ids)));
-                  }
-                  return (
+                {tokens.map((tok, idx) => (
                   <tr
                     key={tok.id}
-                    className={["tr-table__row", primary?.type === "token" && primary.tokenId === tok.id ? "tr-table__row--selected" : ""].filter(Boolean).join(" ")}
+                    className={[
+                      "tr-table__row",
+                      primary?.type === "token" && primary.tokenId === tok.id ? "tr-table__row--selected" : "",
+                      dragFrom === idx ? "tr-table__row--dragging" : "",
+                      dragOver === idx ? "tr-table__row--drag-over" : "",
+                    ].filter(Boolean).join(" ")}
+                    draggable
+                    onDragStart={() => onDragStart(idx)}
+                    onDragOver={(e) => onDragOver(e, idx)}
+                    onDrop={(e) => onDrop(e, idx)}
+                    onDragEnd={onDragEnd}
                     onClick={() => dispatch(selectToken({ bankName: activeBank, tokenId: tok.id }))}
+                    aria-selected={primary?.type === "token" && primary.tokenId === tok.id}
                   >
+                    <td className="tr-table__td tr-table__td--drag" aria-hidden="true">⠿</td>
                     <td className="tr-table__td">
                       <input
                         className="tr-input tr-input--literal"
@@ -137,18 +199,10 @@ export function MaterialsPanel() {
                     </td>
                     <td className="tr-table__td tr-table__td--action">
                       <div className="tr-reorder" role="group" aria-label={`Reorder ${tok.literal}`}>
-                        <button
-                          className="tr-btn tr-btn--icon"
-                          aria-label={`Move ${tok.literal} up`}
-                          disabled={idx === 0}
-                          onClick={(e) => { e.stopPropagation(); moveToken(-1); }}
-                        >↑</button>
-                        <button
-                          className="tr-btn tr-btn--icon"
-                          aria-label={`Move ${tok.literal} down`}
-                          disabled={idx === tokens.length - 1}
-                          onClick={(e) => { e.stopPropagation(); moveToken(1); }}
-                        >↓</button>
+                        <button className="tr-btn tr-btn--icon" aria-label={`Move ${tok.literal} to start`} disabled={idx === 0} onClick={(e) => { e.stopPropagation(); moveToken(idx, 0); }}>⇈</button>
+                        <button className="tr-btn tr-btn--icon" aria-label={`Move ${tok.literal} up`} disabled={idx === 0} onClick={(e) => { e.stopPropagation(); moveToken(idx, idx - 1); }}>↑</button>
+                        <button className="tr-btn tr-btn--icon" aria-label={`Move ${tok.literal} down`} disabled={idx === tokens.length - 1} onClick={(e) => { e.stopPropagation(); moveToken(idx, idx + 1); }}>↓</button>
+                        <button className="tr-btn tr-btn--icon" aria-label={`Move ${tok.literal} to end`} disabled={idx === tokens.length - 1} onClick={(e) => { e.stopPropagation(); moveToken(idx, tokens.length - 1); }}>⇊</button>
                       </div>
                     </td>
                     <td className="tr-table__td tr-table__td--action">
@@ -156,17 +210,15 @@ export function MaterialsPanel() {
                         className="tr-btn tr-btn--icon"
                         aria-label={`Remove ${tok.literal}`}
                         onClick={(e) => { e.stopPropagation(); dispatch(mutateProject(removeToken(project, activeBank, tok.id))); }}
-                      >
-                        ✕
-                      </button>
+                      >✕</button>
                     </td>
                   </tr>
-                  );
-                })}
+                ))}
               </tbody>
             </table>
             <div className="tr-panel__add-row">
               <input
+                ref={addRef}
                 className="tr-input"
                 placeholder="Add sample…"
                 value={newSample}
@@ -176,6 +228,51 @@ export function MaterialsPanel() {
               />
               <button className="tr-btn tr-btn--primary" onClick={doAddSample}>Add</button>
             </div>
+
+            {/* Role-aware forms for selected token */}
+            {selectedToken && (
+              <div className="tr-panel__section">
+                <div className="tr-panel__section-head">
+                  FORMS — {selectedToken.literal}
+                </div>
+                <p className="tr-forms__hint">
+                  Override how this {bankRole} is inflected. "Keep unchanged" preserves the literal for that form.
+                </p>
+                <div className="tr-forms" role="group" aria-label={`Form overrides for ${selectedToken.literal}`}>
+                  {forms.map(({ key, label }) => {
+                    const kept = isKept(selectedToken.id, key);
+                    const ov = getOverride(selectedToken.id, key);
+                    const preview = formToken(project, selectedToken, key);
+                    return (
+                      <div key={key} className="tr-form-row" data-form={key}>
+                        <label className="tr-form-row__label" htmlFor={`form-${selectedToken.id}-${key}`}>{label}</label>
+                        <span className="tr-form-row__preview" aria-label={`Preview: ${preview}`}>{preview}</span>
+                        <label className="tr-form-row__keep" title="Keep text unchanged — preserves literal regardless of inflection">
+                          <input
+                            type="checkbox"
+                            checked={kept}
+                            onChange={() => toggleKeep(selectedToken.id, key, kept)}
+                            aria-label={`Keep ${label} unchanged for ${selectedToken.literal}`}
+                          />
+                          {" "}Keep unchanged
+                        </label>
+                        <input
+                          id={`form-${selectedToken.id}-${key}`}
+                          className="tr-form-row__input"
+                          type="text"
+                          disabled={kept}
+                          value={ov}
+                          placeholder={kept ? "(keeping literal)" : "(auto)"}
+                          aria-label={`${label} override for ${selectedToken.literal}`}
+                          data-form-override={`${selectedToken.id}:${key}`}
+                          onChange={(e) => setOverride(selectedToken.id, key, e.target.value)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <p className="tr-panel__empty">Select a bank to view its samples.</p>

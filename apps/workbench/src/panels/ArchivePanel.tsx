@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { setProject } from "../store/projectSlice.js";
 import { showReceipt } from "../store/importReceiptSlice.js";
-import { exportProjectJson, exportProjectHtml, extractProjectFromText, downloadName } from "@taroke/core";
+import { exportProjectJson, exportProjectHtml, importProjectWithReceipt, downloadName } from "@taroke/core";
 
 function download(filename: string, content: string, mime: string) {
   const blob = new Blob([content], { type: mime });
@@ -34,10 +34,14 @@ export function ArchivePanel() {
     reader.onload = (e) => {
       const text = String(e.target?.result ?? "");
       try {
-        const imported = extractProjectFromText(text);
+        const { project: imported, receipt } = importProjectWithReceipt(text, file.name);
         dispatch(setProject(imported));
-        const repairCount = imported.meta?.importRepairs?.length ?? 0;
-        dispatch(showReceipt({ filename: file.name, issues: [], repairCount }));
+        dispatch(showReceipt({
+          filename: file.name,
+          issues: [],
+          repairCount: receipt.repairCount,
+          fullReceipt: receipt,
+        }));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setImportError(`Could not import "${file.name}": ${msg}`);

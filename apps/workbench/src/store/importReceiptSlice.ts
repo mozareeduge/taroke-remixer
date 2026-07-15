@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { ValidationIssue } from "@taroke/schema";
 import type { ImportReceiptState } from "./types.js";
+import type { ImportReceipt } from "@taroke/core";
 
 const initialState: ImportReceiptState = {
   visible: false,
@@ -8,12 +9,14 @@ const initialState: ImportReceiptState = {
   timestamp: null,
   issues: [],
   repairCount: 0,
+  fullReceipt: null,
 };
 
 export interface ImportReceiptPayload {
   filename: string | null;
   issues: ValidationIssue[];
   repairCount: number;
+  fullReceipt?: ImportReceipt | null;
 }
 
 const importReceiptSlice = createSlice({
@@ -26,6 +29,7 @@ const importReceiptSlice = createSlice({
       state.timestamp = new Date().toISOString();
       state.issues = action.payload.issues;
       state.repairCount = action.payload.repairCount;
+      state.fullReceipt = action.payload.fullReceipt ?? null;
     },
     dismissReceipt(state) {
       state.visible = false;
@@ -36,6 +40,7 @@ const importReceiptSlice = createSlice({
       state.timestamp = null;
       state.issues = [];
       state.repairCount = 0;
+      state.fullReceipt = null;
     },
   },
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { exportProjectJson, exportProjectHtml, extractProjectFromText, downloadName, safeJsonForHtml } from "../export.js";
+import { exportProjectJson, exportProjectHtml, extractProjectFromText, downloadName, safeJsonForHtml, importProjectWithReceipt } from "../export.js";
 import { defaultProject } from "../migration.js";
 
 describe("exportProjectJson / extractProjectFromText round-trip", () => {
@@ -48,6 +48,61 @@ describe("safeJsonForHtml", () => {
     const safe = safeJsonForHtml(project);
     expect(safe).not.toContain("</script>");
     expect(safe).toContain("<\\/script>");
+  });
+});
+
+describe("importProjectWithReceipt", () => {
+  it("returns authoritative receipt from JSON import", () => {
+    const project = defaultProject();
+    const json = exportProjectJson(project);
+    const { project: imported, receipt } = importProjectWithReceipt(json, "test.taroke.json");
+    expect(imported.schemaVersion).toBe("0.7-reset");
+    expect(receipt.filename).toBe("test.taroke.json");
+    expect(receipt.sourceFormat).toBe("json");
+    expect(receipt.resultingSchema).toBe("0.7-reset");
+    expect(receipt.bankCount).toBeGreaterThan(0);
+    expect(receipt.tokenCount).toBeGreaterThan(0);
+    expect(receipt.deviceCount).toBeGreaterThan(0);
+    expect(receipt.repairCount).toBe(0);
+    expect(receipt.duplicateIdFindings).toHaveLength(0);
+    expect(receipt.classicDefaultsApplied.devices).toBe(false);
+  });
+
+  it("returns authoritative receipt from HTML import", () => {
+    const project = defaultProject();
+    const html = exportProjectHtml(project);
+    const { receipt } = importProjectWithReceipt(html, "test.taroke.html");
+    expect(receipt.sourceFormat).toBe("html");
+    expect(receipt.bankCount).toBeGreaterThan(0);
+  });
+
+  it("receipt classicDefaultsApplied=true for legacy project missing collections", () => {
+    const minimal = JSON.stringify({ schemaVersion: "0.7-reset", materials: { trays: {}, bankMeta: {} } });
+    const { receipt } = importProjectWithReceipt(minimal, "minimal.taroke.json");
+    expect(receipt.classicDefaultsApplied.devices).toBe(true);
+    expect(receipt.classicDefaultsApplied.patterns).toBe(true);
+    expect(receipt.classicDefaultsApplied.triggers).toBe(true);
+  });
+
+  it("receipt.errors is not empty for missing device banks", () => {
+    const project = defaultProject();
+    // Remove a bank that devices reference
+    delete (project.materials.trays as Record<string, unknown>)["above"];
+    delete (project.materials.bankMeta as Record<string, unknown>)["above"];
+    const json = exportProjectJson(project);
+    const { receipt } = importProjectWithReceipt(json, "broken.taroke.json");
+    // Should have errors because PATH device references missing "above" bank
+    expect(receipt.errors.length).toBeGreaterThan(0);
+  });
+
+  it("throws on malformed JSON", () => {
+    expect(() => importProjectWithReceipt("not json at all {{{", "bad.json")).toThrow();
+  });
+
+  it("migrationPath reflects legacy schema migration", () => {
+    const legacy = JSON.stringify({ dictionary: { test: [] }, schemaVersion: "0.6" });
+    const { receipt } = importProjectWithReceipt(legacy, "legacy.json");
+    expect(receipt.migrationPath).toContain("legacy-dictionary");
   });
 });
 
