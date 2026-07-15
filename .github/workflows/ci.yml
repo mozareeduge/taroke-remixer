@@ -27,6 +27,7 @@ jobs:
       - name: Export Playwright Chromium binary path
         run: |
           CHROMIUM=$(find ~/.cache/ms-playwright -name "chrome" -maxdepth 5 -type f 2>/dev/null | sort | head -1 || true)
+          [ -n "$CHROMIUM" ] && echo "TAROKE_CHROMIUM_PATH=$CHROMIUM" >> $GITHUB_ENV || true
           [ -n "$CHROMIUM" ] && echo "PLAYWRIGHT_BROWSERS_PATH=$(dirname $(dirname $(dirname $CHROMIUM)))" >> $GITHUB_ENV || true
       - name: Run v07 baseline (deterministic verifier)
         run: python3 scripts/verify_v07_baseline.py

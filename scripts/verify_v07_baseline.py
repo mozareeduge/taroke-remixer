@@ -71,7 +71,7 @@ def find_chromium():
     # 2. PLAYWRIGHT_BROWSERS_PATH — directory where Playwright stores browsers
     pw_base = os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "").strip()
     if pw_base and os.path.isdir(pw_base):
-        for pat in ["chromium*/chrome-linux/chrome", "chromium*/chrome"]:
+        for pat in ["chromium*/chrome-linux64/chrome", "chromium*/chrome-linux/chrome", "chromium*/chrome"]:
             matches = sorted(glob.glob(os.path.join(pw_base, pat)))
             for m in matches:
                 if os.path.isfile(m) and os.access(m, os.X_OK):
@@ -81,7 +81,7 @@ def find_chromium():
     home = os.path.expanduser("~")
     for base in [f"{home}/.cache/ms-playwright", "/root/.cache/ms-playwright"]:
         if os.path.isdir(base):
-            for pat in ["chromium*/chrome-linux/chrome", "chromium*/chrome"]:
+            for pat in ["chromium*/chrome-linux64/chrome", "chromium*/chrome-linux/chrome", "chromium*/chrome"]:
                 matches = sorted(glob.glob(os.path.join(base, pat)))
                 for m in matches:
                     if os.path.isfile(m) and os.access(m, os.X_OK):

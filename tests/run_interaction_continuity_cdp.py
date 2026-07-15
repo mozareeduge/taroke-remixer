@@ -12,20 +12,36 @@ G. Responsive (10 tests)
 Total: 52 tests
 """
 
-import json, subprocess, time, sys, pathlib, shutil, re
+import json, subprocess, time, sys, pathlib, shutil, re, os
+import glob as _glob
 import requests, websocket
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PROF = '/tmp/chrome-prof-taroke-ic'
 shutil.rmtree(PROF, ignore_errors=True)
 
-CHROME = next(
-    (p for p in [
-        '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-        '/opt/pw-browsers/chromium/chrome-linux/chrome',
-        'chromium-browser', 'chromium', 'google-chrome']
-     if __import__('shutil').which(p) or __import__('os').path.exists(p)),
-    'chromium')
+def _find_chrome():
+    explicit = os.environ.get('TAROKE_CHROMIUM_PATH', '').strip()
+    if explicit and os.path.isfile(explicit) and os.access(explicit, os.X_OK):
+        return explicit
+    for base in [os.environ.get('PLAYWRIGHT_BROWSERS_PATH', ''),
+                 os.path.expanduser('~/.cache/ms-playwright'),
+                 '/root/.cache/ms-playwright']:
+        if base and os.path.isdir(base):
+            for pat in ['chromium*/chrome-linux64/chrome', 'chromium*/chrome-linux/chrome', 'chromium*/chrome']:
+                hits = sorted(_glob.glob(os.path.join(base, pat)))
+                for h in hits:
+                    if os.path.isfile(h) and os.access(h, os.X_OK):
+                        return h
+    return next(
+        (p for p in [
+            '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+            '/opt/pw-browsers/chromium/chrome-linux/chrome',
+            'chromium-browser', 'chromium', 'google-chrome']
+         if shutil.which(p) or os.path.exists(p)),
+        'chromium')
+
+CHROME = _find_chrome()
 
 passed = 0
 failed = 0
@@ -579,10 +595,12 @@ def test_G():
     ]
     steps_to_check = ['source', 'samples', 'run', 'export']
 
-    for w, h, label in viewports:
-        start_chrome(w, h)
-        boot_app()
+    # Use a single Chrome instance for all G tests to avoid port-release races.
+    start_chrome(1280, 800)
+    boot_app()
 
+    for w, h, label in viewports:
+        set_vp(w, h)
         overflow_ok = True
         bad_sw = bad_cw = 0
         for step in steps_to_check:
@@ -593,36 +611,31 @@ def test_G():
                 overflow_ok = False
                 bad_sw, bad_cw = sw, cw
                 break
-
         record(f'G57: no horizontal overflow at {label}',
                overflow_ok, f'scrollWidth={bad_sw} clientWidth={bad_cw}')
-        stop_chrome()
+
+    # Reset to wide desktop before G58/G59/G60
+    set_vp(1280, 800)
 
     # G58 – mobile workInner has sufficient padding-bottom for nav clearance
-    # Verify via CSS computed value (layout-independent, works in headless)
-    start_chrome(1280, 800)
-    boot_app()
     pb_info = js("""(function(){
-      // Shrink viewport to 390 wide so mobile media query fires
       var meta = document.createElement('meta');
       meta.name='viewport'; meta.content='width=390';
       document.head.appendChild(meta);
       var wi = document.querySelector('.workInner');
       if(!wi) return null;
       var pb = parseFloat(getComputedStyle(wi).paddingBottom);
-      // Also check bottomTabs display after injecting viewport meta
       var bt = document.querySelector('.bottomTabs');
       return {paddingBottom: pb, btDisplay: bt ? getComputedStyle(bt).display : 'absent'};
     })()""")
     if pb_info is not None:
-        # 130px padding ensures the bottom nav (≈50px) cannot cover final controls
         record('G58: mobile nav does not cover Export Save HTML at 390px',
                pb_info.get('paddingBottom', 0) >= 90,
                f'paddingBottom={pb_info.get("paddingBottom")} btDisplay={pb_info.get("btDisplay")}')
     else:
         record('G58: mobile nav does not cover Export Save HTML at 390px', True, 'skipped')
 
-    # G59 – all 11 chambers reachable on mobile
+    # G59 – all chambers reachable on mobile
     nav('notes')
     n_head = js("document.querySelector('.work .panelTitle') && document.querySelector('.work .panelTitle').textContent")
     record('G59: all chambers reachable on mobile (notes chamber test)',

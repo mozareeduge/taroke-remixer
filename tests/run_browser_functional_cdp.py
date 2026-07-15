@@ -8,7 +8,7 @@ def _find_chrome():
         return explicit
     for base in [os.environ.get('PLAYWRIGHT_BROWSERS_PATH',''), os.path.expanduser('~/.cache/ms-playwright'), '/root/.cache/ms-playwright']:
         if base and os.path.isdir(base):
-            for pat in ['chromium*/chrome-linux/chrome','chromium*/chrome']:
+            for pat in ['chromium*/chrome-linux64/chrome','chromium*/chrome-linux/chrome','chromium*/chrome']:
                 hits = sorted(_glob.glob(os.path.join(base, pat)))
                 for h in hits:
                     if os.path.isfile(h) and os.access(h, os.X_OK): return h
