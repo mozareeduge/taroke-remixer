@@ -33,7 +33,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 | WP02 | Core/Schema Boundary (recovery) | claude/v08-wp02-core-schema-recovery | MERGED (#11) | 534 | #11 | 735bcaa |
 | WP03 | State/Commands/Undo (recovery) | claude/v08-wp03-state-commands-recovery | MERGED (#12+#13) | 152 | #12+#13 | 539c0fa+6810bd8 |
 | WP04 | UI Foundation/Shell (recovery) | claude/v08-wp04-ui-shell-recovery | MERGED (#14) | 152 | #14 | 5a64cef |
-| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | AWAITING REVIEW | 168 | #15 | 3acf5f0 |
+| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | AWAITING REVIEW | 177 | #15 | d596279 |
 | [A]  | Human Checkpoint A          | —                                   | AWAITING REVIEW | — | — | — |
 | WP06 | Materials                   | claude/v08-wp06-materials           | NOT STARTED| —     | —  | —      |
 | WP07 | Instruments                 | claude/v08-wp07-instruments         | NOT STARTED| —     | —  | —      |
@@ -52,7 +52,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 **Human Checkpoint A** — WP05 candidate complete; awaiting Mohammad's verdict before WP06.
 
 WP00 merged 2026-07-13 (PR #4). WP01–WP04 all merged (PRs #10–#14). WP05 recovery branch
-is the Checkpoint A candidate on PR #15 (commit `3acf5f0`). Do not merge or begin WP06
+is the Checkpoint A candidate on PR #15 (commit `d596279`). Do not merge or begin WP06
 before Checkpoint A verdict.
 
 **Do NOT merge WP05 or begin WP06 until Checkpoint A verdict is received.**
@@ -64,16 +64,18 @@ Original PRs #5–#9 are frozen; close them after the recovery branches merge.
 Recovery audit branch: `claude/taroke-v08-recovery-audit-ajf7b3` — canonical reference for
 all phase decisions through WP05.
 
-**Evidence summary (2026-07-14 — candidate commit 3acf5f0)**
-- v07 baseline: 534 passed, 0 failed (verified)
-- v08 unit/component: 168 passed, 0 failed (9 test files)
+**Evidence summary (2026-07-15 — candidate commit d596279)**
+- v07 baseline: 534 passed, 0 failed (verified locally; CI fix pushed in 7166ef9)
+- v08 unit/component: 177 passed, 0 failed (9 test files; +9 tests for surfaceSlice, takesSlice, ArchivePanel error)
 - TypeScript: 0 errors
-- Build: 1342 modules, 0 errors
-- E2E checkpoint journey (Playwright/Chromium desktop): 20/20 passed
-- E2E checkpoint journey (Playwright/Chromium Pixel 5 portrait): 20/20 passed
-- E2E checkpoint journey (Playwright/Chromium Pixel 5 landscape): 20/20 passed
-- Cue/Surface isolation: Cue does NOT write to Surface — confirmed by 2 regression tests
-- Firefox/WebKit: not available in CI environment (known non-blocker)
+- Build: 0 errors → artifact in /next/
+- E2E checkpoint journey (Playwright/Chromium desktop): 21/21 passed (CI run 29411258523)
+- E2E checkpoint journey (Playwright/Chromium Pixel 5 portrait): 21/21 passed (local)
+- E2E checkpoint journey (Playwright/Chromium Pixel 5 landscape): 21/21 passed (local)
+- Cue/Surface isolation: Cue does NOT write to Surface — confirmed by regression tests 8 and 20
+- a11y: 4 contextual aria-label gaps fixed (commit 3e514b2); 2 WCAG items deferred to WP06
+- Independent review: 2 subagents reviewed runtime/compatibility and a11y — no FAILs
+- Firefox/WebKit: not available in CI environment (known non-blocker, deferred to WP06)
 
 ---
 
@@ -127,4 +129,4 @@ See `docs/v08/EVIDENCE_INDEX.md` for per-WP evidence records.
 
 ---
 
-*Last updated: WP05 candidate commit 3acf5f0; Cue/Surface fix added; 20-test E2E journey; Human Checkpoint A AWAITING REVIEW — 2026-07-14*
+*Last updated: WP05 candidate commit d596279; CI CDP fix; a11y label improvements; 177 unit tests; 21-test E2E journey; independent review clean; Human Checkpoint A AWAITING REVIEW — 2026-07-15*

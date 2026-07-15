@@ -1,8 +1,8 @@
 # Human Checkpoint A — WP05 Vertical Slice Gate
 
 **Program**: TAROKE Remixer v08 WP05 Vertical Slice  
-**Candidate commit**: `3acf5f0` on `claude/v08-wp05-vertical-slice-recovery` (= PR #15)  
-**Prepared**: 2026-07-14  
+**Candidate commit**: `d596279` on `claude/v08-wp05-vertical-slice-recovery` (= PR #15)  
+**Prepared**: 2026-07-15  
 **Reviewer**: Mohammad (designated authority)  
 **Status**: AWAITING REVIEW
 
@@ -41,13 +41,18 @@ Superseded PRs to close after merge: #5, #6, #7, #8, #9.
 - Verifier: `python3 scripts/verify_v07_baseline.py`
 - Result: **534 passed, 0 failed** across 16 suites
 - Environment note: `websocket-client` Python package must be installed for CDP suites
+- CI note: Two CDP scripts (`run_browser_functional_cdp`, `run_user_notes_regression_cdp`)
+  required a Chrome discovery fix to find Playwright's chromium in GitHub Actions;
+  fixed in commit `7166ef9` — both now propagate `TAROKE_CHROMIUM_PATH` from the
+  verified chromium binary. CI gate is expected to pass on the next run.
 
 ### v08 Unit/Component Tests
 
-- Runner: `npm run test --workspace=apps/workbench`
-- Result: **168 passed, 0 failed** across 9 test files
-- Covers: store slices, undo/redo, commands, shell, panels (Materials/Instruments/Composition/
-  Automation/Performance/Archive), migration, generation, forms, export
+- Runner: `npm run test:workbench`
+- Result: **177 passed, 0 failed** across 9 test files
+- Covers: store slices (project/undo, surface, takes, runtime, history, import-receipt),
+  shell, panels (Materials/Instruments/Composition/Automation/Performance/Archive),
+  migration, generation, forms, export, ArchivePanel import-error role=alert
 
 ### TypeScript
 
@@ -57,33 +62,33 @@ Superseded PRs to close after merge: #5, #6, #7, #8, #9.
 ### Build
 
 - Runner: `npm run build:next`
-- Result: **1342 modules, 0 errors** → artifact in `/next/`
+- Result: **0 errors** → artifact in `/next/`
 
 ### E2E Checkpoint Journey
 
-- Test file: `tests/e2e/checkpoint-a.spec.ts` — 20 tests
-- Runner: `npx playwright test --project=<proj> tests/e2e/checkpoint-a.spec.ts`
+- Test files: `tests/e2e/smoke.spec.ts` (1 test) + `tests/e2e/checkpoint-a.spec.ts` (20 tests) = 21 total
+- Runner: `npx playwright test --project=chromium`
+- CI run `29411258523` (commit `e02028d`, which is an ancestor of `d596279`):
 
 | Browser / Viewport | Result |
 |--------------------|--------|
-| Chromium (1280×720 desktop) | **20/20 passed** |
-| Chromium / Pixel 5 portrait (393×851) | **20/20 passed** |
-| Chromium / Pixel 5 landscape (851×393) | **20/20 passed** |
+| Chromium (1280×720 desktop) | **21/21 passed** |
+| Chromium / Pixel 5 portrait (393×851) | not run in CI (local: 21/21 passed) |
+| Chromium / Pixel 5 landscape (851×393) | not run in CI (local: 21/21 passed) |
 | Firefox | NOT AVAILABLE — Firefox not installed in CI environment |
 | WebKit | NOT AVAILABLE — WebKit not installed in CI environment |
 
-**Firefox/WebKit status**: the Playwright 1.61.1 environment only has the Chromium 1194
-browser binary. Firefox 1532 and WebKit 2311 binaries are not present at
-`/opt/pw-browsers/`. The checkpoint journey passes on all available configurations.
-Firefox/WebKit testing is a known non-blocker for this checkpoint; defer to WP06 gate.
+**Firefox/WebKit status**: the Playwright 1.61.1 environment only has the Chromium
+browser binary. Firefox/WebKit testing deferred to WP06 gate.
 
-### E2E Journey Coverage (20 tests)
+### E2E Journey Coverage (21 tests)
 
 | # | What is tested | WP05 Contract Items |
 |---|---------------|---------------------|
+| smoke | Shell loads at /next/ (smoke gate) | — |
 | 1 | Shell loads, h1 visible | — |
 | 2 | All 6 panels reachable via nav | — |
-| 3 | Materials: bank renders | #4 stable bank selection |
+| 3 | Materials: bank renders with sample table | #4 stable bank selection |
 | 4 | Materials: Up/Down reorder buttons exist | #17 keyboard reorder |
 | 5 | Instruments: device list visible | #12 editable device inputs |
 | 6 | Composition: PATTERNS + SLOTS visible | #20 Flow scene |
@@ -97,46 +102,82 @@ Firefox/WebKit testing is a known non-blocker for this checkpoint; defer to WP06
 | 14 | Malformed import shows error | #32 visible import errors |
 | 15 | Transport controls visible | — |
 | 16 | Inspector toggle works | — |
-| 17 | v07.8 root URL serves legacy app | root / preserved |
+| 17 | v08 app reachable at /next/ (direct nav + reload) | /next/ preserved |
 | 18 | No unnamed buttons (basic a11y) | — |
 | 19 | Tab key moves focus | — |
 | 20 | Cue audition shows Cue-section output | #10 isolated Cue |
 
 ---
 
-## Cue / Surface Isolation (New in This Session)
+## Independent Review Findings
 
-The previous PR #15 candidate had a P0 bug: Cue "Generate" appended to Surface history,
-violating the isolation contract. This session:
+Three bounded review subagents ran against the candidate commit. No FAIL-level issues found.
 
-1. Added two failing regression tests (confirmed fail before fix).
-2. Created `surfaceSlice.ts` (store-backed Surface history with `appendSurfaceLine`,
-   `clearSurface`, `setRetention`, `setFollowPolicy`).
-3. Refactored `PerformancePanel.tsx`:
-   - **Cue**: `Audition ▶` button → `doCueAudition()` — private preview, no Surface write,
-     no Take capture, no `recordEvent` dispatch.
-   - **Surface**: `Generate ▶` button → `doSurfaceGenerate()` — commits to Redux surface
-     store, dispatches `recordEvent`, appends line to store-backed history.
-   - **UNMIX** provenance now shows the last Surface event (not Cue preview).
-4. Both regression tests pass after the fix.
+### Runtime/Compatibility Review
+
+**PASS** — Cue/Surface isolation correct: `doCueAudition()` dispatches nothing; `doSurfaceGenerate()` dispatches both `recordEvent` and `appendSurfaceLine`.  
+**PASS** — `surfaceSlice`: `appendSurfaceLine` enforces retention limit; `clearSurface` resets to [].  
+**PASS** — `takesSlice`: `captureTake` appends with `capturedAt`; takes survive panel navigation (Redux, not local state).  
+**PASS** — Import/export: JSON export produces valid blob; import routes through migration pipeline; parse error shows `role="alert"`.  
+**PASS** — `defaultProject()`: classic line devices + 8 banks guarantee UNMIX events within the first generate call.  
+**WARN** — Stanza queue position (`cueQueueRef`) lost on panel remount; by design (code comment present), no user signal. Deferred.  
+**WARN** — Double `migrateProject` call on import (idempotent). Deferred.
+
+### Interaction/Accessibility Review
+
+**PASS** — All interactive elements have accessible names (no completely unnamed buttons).  
+**PASS** — Navigation buttons have full visible labels ("Banks & Samples", "Devices", etc.).  
+**PASS** — Reorder buttons have `aria-label="Move X up/down"` with entity name.  
+**PASS** — Import error uses `role="alert" aria-live="assertive"`.  
+**PASS** — Surface section has `aria-labelledby="surface-head"`.  
+**PASS** — No modals exist; focus-trap requirement N/A.  
+**PASS** — `.tr-cue__output` renders after `doCueAudition()` with `aria-live="polite"`.  
+**PASS** — h1 contains "TAROKE RIMIXER" in `<header role="banner">`.  
+**WARN** — Four button types had generic labels without entity context; **fixed in commit `3e514b2`**: device toggle, stanza toggle/remove, trigger ON/OFF, takes "Clear all" now all carry entity-contextual `aria-label`.
+
+---
+
+## Cue / Surface Isolation (Core WP05 Feature)
+
+1. `surfaceSlice.ts`: store-backed Surface history with `appendSurfaceLine`, `clearSurface`, `setRetention`, `setFollowPolicy`.
+2. `PerformancePanel.tsx`:
+   - **Cue**: `doCueAudition()` → private preview, no Redux dispatch, no Surface write, no Take capture.
+   - **Surface**: `doSurfaceGenerate()` → dispatches `recordEvent` + `appendSurfaceLine`, enables Take capture.
+   - **UNMIX** shows the last Surface event (not Cue preview).
+3. Both regression tests (tests 8 and 20 in checkpoint-a.spec.ts) verify the isolation contract.
+
+---
+
+## Public Preview
+
+GitHub Pages deployment workflow added at `.github/workflows/preview.yml`.
+
+**REQUIRES** repo admin action: Settings → Pages → Source: GitHub Actions
+
+Expected public URL after enablement:
+- v07 (root): `https://mozareeduge.github.io/taroke-remixer/`
+- v08 (/next/): `https://mozareeduge.github.io/taroke-remixer/next/`
+
+The workflow builds v08 with `VITE_BASE=/taroke-remixer/next/` and assembles both
+apps into `_site/` for Pages deployment.
 
 ---
 
 ## Key Decisions Requiring Mohammad's Review
 
-1. **Firefox/WebKit gap**: Only Chromium is available in the CI environment. The checkpoint
-   journey passes 20/20 on Chromium (desktop + 2 mobile viewports). Firefox/WebKit coverage
-   deferred to WP06.
+1. **Firefox/WebKit gap**: Only Chromium available in CI. Journey passes 21/21 on Chromium (desktop). Firefox/WebKit deferred to WP06.
 
-2. **WCAG deferral (unchanged from prior session)**: Three WCAG 2.1 AA items are filed as
-   WP06 gate items — contrast `--tr-dim` token (~2.5:1 vs. 4.5:1 needed), skip-nav missing,
-   focus-visible CSS rule not confirmed wired.
+2. **WCAG residual items (documented, not blocking)**:
+   - Contextual aria-label gaps (4 button types) → **fixed in `3e514b2`**
+   - Surface section div-as-heading (landmark works; H-key navigation incomplete) → WP06
+   - Skip-nav not implemented → WP06
+   - `--tr-dim` contrast (~2.5:1 vs. 4.5:1 needed) → WP06
 
-3. **Merge order**: PR #15 (`claude/v08-wp05-vertical-slice-recovery → main`). Confirm before
-   beginning WP06.
+3. **Merge order**: PR #15 (`claude/v08-wp05-vertical-slice-recovery → main`). Confirm before beginning WP06.
 
-4. **Deploy**: After merge, the built `/next/` artifact serves the v08 workbench. The v07 root
-   at `/` remains unchanged. Confirm.
+4. **Deploy**: After merge, the built `/next/` artifact serves the v08 workbench. The v07 root at `/` remains unchanged. Confirm.
+
+5. **GitHub Pages**: Must be enabled by repo admin before the preview URL becomes live.
 
 ---
 
