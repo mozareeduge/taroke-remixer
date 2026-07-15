@@ -520,15 +520,15 @@ test("27 — Composition: clicking slot Down reorder button moves slot", async (
     return;
   }
 
-  // Click the first enabled Down button — first slot's index display must change
+  // Click the first enabled Down button — first slot's label must change
   const firstEnabled = downBtns.filter({ hasNot: page.locator("[disabled]") }).first();
-  const slotIndices = page.locator(".tr-slot__index");
-  const beforeFirst = await slotIndices.first().textContent();
+  const slotLabels = page.locator(".tr-slot__type");
+  const beforeFirstLabel = await slotLabels.first().textContent();
 
   await firstEnabled.click();
   await page.waitForTimeout(200);
 
-  const afterFirst = await slotIndices.first().textContent();
-  // After moving the first slot down, a different slot is now first
-  expect(afterFirst, "Expected slot reorder to change first slot's index display").not.toBe(beforeFirst);
+  const afterFirstLabel = await slotLabels.first().textContent();
+  // After moving the first slot down, a different slot is now first — label changes
+  expect(afterFirstLabel, "Expected slot reorder to change first slot's label").not.toBe(beforeFirstLabel);
 });

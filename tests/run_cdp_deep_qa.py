@@ -8,10 +8,11 @@ import json, subprocess, time, requests, websocket, shutil, pathlib, sys, tempfi
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CHROME = next(
     (p for p in [
+        os.environ.get('TAROKE_CHROMIUM_PATH', ''),
         '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
         '/opt/pw-browsers/chromium/chrome-linux/chrome',
         'chromium-browser','chromium','google-chrome'
-    ] if shutil.which(p) or os.path.exists(p)),
+    ] if p and (shutil.which(p) or os.path.exists(p))),
     'chromium'
 )
 
