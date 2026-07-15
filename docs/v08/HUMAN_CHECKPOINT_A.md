@@ -1,7 +1,8 @@
 # Human Checkpoint A — WP05 Vertical Slice Gate
 
 **Program**: TAROKE Remixer v08 WP05 Vertical Slice  
-**Candidate commit**: `a05010e` on `claude/v08-wp05-vertical-slice-recovery` (= PR #15)  
+**Candidate commit**: `a05010e` (last code commit); branch HEAD `d6adf2b` on `claude/v08-wp05-vertical-slice-recovery` (= PR #15)  
+**CI gate**: runs 29412500449 (push) + 29412503255 (pull_request) → **conclusion: success** ✓  
 **Prepared**: 2026-07-15  
 **Reviewer**: Mohammad (designated authority)  
 **Status**: AWAITING REVIEW
@@ -44,7 +45,7 @@ Superseded PRs to close after merge: #5, #6, #7, #8, #9.
 - CI note: Two CDP scripts (`run_browser_functional_cdp`, `run_user_notes_regression_cdp`)
   required a Chrome discovery fix to find Playwright's chromium in GitHub Actions;
   fixed in commit `7166ef9` — both now propagate `TAROKE_CHROMIUM_PATH` from the
-  verified chromium binary. CI gate is expected to pass on the next run.
+  verified chromium binary. CI gate confirmed green in runs 29412500449 and 29412503255.
 
 ### v08 Unit/Component Tests
 
@@ -68,7 +69,7 @@ Superseded PRs to close after merge: #5, #6, #7, #8, #9.
 
 - Test files: `tests/e2e/smoke.spec.ts` (1 test) + `tests/e2e/checkpoint-a.spec.ts` (20 tests) = 21 total
 - Runner: `npx playwright test --project=chromium`
-- CI run `29411258523` (commit `e02028d`, which is an ancestor of `d596279`):
+- CI runs `29412500449` (push) and `29412503255` (pull_request), both on commit `d6adf2b`: **conclusion: success** ✓
 
 | Browser / Viewport | Result |
 |--------------------|--------|
