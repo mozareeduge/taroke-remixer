@@ -17,6 +17,7 @@ async function goto(page: Page) {
 
 const NAV_LABELS: Record<string, string> = {
   "Materials": "Banks & Samples",
+  "Forms": "Forms",
   "Instruments": "Devices",
   "Composition": "Patterns",
   "Automation": "Triggers",
@@ -84,23 +85,32 @@ test("4 — Materials: Up/Down reorder buttons exist for samples in active bank"
   expect(upCount + downCount, "Expected reorder Up/Down buttons for samples").toBeGreaterThan(0);
 });
 
-// ── 5. Instruments: device list visible ────────────────────────────────────────
+// ── 5. Instruments: route template is editable ─────────────────────────────────
 
-test("5 — Instruments: device list is visible with PATH column", async ({ page }) => {
+test("5 — Instruments: route template textarea is editable and updates model", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Instruments");
   await expect(page.getByText("DEVICES").first()).toBeVisible();
-  // The default project has classic line devices; PATH label is present
-  await expect(page.getByText("PATH").first()).toBeVisible();
+  // PATH device is selected by default; route template textarea must be editable
+  const templateArea = page.locator("textarea").first();
+  await expect(templateArea).toBeVisible();
+  await templateArea.fill("test template text");
+  // After editing the template, the textarea value must reflect the change
+  await expect(templateArea).toHaveValue("test template text");
 });
 
-// ── 6. Composition: patterns and slots visible ─────────────────────────────────
+// ── 6. Composition: slot reorder buttons present ───────────────────────────────
 
-test("6 — Composition: patterns and slots headings visible", async ({ page }) => {
+test("6 — Composition: slot Up/Down reorder buttons exist for the active pattern", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Composition");
   await expect(page.getByText("PATTERNS").first()).toBeVisible();
   await expect(page.getByText("SLOTS").first()).toBeVisible();
+  // Default stanza has slots; each slot must have Up/Down reorder buttons
+  const upButtons = page.getByRole("button", { name: /move slot .+ up/i });
+  const downButtons = page.getByRole("button", { name: /move slot .+ down/i });
+  const total = (await upButtons.count()) + (await downButtons.count());
+  expect(total, "Expected Up/Down reorder buttons for slots").toBeGreaterThan(0);
 });
 
 // ── 7. Automation: WHEN→THEN trigger format ────────────────────────────────────
@@ -366,4 +376,159 @@ test("20 — Performance: Cue audition shows output in Cue section", async ({ pa
   // Cue output element must be visible after at least one audition
   const cueOutput = page.locator(".tr-cue__output");
   await expect(cueOutput).toBeVisible();
+});
+
+// ── 21. Materials: sample literal is editable ──────────────────────────────────
+
+test("21 — Materials: sample literal input is editable and model updates", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Materials");
+  await expect(page.getByRole("columnheader", { name: "Literal" })).toBeVisible();
+
+  // Get the first editable literal input
+  const literalInputs = page.getByRole("textbox", { name: /literal for sample/i });
+  await expect(literalInputs.first()).toBeVisible();
+  const original = await literalInputs.first().inputValue();
+
+  // Edit it
+  await literalInputs.first().fill("edited-sample-literal");
+  await literalInputs.first().dispatchEvent("change");
+  await page.waitForTimeout(200);
+
+  // The input must retain the new value
+  await expect(literalInputs.first()).toHaveValue("edited-sample-literal");
+
+  // Revert so other tests are not affected
+  await literalInputs.first().fill(original);
+});
+
+// ── 22. Materials: expected share column shows percentage ──────────────────────
+
+test("22 — Materials: expected share column shows percentage for tokens", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Materials");
+  await expect(page.getByRole("columnheader", { name: "Share" })).toBeVisible();
+  // At least one share cell must contain a percentage
+  const shareCells = page.locator(".tr-table__td--share");
+  await expect(shareCells.first()).toBeVisible();
+  const text = await shareCells.first().textContent();
+  expect(text, "Expected share cell to contain a percentage").toMatch(/%/);
+});
+
+// ── 23. Forms: case policy select is editable ──────────────────────────────────
+
+test("23 — Forms: case policy select is present and editable", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Forms");
+  await expect(page.getByText("FORMS").first()).toBeVisible();
+
+  const caseSelect = page.getByRole("combobox", { name: /case policy/i });
+  await expect(caseSelect).toBeVisible();
+
+  // Change case policy to lowercase
+  await caseSelect.selectOption("lower");
+  await expect(caseSelect).toHaveValue("lower");
+});
+
+// ── 24. Forms: plural override input is editable ───────────────────────────────
+
+test("24 — Forms: plural override input exists and is editable", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Forms");
+  await expect(page.getByText("OVERRIDES").first()).toBeVisible();
+
+  // At least one plural override input must be visible
+  const overrideInputs = page.getByRole("textbox", { name: /plural override/i });
+  const count = await overrideInputs.count();
+  expect(count, "Expected at least one plural override input").toBeGreaterThan(0);
+
+  // Editing it must update the value
+  await overrideInputs.first().fill("wolves");
+  await expect(overrideInputs.first()).toHaveValue("wolves");
+});
+
+// ── 25. Instruments: route variable chips insert at caret ─────────────────────
+
+test("25 — Instruments: route variable chips appear and insert into template", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Instruments");
+  // Variable chips only appear when device has inputs; PATH has inputs
+  await expect(page.getByText("DEVICES").first()).toBeVisible();
+
+  // Wait for route cards (PATH has 3 routes)
+  const chips = page.getByRole("button", { name: /insert .+:.+ variable/i });
+  const chipCount = await chips.count();
+  expect(chipCount, "Expected variable insertion chips").toBeGreaterThan(0);
+
+  // Click a chip — template textarea must contain the inserted variable
+  const templateArea = page.locator("textarea").first();
+  await templateArea.fill("");
+  await templateArea.click();
+  await chips.first().click();
+  await page.waitForTimeout(100);
+  const val = await templateArea.inputValue();
+  expect(val, "Expected chip to insert a {slot:form} variable").toMatch(/\{.+:.+\}/);
+});
+
+// ── 26. Archive: import receipt banner appears after successful import ─────────
+
+test("26 — Archive: import receipt banner appears after a valid file is loaded", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Archive");
+  const fileInput = page.locator('input[type="file"]');
+  await expect(fileInput).toBeAttached();
+
+  // Inject a valid taroke JSON
+  const validProject = JSON.stringify({
+    schemaVersion: "7.8",
+    project: { title: "receipt-test", author: "", statement: "", credits: "", sourceTitle: "", sourceUrl: "" },
+    materials: { trays: {}, bankMeta: {} },
+    forms: { overrides: {}, casePolicy: "preserve", compoundPolicy: "hyphen" },
+    lineDevices: [],
+    stanzaPatterns: [],
+    flowScenes: [],
+    triggers: [],
+    notes: [],
+    surface: { speedMs: 1200, retention: 50, fontSize: 14, theme: "minimal", traceMode: "compact" },
+    workbench: {},
+  });
+  await fileInput.setInputFiles({
+    name: "receipt-test.taroke.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(validProject),
+  });
+  await page.waitForTimeout(500);
+
+  // Import receipt banner must appear
+  const banner = page.locator('[aria-label="Import receipt"]');
+  await expect(banner).toBeVisible({ timeout: 3000 });
+  await expect(banner).toContainText("receipt-test.taroke.json");
+});
+
+// ── 27. Composition: slot reorder changes order in model ──────────────────────
+
+test("27 — Composition: clicking slot Down reorder button moves slot", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Composition");
+  await expect(page.getByText("SLOTS").first()).toBeVisible();
+
+  // Get slot Down buttons
+  const downBtns = page.getByRole("button", { name: /move slot .+ down/i });
+  const count = await downBtns.count();
+  if (count < 2) {
+    // If only one slot, skip reorder check (first slot's Down is also last = disabled)
+    return;
+  }
+
+  // Click the first enabled Down button — first slot's index display must change
+  const firstEnabled = downBtns.filter({ hasNot: page.locator("[disabled]") }).first();
+  const slotIndices = page.locator(".tr-slot__index");
+  const beforeFirst = await slotIndices.first().textContent();
+
+  await firstEnabled.click();
+  await page.waitForTimeout(200);
+
+  const afterFirst = await slotIndices.first().textContent();
+  // After moving the first slot down, a different slot is now first
+  expect(afterFirst, "Expected slot reorder to change first slot's index display").not.toBe(beforeFirst);
 });

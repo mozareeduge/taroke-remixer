@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectBank, selectToken } from "../store/selectionSlice.js";
 import {
-  addToken, removeToken, setTokenWeight, addBank, removeBank, reorderTokens,
+  addToken, removeToken, setTokenWeight, updateTokenLiteral, addBank, removeBank, reorderTokens,
 } from "../store/commands.js";
 
 export function MaterialsPanel() {
@@ -23,6 +23,7 @@ export function MaterialsPanel() {
 
   const tokens = activeBank ? (project.materials.trays[activeBank] ?? []) : [];
   const bankMeta = activeBank ? project.materials.bankMeta[activeBank] : null;
+  const totalWeight = tokens.reduce((s, t) => s + (t.weight || 0), 0);
 
   function doAddSample() {
     if (!activeBank || !newSample.trim()) return;
@@ -87,6 +88,7 @@ export function MaterialsPanel() {
                 <tr>
                   <th className="tr-table__th">Literal</th>
                   <th className="tr-table__th tr-table__th--num">Wt</th>
+                  <th className="tr-table__th tr-table__th--num">Share</th>
                   <th className="tr-table__th tr-table__th--action" aria-label="Reorder"></th>
                   <th className="tr-table__th tr-table__th--action" aria-label="Remove"></th>
                 </tr>
@@ -108,7 +110,16 @@ export function MaterialsPanel() {
                     className={["tr-table__row", primary?.type === "token" && primary.tokenId === tok.id ? "tr-table__row--selected" : ""].filter(Boolean).join(" ")}
                     onClick={() => dispatch(selectToken({ bankName: activeBank, tokenId: tok.id }))}
                   >
-                    <td className="tr-table__td">{tok.literal}</td>
+                    <td className="tr-table__td">
+                      <input
+                        className="tr-input tr-input--literal"
+                        value={tok.literal}
+                        onChange={(e) => dispatch(mutateProject(updateTokenLiteral(project, activeBank, tok.id, e.target.value)))}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Literal for sample ${tok.literal}`}
+                        data-token-literal={tok.id}
+                      />
+                    </td>
                     <td className="tr-table__td tr-table__td--num">
                       <input
                         type="number"
@@ -120,6 +131,9 @@ export function MaterialsPanel() {
                         onClick={(e) => e.stopPropagation()}
                         aria-label={`Weight for ${tok.literal}`}
                       />
+                    </td>
+                    <td className="tr-table__td tr-table__td--num tr-table__td--share" aria-label={`Expected share for ${tok.literal}`}>
+                      {totalWeight > 0 ? `${Math.round((tok.weight / totalWeight) * 100)}%` : "—"}
                     </td>
                     <td className="tr-table__td tr-table__td--action">
                       <div className="tr-reorder" role="group" aria-label={`Reorder ${tok.literal}`}>

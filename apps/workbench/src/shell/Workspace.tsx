@@ -1,5 +1,6 @@
 import { useAppSelector } from "../store/hooks.js";
 import { MaterialsPanel } from "../panels/MaterialsPanel.js";
+import { FormsPanel } from "../panels/FormsPanel.js";
 import { InstrumentsPanel } from "../panels/InstrumentsPanel.js";
 import { CompositionPanel } from "../panels/CompositionPanel.js";
 import { AutomationPanel } from "../panels/AutomationPanel.js";
@@ -12,6 +13,7 @@ export function Workspace() {
   const panel = (() => {
     switch (activePanel) {
       case "materials": return <MaterialsPanel />;
+      case "forms": return <FormsPanel />;
       case "instruments": return <InstrumentsPanel />;
       case "composition": return <CompositionPanel />;
       case "automation": return <AutomationPanel />;

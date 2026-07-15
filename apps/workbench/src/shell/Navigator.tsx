@@ -12,6 +12,7 @@ const NAV_GROUPS: Array<{ group: string; items: NavItem[] }> = [
     group: "MATERIAL",
     items: [
       { id: "materials", label: "Banks & Samples" },
+      { id: "forms", label: "Forms" },
     ],
   },
   {

@@ -152,7 +152,34 @@ export function InstrumentsPanel() {
                     onClick={(e) => e.stopPropagation()}
                     aria-label={`Template for route ${rt.name}`}
                     spellCheck={false}
+                    data-route-template={rt.id}
                   />
+                  {activeDevice.inputs.length > 0 && (
+                    <div className="tr-route__palette" aria-label="Insert variable at cursor">
+                      {activeDevice.inputs.map((inp) => (
+                        ["literal", "plural", "singular"].map((form) => (
+                          <button
+                            key={`${inp.slot}:${form}`}
+                            className="tr-btn tr-btn--chip"
+                            aria-label={`Insert ${inp.slot}:${form} variable`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const ta = document.querySelector<HTMLTextAreaElement>(`[data-route-template="${rt.id}"]`);
+                              if (!ta) return;
+                              const start = ta.selectionStart ?? rt.template.length;
+                              const end = ta.selectionEnd ?? start;
+                              const insert = `{${inp.slot}:${form}}`;
+                              const next = rt.template.slice(0, start) + insert + rt.template.slice(end);
+                              dispatch(mutateProject(updateRouteTemplate(project, activeDevice.id, rt.id, next)));
+                              setTimeout(() => { ta.focus(); ta.setSelectionRange(start + insert.length, start + insert.length); }, 0);
+                            }}
+                          >
+                            {`{${inp.slot}:${form}}`}
+                          </button>
+                        ))
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               <button

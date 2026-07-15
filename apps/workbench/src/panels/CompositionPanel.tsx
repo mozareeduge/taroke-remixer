@@ -4,7 +4,7 @@ import { mutateProject } from "../store/projectSlice.js";
 import { selectStanza, selectScene } from "../store/selectionSlice.js";
 import {
   addStanzaPattern, removeStanzaPattern, toggleStanzaEnabled,
-  addStanzaSlot, removeStanzaSlot,
+  addStanzaSlot, removeStanzaSlot, reorderStanzaSlots,
   addFlowScene, removeFlowScene, toggleSceneEnabled, setSceneChance,
 } from "../store/commands.js";
 import { uid } from "@taroke/core";
@@ -118,21 +118,45 @@ export function CompositionPanel() {
 
             <div className="tr-panel__subsection-head">SLOTS</div>
             <div className="tr-slots">
-              {activeStanza.slots.map((slot, i) => (
+              {activeStanza.slots.map((slot, i) => {
+                function moveSlot(delta: number) {
+                  const ids = activeStanza!.slots.map((s) => s.id);
+                  const newIdx = i + delta;
+                  if (newIdx < 0 || newIdx >= ids.length) return;
+                  ids.splice(i, 1);
+                  ids.splice(newIdx, 0, slot.id);
+                  dispatch(mutateProject(reorderStanzaSlots(project, activeStanza!.id, ids)));
+                }
+                return (
                 <div key={slot.id} className="tr-slot">
                   <span className="tr-slot__index">{i + 1}</span>
                   <span className="tr-slot__type">{slot.type === "breath" ? "BREATH" : slot.label}</span>
                   <span className="tr-slot__chance">{slot.chance}%</span>
                   {slot.repeat === "loop" && <span className="tr-slot__repeat">LOOP</span>}
+                  <div className="tr-reorder" role="group" aria-label={`Reorder slot ${slot.label}`}>
+                    <button
+                      className="tr-btn tr-btn--icon"
+                      aria-label={`Move slot ${slot.label} up`}
+                      disabled={i === 0}
+                      onClick={() => moveSlot(-1)}
+                    >↑</button>
+                    <button
+                      className="tr-btn tr-btn--icon"
+                      aria-label={`Move slot ${slot.label} down`}
+                      disabled={i === activeStanza!.slots.length - 1}
+                      onClick={() => moveSlot(1)}
+                    >↓</button>
+                  </div>
                   <button
                     className="tr-btn tr-btn--icon"
                     aria-label={`Remove slot ${slot.label}`}
-                    onClick={() => dispatch(mutateProject(removeStanzaSlot(project, activeStanza.id, slot.id)))}
+                    onClick={() => dispatch(mutateProject(removeStanzaSlot(project, activeStanza!.id, slot.id)))}
                   >
                     ✕
                   </button>
                 </div>
-              ))}
+                );
+              })}
               <div className="tr-slots__actions">
                 <button className="tr-btn tr-btn--ghost" onClick={doAddBreathSlot}>+ Breath</button>
                 {devices.map((dev) => (

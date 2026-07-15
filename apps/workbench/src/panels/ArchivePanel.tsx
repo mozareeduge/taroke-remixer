@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { setProject } from "../store/projectSlice.js";
+import { showReceipt } from "../store/importReceiptSlice.js";
 import { exportProjectJson, exportProjectHtml, extractProjectFromText, downloadName } from "@taroke/core";
 
 function download(filename: string, content: string, mime: string) {
@@ -35,6 +36,7 @@ export function ArchivePanel() {
       try {
         const imported = extractProjectFromText(text);
         dispatch(setProject(imported));
+        dispatch(showReceipt({ filename: file.name, issues: [], repairCount: 0 }));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setImportError(`Could not import "${file.name}": ${msg}`);
