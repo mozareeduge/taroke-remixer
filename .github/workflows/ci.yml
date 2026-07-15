@@ -26,9 +26,17 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Export Playwright Chromium binary path
         run: |
-          CHROMIUM=$(find ~/.cache/ms-playwright -name "chrome" -maxdepth 5 -type f 2>/dev/null | sort | head -1 || true)
-          [ -n "$CHROMIUM" ] && echo "TAROKE_CHROMIUM_PATH=$CHROMIUM" >> $GITHUB_ENV || true
-          [ -n "$CHROMIUM" ] && echo "PLAYWRIGHT_BROWSERS_PATH=$(dirname $(dirname $(dirname $CHROMIUM)))" >> $GITHUB_ENV || true
+          # Search ~/.cache/ms-playwright for the chrome binary (supports chrome-linux and chrome-linux64 layouts)
+          CHROMIUM=$(find ~/.cache/ms-playwright -maxdepth 6 \( -name "chrome" -o -name "chromium" \) -type f -perm /111 2>/dev/null | grep -v headless | sort | head -1 || true)
+          if [ -z "$CHROMIUM" ]; then
+            CHROMIUM=$(find ~/.cache/ms-playwright -maxdepth 6 -name "chrome" -type f 2>/dev/null | sort | head -1 || true)
+          fi
+          if [ -n "$CHROMIUM" ]; then
+            echo "TAROKE_CHROMIUM_PATH=$CHROMIUM" >> $GITHUB_ENV
+            PW_DIR=$(python3 -c "import pathlib; p=pathlib.Path('$CHROMIUM'); print(p.parents[2])" 2>/dev/null || true)
+            [ -n "$PW_DIR" ] && echo "PLAYWRIGHT_BROWSERS_PATH=$PW_DIR" >> $GITHUB_ENV || true
+          fi
+          echo "Resolved chromium: $CHROMIUM"
       - name: Run v07 baseline (deterministic verifier)
         run: python3 scripts/verify_v07_baseline.py
         timeout-minutes: 15

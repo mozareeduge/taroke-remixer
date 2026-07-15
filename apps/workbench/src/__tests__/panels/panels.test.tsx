@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { enablePatches } from "immer";
 enablePatches();
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import projectReducer from "../../store/projectSlice.js";
@@ -116,9 +116,13 @@ describe("CompositionPanel", () => {
     expect(screen.getAllByText("Classic Taroko stanza").length).toBeGreaterThan(0);
   });
 
-  it("shows slots for selected stanza", () => {
+  it("shows slots for selected stanza with slot content", () => {
     wrap(<CompositionPanel />);
     expect(screen.getByText("SLOTS")).toBeInTheDocument();
+    // Default stanza has slots; at least one slot chip or row must be present
+    const slotRows = document.querySelectorAll(".tr-slot-row, .tr-slot, [class*='slot']");
+    const slotBtns = screen.queryAllByRole("button", { name: /move slot/i });
+    expect(slotRows.length + slotBtns.length, "Expected slot rows or reorder buttons in default stanza").toBeGreaterThan(0);
   });
 });
 
@@ -135,10 +139,17 @@ describe("AutomationPanel", () => {
     expect(screen.getByText("box intrusion")).toBeInTheDocument();
   });
 
-  it("shows WHEN and THEN labels in trigger", () => {
+  it("shows WHEN and THEN labels paired with actual trigger condition and action", () => {
     wrap(<AutomationPanel />);
     expect(screen.getAllByText("WHEN").length).toBeGreaterThan(0);
     expect(screen.getAllByText("THEN").length).toBeGreaterThan(0);
+    // Default project has a trigger with "box intrusion" condition — verify it appears in context
+    const triggerText = screen.getByText("box intrusion");
+    expect(triggerText).toBeInTheDocument();
+    // The trigger label must be readable alongside WHEN/THEN structure
+    const whenEl = screen.getAllByText("WHEN")[0]!;
+    const container = whenEl.closest("[class*='tr-trigger'], [class*='trigger'], li, article") ?? whenEl.parentElement;
+    expect(container).not.toBeNull();
   });
 
   it("toggling trigger enabled dispatches command", () => {
@@ -242,11 +253,13 @@ describe("ArchivePanel", () => {
     expect(input).not.toBeNull();
     const badFile = new File(["{ not valid json }"], "bad.taroke.json", { type: "application/json" });
     fireEvent.change(input, { target: { files: [badFile] } });
-    // Allow onload to fire asynchronously
-    await new Promise((r) => setTimeout(r, 100));
-    const alert = screen.queryByRole("alert");
-    expect(alert).not.toBeNull();
-    expect(alert?.textContent).toMatch(/could not|error|invalid|failed/i);
+    // Wait for observable DOM state change — alert element must appear
+    const alert = await waitFor(() => {
+      const el = screen.queryByRole("alert");
+      if (!el) throw new Error("alert not yet rendered");
+      return el;
+    }, { timeout: 2000 });
+    expect(alert.textContent).toMatch(/could not|error|invalid|failed/i);
   });
 });
 
@@ -342,6 +355,26 @@ describe("MaterialsPanel — accessible reorder", () => {
     const downButtons = screen.getAllByRole("button", { name: /move .+ down/i });
     expect(downButtons[downButtons.length - 1]).toBeDisabled();
   });
+
+  it("clicking an enabled Up button changes token order with stable IDs", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+
+    const before = store.getState().project.present.materials.trays["above"]!.map((t) => t.id);
+    expect(before.length, "bank must have at least 2 tokens to test reorder").toBeGreaterThan(1);
+
+    // Find the first enabled Up button (index 1+ since index 0 is disabled)
+    const upButtons = screen.getAllByRole("button", { name: /move .+ up/i });
+    const enabledUp = upButtons.find((btn) => !btn.hasAttribute("disabled"));
+    expect(enabledUp, "Expected at least one enabled Up button").toBeTruthy();
+    fireEvent.click(enabledUp!);
+
+    const after = store.getState().project.present.materials.trays["above"]!.map((t) => t.id);
+    // IDs must all be present (stable) but order must have changed
+    expect([...after].sort()).toEqual([...before].sort());
+    expect(after).not.toEqual(before);
+  });
 });
 
 // ── MaterialsPanel — literal editing and expected share ───────────────────────
@@ -433,15 +466,47 @@ describe("FormsPanel", () => {
 // ── ArchivePanel — import receipt dispatch ────────────────────────────────────
 
 describe("ArchivePanel — import receipt dispatch on success", () => {
-  it("dispatches showReceipt when a valid file is imported", async () => {
+  it("reads a valid project file, migrates it, replaces state, and shows receipt", async () => {
     const store = makeStore();
+    const titleBefore = store.getState().project.present.project.title;
+
     wrap(<ArchivePanel />, store);
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     expect(fileInput).not.toBeNull();
-    const validProject = JSON.stringify({ schemaVersion: "7.8", project: { title: "test" } });
-    const file = new File([validProject], "test.taroke.json", { type: "application/json" });
-    // FileReader is async — just verify the input exists and is wired
-    expect(fileInput.getAttribute("accept")).toContain(".json");
+
+    const importedTitle = "receipt-import-test-" + Date.now();
+    const validProject = JSON.stringify({
+      schemaVersion: "7.8",
+      project: { title: importedTitle, author: "test-author" },
+      materials: {
+        trays: { above: [{ id: "tok_a1", literal: "wave", role: "noun", weight: 1, lockedLiteral: false }] },
+        bankMeta: {},
+      },
+      forms: { casePolicy: "source" },
+      lineDevices: [],
+      stanzaPatterns: [],
+      flowScenes: [],
+      triggers: [],
+      meta: {},
+    });
+    const file = new File([validProject], "receipt-import-test.taroke.json", { type: "application/json" });
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
+
+    // FileReader fires onload asynchronously — wait for Redux state to update
+    await waitFor(() => {
+      expect(store.getState().importReceipt.visible, "importReceipt.visible must become true after import").toBe(true);
+    }, { timeout: 2000 });
+
+    // Verify the project state was replaced with the imported project
+    const titleAfter = store.getState().project.present.project.title;
+    expect(titleAfter).toBe(importedTitle);
+    expect(titleAfter).not.toBe(titleBefore);
+
+    // Verify receipt contains the correct filename
+    expect(store.getState().importReceipt.filename).toBe("receipt-import-test.taroke.json");
   });
 });
 
@@ -461,8 +526,8 @@ describe("InstrumentsPanel — route variable palette", () => {
     store.dispatch(selectDevice("ld_path"));
     wrap(<InstrumentsPanel />, store);
     const chips = screen.queryAllByRole("button", { name: /insert .+:.+ variable/i });
-    if (chips.length > 0) {
-      expect(chips[0]!.textContent).toMatch(/\{.+:.+\}/);
-    }
+    // Hard failure: chips must be present when a device with inputs is selected
+    expect(chips.length, "Expected at least one {slot:form} chip when PATH device is selected").toBeGreaterThan(0);
+    expect(chips[0]!.textContent).toMatch(/\{.+:.+\}/);
   });
 });

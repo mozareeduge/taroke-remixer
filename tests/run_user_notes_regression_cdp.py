@@ -1,19 +1,10 @@
 import json, subprocess, time, requests, websocket, shutil, pathlib, sys, os, glob as _glob
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from browser_runtime import resolve_chromium
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 prof = '/tmp/chrome-prof-taroke-user-notes'
 shutil.rmtree(prof, ignore_errors=True)
-def _find_chrome():
-    explicit = os.environ.get('TAROKE_CHROMIUM_PATH', '').strip()
-    if explicit and os.path.isfile(explicit) and os.access(explicit, os.X_OK):
-        return explicit
-    for base in [os.environ.get('PLAYWRIGHT_BROWSERS_PATH',''), os.path.expanduser('~/.cache/ms-playwright'), '/root/.cache/ms-playwright']:
-        if base and os.path.isdir(base):
-            for pat in ['chromium*/chrome-linux64/chrome','chromium*/chrome-linux/chrome','chromium*/chrome']:
-                hits = sorted(_glob.glob(os.path.join(base, pat)))
-                for h in hits:
-                    if os.path.isfile(h) and os.access(h, os.X_OK): return h
-    return next((p for p in ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome','/opt/pw-browsers/chromium/chrome-linux/chrome','chromium-browser','chromium','google-chrome'] if shutil.which(p) or os.path.exists(p)), 'chromium')
-CHROME = _find_chrome()
+CHROME = resolve_chromium()
 cmd = [CHROME,'--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-extensions','--disable-background-networking','--no-first-run','--no-default-browser-check',f'--user-data-dir={prof}','--remote-debugging-port=9254','--remote-allow-origins=*','about:blank']
 chrome = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
 passed=0; failed=0; rows=[]

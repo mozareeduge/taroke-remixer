@@ -43,13 +43,32 @@ test("1 — v08 workbench shell loads at /next/", async ({ page }) => {
 
 test("2 — all six panels are reachable via nav", async ({ page }) => {
   await goto(page);
-  const panels = ["Materials", "Instruments", "Composition", "Automation", "Performance", "Archive"];
-  for (const panel of panels) {
+
+  const panelChecks: [string, () => Promise<void>][] = [
+    ["Materials", async () => {
+      await expect(page.getByText("BANKS").first()).toBeVisible();
+    }],
+    ["Instruments", async () => {
+      await expect(page.getByText("DEVICES").first()).toBeVisible();
+    }],
+    ["Composition", async () => {
+      await expect(page.getByText("PATTERNS").first()).toBeVisible();
+    }],
+    ["Automation", async () => {
+      await expect(page.getByText("TRIGGERS").first()).toBeVisible();
+    }],
+    ["Performance", async () => {
+      await expect(page.getByText("CUE").first()).toBeVisible();
+    }],
+    ["Archive", async () => {
+      await expect(page.getByText("EXPORT").first()).toBeVisible();
+    }],
+  ];
+
+  for (const [panel, check] of panelChecks) {
     await clickNav(page, panel);
-    // Each panel must render a section heading with the panel's key term
+    await check();
   }
-  // Last panel (Archive) must show EXPORT
-  await expect(page.getByText("EXPORT").first()).toBeVisible();
 });
 
 // ── 3. Materials: bank list and selection ──────────────────────────────────────

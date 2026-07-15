@@ -9,20 +9,16 @@ T13-T16: Inspector trigger provenance + omitted-slot section
 Total: 16 tests
 """
 
-import json, subprocess, time, sys, pathlib, shutil
+import json, subprocess, time, sys, pathlib, shutil, os
 import requests, websocket
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from browser_runtime import resolve_chromium
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PROF = '/tmp/chrome-prof-taroke-trp'
 shutil.rmtree(PROF, ignore_errors=True)
 
-CHROME = next(
-    (p for p in [
-        '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-        '/opt/pw-browsers/chromium/chrome-linux/chrome',
-        'chromium-browser', 'chromium', 'google-chrome']
-     if __import__('shutil').which(p) or __import__('os').path.exists(p)),
-    'chromium')
+CHROME = resolve_chromium()
 
 passed = 0
 failed = 0

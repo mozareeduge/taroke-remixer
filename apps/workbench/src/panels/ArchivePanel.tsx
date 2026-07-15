@@ -36,7 +36,8 @@ export function ArchivePanel() {
       try {
         const imported = extractProjectFromText(text);
         dispatch(setProject(imported));
-        dispatch(showReceipt({ filename: file.name, issues: [], repairCount: 0 }));
+        const repairCount = imported.meta?.importRepairs?.length ?? 0;
+        dispatch(showReceipt({ filename: file.name, issues: [], repairCount }));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setImportError(`Could not import "${file.name}": ${msg}`);
