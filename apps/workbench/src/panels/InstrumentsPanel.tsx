@@ -5,6 +5,7 @@ import { selectDevice, selectRoute } from "../store/selectionSlice.js";
 import {
   addLineDevice, removeLineDevice, toggleDeviceEnabled,
   addRoute, removeRoute, updateRouteTemplate, setRouteWeight,
+  addDeviceInput, removeDeviceInput, updateDeviceInput,
 } from "../store/commands.js";
 import { uid } from "@taroke/core";
 
@@ -98,18 +99,58 @@ export function InstrumentsPanel() {
                   <th className="tr-table__th">Slot</th>
                   <th className="tr-table__th">Bank</th>
                   <th className="tr-table__th">Role</th>
+                  <th className="tr-table__th tr-table__th--action" aria-label="Remove input"></th>
                 </tr>
               </thead>
               <tbody>
                 {activeDevice.inputs.map((inp) => (
                   <tr key={inp.slot} className="tr-table__row">
-                    <td className="tr-table__td tr-table__td--mono">{inp.slot}</td>
-                    <td className="tr-table__td">{inp.tray}</td>
-                    <td className="tr-table__td">{inp.role}</td>
+                    <td className="tr-table__td">
+                      <input
+                        className="tr-input tr-input--mono"
+                        value={inp.slot}
+                        onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.slot, { slot: e.target.value })))}
+                        aria-label={`Slot name for input ${inp.slot}`}
+                        data-input-slot={inp.slot}
+                      />
+                    </td>
+                    <td className="tr-table__td">
+                      <select
+                        className="tr-select tr-select--sm"
+                        value={inp.tray}
+                        onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.slot, { tray: e.target.value })))}
+                        aria-label={`Bank for input ${inp.slot}`}
+                      >
+                        {Object.keys(project.materials.trays).map((b) => (
+                          <option key={b} value={b}>{project.materials.bankMeta[b]?.label ?? b}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="tr-table__td">
+                      <input
+                        className="tr-input"
+                        value={inp.role}
+                        onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.slot, { role: e.target.value })))}
+                        aria-label={`Role for input ${inp.slot}`}
+                      />
+                    </td>
+                    <td className="tr-table__td tr-table__td--action">
+                      <button
+                        className="tr-btn tr-btn--icon"
+                        aria-label={`Remove input ${inp.slot}`}
+                        onClick={() => dispatch(mutateProject(removeDeviceInput(project, activeDevice.id, inp.slot)))}
+                      >✕</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <div className="tr-panel__add-row">
+              <button
+                className="tr-btn tr-btn--ghost"
+                onClick={() => dispatch(mutateProject(addDeviceInput(project, activeDevice.id, { slot: `slot${activeDevice.inputs.length + 1}`, tray: Object.keys(project.materials.trays)[0] ?? "", role: "literal" })))}
+              >+ Input</button>
+            </div>
 
             <div className="tr-panel__subsection-head">ROUTES</div>
             <div className="tr-routes">

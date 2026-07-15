@@ -185,6 +185,23 @@ export function removeDeviceInput(project: TarokeProject, deviceId: string, slot
   });
 }
 
+export function updateDeviceInput(
+  project: TarokeProject,
+  deviceId: string,
+  slot: string,
+  patch: Partial<DeviceInput>,
+): CommandResult {
+  return cmd(project, "Update device input", (d) => {
+    const dev = d.lineDevices.find((x) => x.id === deviceId);
+    if (!dev) return;
+    const inp = dev.inputs.find((i) => i.slot === slot);
+    if (!inp) return;
+    if (patch.slot !== undefined) inp.slot = patch.slot;
+    if (patch.tray !== undefined) inp.tray = patch.tray;
+    if (patch.role !== undefined) inp.role = patch.role;
+  });
+}
+
 export function addRoute(project: TarokeProject, deviceId: string, route: Route): CommandResult {
   return cmd(project, "Add route", (d) => {
     const dev = d.lineDevices.find((x) => x.id === deviceId);

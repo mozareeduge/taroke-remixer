@@ -136,6 +136,17 @@ export function CompositionPanel() {
                   <div className="tr-reorder" role="group" aria-label={`Reorder slot ${slot.label}`}>
                     <button
                       className="tr-btn tr-btn--icon"
+                      aria-label={`Move slot ${slot.label} to start`}
+                      disabled={i === 0}
+                      onClick={() => {
+                        const ids = activeStanza!.slots.map((s) => s.id);
+                        ids.splice(i, 1);
+                        ids.unshift(slot.id);
+                        dispatch(mutateProject(reorderStanzaSlots(project, activeStanza!.id, ids)));
+                      }}
+                    >⇈</button>
+                    <button
+                      className="tr-btn tr-btn--icon"
                       aria-label={`Move slot ${slot.label} up`}
                       disabled={i === 0}
                       onClick={() => moveSlot(-1)}
@@ -146,6 +157,17 @@ export function CompositionPanel() {
                       disabled={i === activeStanza!.slots.length - 1}
                       onClick={() => moveSlot(1)}
                     >↓</button>
+                    <button
+                      className="tr-btn tr-btn--icon"
+                      aria-label={`Move slot ${slot.label} to end`}
+                      disabled={i === activeStanza!.slots.length - 1}
+                      onClick={() => {
+                        const ids = activeStanza!.slots.map((s) => s.id);
+                        ids.splice(i, 1);
+                        ids.push(slot.id);
+                        dispatch(mutateProject(reorderStanzaSlots(project, activeStanza!.id, ids)));
+                      }}
+                    >⇊</button>
                   </div>
                   <button
                     className="tr-btn tr-btn--icon"

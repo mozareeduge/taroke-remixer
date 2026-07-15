@@ -551,3 +551,60 @@ test("27 — Composition: clicking slot Down reorder button moves slot", async (
   // After moving the first slot down, a different slot is now first — label changes
   expect(afterFirstLabel, "Expected slot reorder to change first slot's label").not.toBe(beforeFirstLabel);
 });
+
+// ── 28. Composition: Move to start/end buttons ────────────────────────────────
+
+test("28 — Composition: Move to start and Move to end buttons are present and functional", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Composition");
+  await expect(page.getByText("SLOTS").first()).toBeVisible();
+
+  // Move to start / end buttons must exist
+  const toStartBtns = page.getByRole("button", { name: /move slot .+ to start/i });
+  const toEndBtns = page.getByRole("button", { name: /move slot .+ to end/i });
+  const startCount = await toStartBtns.count();
+  const endCount = await toEndBtns.count();
+  expect(startCount + endCount, "Expected Move to start/end buttons for slots").toBeGreaterThan(0);
+
+  // If there are 3+ slots, click Move to end on the first slot — it should become last
+  const slotLabels = page.locator(".tr-slot__type");
+  const totalSlots = await slotLabels.count();
+  if (totalSlots >= 3) {
+    const firstLabel = await slotLabels.first().textContent();
+    const enabledToEnd = toEndBtns.filter({ hasNot: page.locator("[disabled]") }).first();
+    await enabledToEnd.click();
+    await page.waitForTimeout(200);
+    const newLastLabel = await slotLabels.last().textContent();
+    expect(newLastLabel, "Move to end should place slot at last position").toBe(firstLabel);
+  }
+});
+
+// ── 29. Instruments: device input slot is editable ───────────────────────────
+
+test("29 — Instruments: device input fields are editable", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Instruments");
+  await expect(page.getByText("DEVICES").first()).toBeVisible();
+
+  // PATH device should be auto-selected and has inputs
+  const slotInputs = page.locator("[data-input-slot]");
+  const count = await slotInputs.count();
+  if (count === 0) {
+    // Device has no inputs — verify + Input button is present for adding
+    const addInputBtn = page.getByRole("button", { name: /\+ Input/i });
+    await expect(addInputBtn).toBeVisible();
+    return;
+  }
+
+  // Edit the first slot name
+  const firstSlot = slotInputs.first();
+  const original = await firstSlot.inputValue();
+  await firstSlot.fill("edited-slot");
+  await firstSlot.dispatchEvent("change");
+  await page.waitForTimeout(200);
+  await expect(firstSlot).toHaveValue("edited-slot");
+
+  // Revert
+  await firstSlot.fill(original);
+  await firstSlot.dispatchEvent("change");
+});
