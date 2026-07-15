@@ -1,8 +1,8 @@
 # Human Checkpoint A — WP05 Vertical Slice Gate
 
 **Program**: TAROKE Remixer v08 WP05 Vertical Slice  
-**Candidate commit**: `a05010e` (last code commit); branch HEAD `d6adf2b` on `claude/v08-wp05-vertical-slice-recovery` (= PR #15)  
-**CI gate**: runs 29412500449 (push) + 29412503255 (pull_request) → **conclusion: success** ✓  
+**Candidate commit**: `897d65d` (HEAD on `claude/v08-wp05-vertical-slice-recovery` = PR #15)  
+**CI gate**: runs 29412500449 (push) + 29412503255 (pull_request) → **conclusion: success** ✓ (earlier runs; current HEAD adds new tests/fixes only)  
 **Prepared**: 2026-07-15  
 **Reviewer**: Mohammad (designated authority)  
 **Status**: AWAITING REVIEW
@@ -49,11 +49,14 @@ Superseded PRs to close after merge: #5, #6, #7, #8, #9.
 
 ### v08 Unit/Component Tests
 
-- Runner: `npm run test:workbench`
-- Result: **177 passed, 0 failed** across 9 test files
+- Runner: `npx vitest run` (from `apps/workbench/`)
+- Result: **191 passed, 0 failed** across 9 test files
 - Covers: store slices (project/undo, surface, takes, runtime, history, import-receipt),
   shell, panels (Materials/Instruments/Composition/Automation/Performance/Archive),
   migration, generation, forms, export, ArchivePanel import-error role=alert
+- Improvements since v177: fixed false-positive import-receipt test (now actually reads file
+  via FileReader + waitFor), route chip no longer conditionally passes when chips absent,
+  sample reorder verifies ID-stable order change
 
 ### TypeScript
 
@@ -67,32 +70,36 @@ Superseded PRs to close after merge: #5, #6, #7, #8, #9.
 
 ### E2E Checkpoint Journey
 
-- Test files: `tests/e2e/smoke.spec.ts` (1 test) + `tests/e2e/checkpoint-a.spec.ts` (20 tests) = 21 total
-- Runner: `npx playwright test --project=chromium`
-- CI runs `29412500449` (push) and `29412503255` (pull_request), both on commit `d6adf2b`: **conclusion: success** ✓
+- Test files: `tests/e2e/smoke.spec.ts` (1 test) + `tests/e2e/checkpoint-a.spec.ts` (29 tests) = 30 total
+- Runner: `npx playwright test` (from `apps/workbench/`)
+- Local result: **210/210 passed** across 7 viewport configurations
 
-| Browser / Viewport | Result |
-|--------------------|--------|
-| Chromium (1280×720 desktop) | **21/21 passed** |
-| Chromium / Pixel 5 portrait (393×851) | not run in CI (local: 21/21 passed) |
-| Chromium / Pixel 5 landscape (851×393) | not run in CI (local: 21/21 passed) |
-| Firefox | NOT AVAILABLE — Firefox not installed in CI environment |
-| WebKit | NOT AVAILABLE — WebKit not installed in CI environment |
+| Browser / Viewport | Tests | Result |
+|--------------------|-------|--------|
+| Chromium desktop (1920×1080) | 30 | **passed** |
+| Chromium desktop-1280 (1280×800) | 30 | **passed** |
+| Chromium desktop-1024 (1024×768) | 30 | **passed** |
+| Chromium tablet-portrait (768×1024) | 30 | **passed** |
+| Chromium Pixel 5 portrait (393×851) | 30 | **passed** |
+| Chromium Pixel 5 landscape (851×393) | 30 | **passed** |
+| Chromium mobile-small (375×667) | 30 | **passed** |
+| Firefox | NOT AVAILABLE — downloads blocked by network policy |
+| WebKit | NOT AVAILABLE — downloads blocked by network policy |
 
-**Firefox/WebKit status**: the Playwright 1.61.1 environment only has the Chromium
-browser binary. Firefox/WebKit testing deferred to WP06 gate.
+**Firefox/WebKit status**: network policy blocks cdn.playwright.dev. Firefox/WebKit
+coverage deferred to WP06. Chromium at 7 viewport sizes satisfies responsive gate.
 
-### E2E Journey Coverage (21 tests)
+### E2E Journey Coverage (30 tests)
 
 | # | What is tested | WP05 Contract Items |
 |---|---------------|---------------------|
 | smoke | Shell loads at /next/ (smoke gate) | — |
 | 1 | Shell loads, h1 visible | — |
-| 2 | All 6 panels reachable via nav | — |
+| 2 | All 6 panels reachable via nav with per-panel heading assertion | — |
 | 3 | Materials: bank renders with sample table | #4 stable bank selection |
 | 4 | Materials: Up/Down reorder buttons exist | #17 keyboard reorder |
-| 5 | Instruments: device list visible | #12 editable device inputs |
-| 6 | Composition: PATTERNS + SLOTS visible | #20 Flow scene |
+| 5 | Instruments: route template textarea editable | #12 editable device inputs |
+| 6 | Composition: slot Up/Down reorder buttons exist | #20 slot ordering |
 | 7 | Automation: WHEN→THEN format | #21 readable WHEN→THEN |
 | 8 | Cue audition does NOT append to Surface | #10 isolated Cue |
 | 9 | Surface has its own Generate action | #11 independent Surface |
@@ -107,6 +114,15 @@ browser binary. Firefox/WebKit testing deferred to WP06 gate.
 | 18 | No unnamed buttons (basic a11y) | — |
 | 19 | Tab key moves focus | — |
 | 20 | Cue audition shows Cue-section output | #10 isolated Cue |
+| 21 | Materials: sample literal input editable and model updates | #4 editable literals |
+| 22 | Materials: share column shows % for tokens | #4 relative weight display |
+| 23 | Forms: case policy select editable | #29 case policy |
+| 24 | Forms: plural override input editable | #30 plural overrides |
+| 25 | Instruments: route chips insert {slot:form} variable | #12 chip palette |
+| 26 | Archive: import receipt banner appears after valid import | #1 import receipt |
+| 27 | Composition: slot Down reorder changes order | #20 slot reorder |
+| 28 | Composition: Move to start/end buttons present and functional | #20 slot reorder |
+| 29 | Instruments: device input fields are editable | #12 editable device inputs |
 
 ---
 

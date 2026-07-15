@@ -33,7 +33,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 | WP02 | Core/Schema Boundary (recovery) | claude/v08-wp02-core-schema-recovery | MERGED (#11) | 534 | #11 | 735bcaa |
 | WP03 | State/Commands/Undo (recovery) | claude/v08-wp03-state-commands-recovery | MERGED (#12+#13) | 152 | #12+#13 | 539c0fa+6810bd8 |
 | WP04 | UI Foundation/Shell (recovery) | claude/v08-wp04-ui-shell-recovery | MERGED (#14) | 152 | #14 | 5a64cef |
-| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | AWAITING REVIEW | 177 | #15 | a05010e |
+| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | AWAITING REVIEW | 191 | #15 | 897d65d |
 | [A]  | Human Checkpoint A          | —                                   | AWAITING REVIEW | — | — | — |
 | WP06 | Materials                   | claude/v08-wp06-materials           | NOT STARTED| —     | —  | —      |
 | WP07 | Instruments                 | claude/v08-wp07-instruments         | NOT STARTED| —     | —  | —      |
@@ -64,18 +64,17 @@ Original PRs #5–#9 are frozen; close them after the recovery branches merge.
 Recovery audit branch: `claude/taroke-v08-recovery-audit-ajf7b3` — canonical reference for
 all phase decisions through WP05.
 
-**Evidence summary (2026-07-15 — candidate commit a05010e)**
-- v07 baseline: 534 passed, 0 failed (verified locally; CI fix pushed in 7166ef9)
-- v08 unit/component: 177 passed, 0 failed (9 test files; +9 tests for surfaceSlice, takesSlice, ArchivePanel error)
+**Evidence summary (2026-07-15 — candidate commit 897d65d)**
+- v07 baseline: 534 passed, 0 failed (verified locally; shared browser_runtime.py resolver)
+- v08 unit/component: 191 passed, 0 failed (9 test files; false-positive tests repaired)
 - TypeScript: 0 errors
 - Build: 0 errors → artifact in /next/
-- E2E checkpoint journey (Playwright/Chromium desktop): 21/21 passed (CI run 29411258523)
-- E2E checkpoint journey (Playwright/Chromium Pixel 5 portrait): 21/21 passed (local)
-- E2E checkpoint journey (Playwright/Chromium Pixel 5 landscape): 21/21 passed (local)
+- E2E checkpoint journey: 210/210 passed across 7 viewports (Chromium — desktop×3, tablet, mobile×3)
+- Product gaps closed: editable device inputs, slot Move to start/end, import receipt repair count
 - Cue/Surface isolation: Cue does NOT write to Surface — confirmed by regression tests 8 and 20
-- a11y: 4 contextual aria-label gaps fixed (commit 3e514b2); 2 WCAG items deferred to WP06
-- Independent review: 2 subagents reviewed runtime/compatibility and a11y — no FAILs
-- Firefox/WebKit: not available in CI environment (known non-blocker, deferred to WP06)
+- a11y: accessible names on all 29 tests; all 29 test buttons have labels
+- Independent review: subagents reviewed runtime/compatibility and a11y — no FAILs
+- Firefox/WebKit: downloads blocked by network policy; deferred to WP06
 
 ---
 
@@ -129,4 +128,4 @@ See `docs/v08/EVIDENCE_INDEX.md` for per-WP evidence records.
 
 ---
 
-*Last updated: WP05 candidate commit a05010e; CI CDP fix; a11y label improvements; 177 unit tests; 21-test E2E journey; independent review clean; Human Checkpoint A AWAITING REVIEW — 2026-07-15*
+*Last updated: WP05 candidate commit 897d65d; shared browser_runtime.py; false-positive test repairs; editable device inputs; slot Move to start/end; 191 unit tests; 29-test E2E journey (210/210 across 7 viewports); Human Checkpoint A AWAITING REVIEW — 2026-07-15*
