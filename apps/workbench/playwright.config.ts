@@ -30,10 +30,25 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [
+    // Desktop viewports
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"], ...chromiumOverride },
     },
+    {
+      name: "desktop-1280",
+      use: { ...devices["Desktop Chrome"], ...chromiumOverride, viewport: { width: 1280, height: 800 } },
+    },
+    {
+      name: "desktop-1024",
+      use: { ...devices["Desktop Chrome"], ...chromiumOverride, viewport: { width: 1024, height: 768 } },
+    },
+    // Tablet viewport
+    {
+      name: "tablet-portrait",
+      use: { ...devices["Desktop Chrome"], ...chromiumOverride, viewport: { width: 768, height: 1024 } },
+    },
+    // Mobile viewports
     {
       name: "mobile-portrait",
       use: { ...devices["Pixel 5"], ...chromiumOverride },
@@ -41,6 +56,10 @@ export default defineConfig({
     {
       name: "mobile-landscape",
       use: { ...devices["Pixel 5 landscape"], ...chromiumOverride },
+    },
+    {
+      name: "mobile-small",
+      use: { ...devices["Desktop Chrome"], ...chromiumOverride, viewport: { width: 375, height: 667 } },
     },
   ],
   webServer: {
