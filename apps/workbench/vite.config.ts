@@ -4,7 +4,7 @@ import { resolve } from "path";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/next/",
+  base: process.env["VITE_BASE"] ?? "/next/",
   build: {
     outDir: "../../next",
     emptyOutDir: true,
