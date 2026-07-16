@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "candidate": "0a6d756",
+  "candidate": "fc0950f",
   "features": [
     {
       "id": "F-CTRL",
@@ -33,11 +33,18 @@
     {
       "id": "F-REF",
       "title": "Slot rename/delete preserves or safely blocks route and trigger references",
-      "status": "implemented_unverified",
+      "status": "done",
       "scenarios": [
         "SCN-ID-003"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29527960994,
+          "sha": "cb9848c",
+          "conclusion": "success"
+        }
+      ]
     },
     {
       "id": "F-REORDER-PTR",
@@ -51,11 +58,18 @@
     {
       "id": "F-REORDER-TOUCH",
       "title": "Touch reorder",
-      "status": "implemented_unverified",
+      "status": "done",
       "scenarios": [
         "SCN-REORDER-TOUCH"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29527960994,
+          "sha": "cb9848c",
+          "conclusion": "success"
+        }
+      ]
     },
     {
       "id": "F-REORDER-KBD",
