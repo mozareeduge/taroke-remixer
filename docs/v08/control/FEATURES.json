@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "candidate": "fc0950f",
+  "candidate": "a2e3de5",
   "features": [
     {
       "id": "F-CTRL",
@@ -124,11 +124,18 @@
     {
       "id": "F-V07-DRAFT",
       "title": "Verified non-destructive v07 draft migration",
-      "status": "implemented_unverified",
+      "status": "done",
       "scenarios": [
         "SCN-V07-MIGRATION"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29528767668,
+          "sha": "a2e3de5",
+          "conclusion": "success"
+        }
+      ]
     },
     {
       "id": "F-PREVIEW",
@@ -265,11 +272,18 @@
     {
       "id": "F-FREEZE",
       "title": "Frozen candidate with all required CI green",
-      "status": "not_started",
+      "status": "done",
       "scenarios": [
         "SCN-FREEZE-001"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29528767668,
+          "sha": "a2e3de5",
+          "conclusion": "success"
+        }
+      ]
     },
     {
       "id": "F-REVIEW",
