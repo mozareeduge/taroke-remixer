@@ -1,8 +1,11 @@
 import { useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { setProject } from "../store/projectSlice.js";
+import { setPreviewFresh } from "../store/editorSlice.js";
 import { showReceipt } from "../store/importReceiptSlice.js";
 import { exportProjectJson, exportProjectHtml, importProjectWithReceipt, downloadName } from "@taroke/core";
+
+type PreviewLifecycle = "unbuilt" | "fresh" | "stale" | "error";
 
 function download(filename: string, content: string, mime: string) {
   const blob = new Blob([content], { type: mime });
@@ -17,8 +20,33 @@ function download(filename: string, content: string, mime: string) {
 export function ArchivePanel() {
   const dispatch = useAppDispatch();
   const project = useAppSelector((s) => s.project.present);
+  const previewFresh = useAppSelector((s) => s.editor.previewFresh);
   const importRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  const lifecycle: PreviewLifecycle =
+    previewError !== null
+      ? "error"
+      : previewHtml === null
+      ? "unbuilt"
+      : previewFresh
+      ? "fresh"
+      : "stale";
+
+  function doPreview() {
+    setPreviewError(null);
+    try {
+      const html = exportProjectHtml(project);
+      setPreviewHtml(html);
+      dispatch(setPreviewFresh(true));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setPreviewError(msg);
+      setPreviewHtml(null);
+    }
+  }
 
   function doExportJson() {
     download(downloadName(project, ".taroke.json"), exportProjectJson(project), "application/json");
@@ -93,6 +121,50 @@ export function ArchivePanel() {
             </p>
           )}
         </div>
+
+        <div className="tr-panel__section-head">
+          PREVIEW
+          <span
+            className={`tr-badge tr-badge--lifecycle tr-badge--lifecycle-${lifecycle}`}
+            data-preview-lifecycle={lifecycle}
+            aria-label={`Preview status: ${lifecycle}`}
+          >
+            {lifecycle.toUpperCase()}
+          </span>
+        </div>
+        <div className="tr-archive__actions">
+          <button
+            className="tr-btn tr-btn--ghost"
+            onClick={doPreview}
+            aria-label={lifecycle === "unbuilt" ? "Generate preview of exported artifact" : "Refresh artifact preview"}
+          >
+            {lifecycle === "unbuilt" ? "Preview artifact" : "Refresh preview"}
+          </button>
+          {lifecycle === "stale" && (
+            <p className="tr-archive__desc tr-archive__stale-hint">
+              Project has changed — preview is stale. Click Refresh to rebuild.
+            </p>
+          )}
+          {previewError && (
+            <p className="tr-archive__error" role="alert" aria-live="assertive">
+              Preview error: {previewError}
+            </p>
+          )}
+        </div>
+        {previewHtml && (
+          <div
+            className="tr-archive__preview-frame"
+            data-preview-lifecycle={lifecycle}
+          >
+            <iframe
+              title="Artifact preview"
+              srcDoc={previewHtml}
+              sandbox="allow-scripts"
+              className="tr-archive__iframe"
+              aria-label="Exported artifact preview"
+            />
+          </div>
+        )}
 
         <div className="tr-panel__section-head">PROJECT INFO</div>
         <table className="tr-table">
