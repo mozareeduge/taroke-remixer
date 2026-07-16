@@ -1,9 +1,9 @@
 # Human Checkpoint A — WP05 Vertical Slice Gate
 
 **Program**: TAROKE Remixer v08 WP05 Vertical Slice  
-**Candidate commit**: `897d65d` (HEAD on `claude/v08-wp05-vertical-slice-recovery` = PR #15)  
-**CI gate**: runs 29412500449 (push) + 29412503255 (pull_request) → **conclusion: success** ✓ (earlier runs; current HEAD adds new tests/fixes only)  
-**Prepared**: 2026-07-15  
+**Candidate commit**: `9ffdf50` (HEAD on `claude/v08-wp05-vertical-slice-recovery` = PR #15)  
+**CI gate**: runs 29412500449 (push) + 29412503255 (pull_request) → **conclusion: success** ✓ (earlier runs; current HEAD adds stable IDs, preview lifecycle, DraftRecoveryBanner, multimodal reorder, 50-step journey, a11y fixes)  
+**Prepared**: 2026-07-16 (updated from 2026-07-15)  
 **Reviewer**: Mohammad (designated authority)  
 **Status**: AWAITING REVIEW
 
@@ -50,13 +50,12 @@ Superseded PRs to close after merge: #5, #6, #7, #8, #9.
 ### v08 Unit/Component Tests
 
 - Runner: `npx vitest run` (from `apps/workbench/`)
-- Result: **191 passed, 0 failed** across 9 test files
+- Result: **206 passed, 0 failed** across 9 test files
 - Covers: store slices (project/undo, surface, takes, runtime, history, import-receipt),
   shell, panels (Materials/Instruments/Composition/Automation/Performance/Archive),
-  migration, generation, forms, export, ArchivePanel import-error role=alert
-- Improvements since v177: fixed false-positive import-receipt test (now actually reads file
-  via FileReader + waitFor), route chip no longer conditionally passes when chips absent,
-  sample reorder verifies ID-stable order change
+  migration (including 2 new tests: stable DeviceInput ID assignment + duplicate ID repair),
+  generation, forms, export
+- Improvements since 897d65d: stable DeviceInput IDs; DraftRecoveryBanner; 50-test journey
 
 ### TypeScript
 
