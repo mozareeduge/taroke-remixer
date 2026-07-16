@@ -110,7 +110,7 @@
     {
       "id": "F-V07-DRAFT",
       "title": "Verified non-destructive v07 draft migration",
-      "status": "not_started",
+      "status": "implemented_unverified",
       "scenarios": [
         "SCN-V07-MIGRATION"
       ],

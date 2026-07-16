@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "../store/hooks.js";
 import { setProject } from "../store/projectSlice.js";
-import { loadFromLocalStorage, clearAutosave } from "../store/autosave.js";
+import { loadFromLocalStorage, clearAutosave, loadV07Draft } from "../store/autosave.js";
 import { migrateProject } from "@taroke/core";
 
-type BannerState = "none" | "draft" | "corrupt" | "dismissed";
+type BannerState = "none" | "draft" | "corrupt" | "v07draft" | "dismissed";
 
 export function DraftRecoveryBanner() {
   const dispatch = useAppDispatch();
@@ -18,10 +18,33 @@ export function DraftRecoveryBanner() {
       setSavedAt(draft.savedAt);
     } else if (draft.status === "corrupt") {
       setState("corrupt");
+    } else {
+      // No v08 draft — check for a v07 draft to offer non-destructive migration
+      const v07 = loadV07Draft();
+      if (v07.status === "ok") {
+        setState("v07draft");
+        setSavedAt(v07.savedAt || null);
+      }
     }
   }, []);
 
   if (state === "none" || state === "dismissed") return null;
+
+  function handleMigrateV07() {
+    const v07 = loadV07Draft();
+    if (v07.status !== "ok") {
+      setState("corrupt");
+      return;
+    }
+    try {
+      const migrated = migrateProject(v07.project);
+      dispatch(setProject(migrated));
+      // Leave v07 key intact — non-destructive: v07 app can still find its draft
+      setState("dismissed");
+    } catch {
+      setState("corrupt");
+    }
+  }
 
   function handleRestore() {
     const draft = loadFromLocalStorage();
@@ -63,6 +86,25 @@ export function DraftRecoveryBanner() {
         </button>
         <button className="tr-btn tr-btn--icon tr-draft-banner__dismiss" aria-label="Dismiss" onClick={handleDismiss}>
           ✕
+        </button>
+      </div>
+    );
+  }
+
+  if (state === "v07draft") {
+    const timeLabel = savedAt
+      ? new Date(savedAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })
+      : "unknown time";
+    return (
+      <div className="tr-draft-banner tr-draft-banner--v07" role="status" aria-live="polite">
+        <span className="tr-draft-banner__msg">
+          v07 draft found ({timeLabel}) — migrate to v08 or dismiss. Your v07 session is unchanged.
+        </span>
+        <button className="tr-btn tr-btn--primary tr-draft-banner__btn" onClick={handleMigrateV07}>
+          Migrate to v08
+        </button>
+        <button className="tr-btn tr-btn--ghost tr-draft-banner__btn" onClick={handleDismiss}>
+          Dismiss
         </button>
       </div>
     );
