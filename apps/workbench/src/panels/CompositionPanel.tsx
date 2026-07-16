@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectStanza, selectScene } from "../store/selectionSlice.js";
@@ -37,6 +37,19 @@ export function CompositionPanel() {
   // ── Touch drag state ──────────────────────────────────────────────────────────
   const [touchDragId, setTouchDragId] = useState<string | null>(null);
   const [touchOverId, setTouchOverId] = useState<string | null>(null);
+  const slotsListRef = useRef<HTMLDivElement>(null);
+
+  // Attach a non-passive touchmove listener so preventDefault() actually works on
+  // iOS/Chrome — React synthetic events are passive by default and silently ignore it.
+  useEffect(() => {
+    const el = slotsListRef.current;
+    if (!el) return;
+    function handleNativeTouchMove(e: TouchEvent) {
+      if (touchDragId) e.preventDefault();
+    }
+    el.addEventListener("touchmove", handleNativeTouchMove, { passive: false });
+    return () => el.removeEventListener("touchmove", handleNativeTouchMove);
+  }, [touchDragId]);
 
   function doAddStanza() {
     const name = newStanzaName.trim();
@@ -120,7 +133,6 @@ export function CompositionPanel() {
 
   function onTouchMove(e: React.TouchEvent) {
     if (!touchDragId) return;
-    e.preventDefault();
     const touch = e.touches[0];
     if (!touch) return;
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -257,6 +269,7 @@ export function CompositionPanel() {
               className="tr-slots"
               role="list"
               aria-label="Pattern slots"
+              ref={slotsListRef}
             >
               {displaySlots.map((slot, i) => {
                 const realIdx = activeStanza.slots.findIndex((s) => s.id === slot.id);
@@ -305,6 +318,7 @@ export function CompositionPanel() {
                       onTouchStart={() => onTouchStart(slot.id)}
                       onTouchMove={onTouchMove}
                       onTouchEnd={onTouchEnd}
+                      onTouchCancel={onTouchEnd}
                       tabIndex={0}
                     >
                       ⣿

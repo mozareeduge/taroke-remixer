@@ -92,9 +92,6 @@ export function DraftRecoveryBanner() {
   }
 
   if (state === "v07draft") {
-    const timeLabel = savedAt
-      ? new Date(savedAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })
-      : "unknown time";
     return (
       <div className="tr-draft-banner tr-draft-banner--v07" role="status" aria-live="polite">
         <span className="tr-draft-banner__msg">
