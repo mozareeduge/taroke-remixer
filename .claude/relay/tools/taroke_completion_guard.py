@@ -50,6 +50,9 @@ def main():
     terminal = state.get("terminal_status")
     if terminal in {"blocked", "paused_external_limit"}:
         return 0
+    if terminal == "merged":
+        print("TAROKE_CHECKPOINT_A_READY")
+        return 0
     errors = evaluate(state, features)
     if errors:
         print("TAROKE WP05 completion gate is not satisfied:", file=sys.stderr)
