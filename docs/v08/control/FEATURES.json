@@ -1,0 +1,232 @@
+{
+  "schema_version": "1.0.0",
+  "candidate": "3c503fceebbc1566693883ba49cc6e321e09c9eb",
+  "features": [
+    {
+      "id": "F-CTRL",
+      "title": "Control-plane contradiction resolved and durable guard installed",
+      "status": "not_started",
+      "scenarios": [
+        "SCN-CTRL-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-STATE",
+      "title": "Candidate-bound state and feature ledger maintained",
+      "status": "not_started",
+      "scenarios": [
+        "SCN-STATE-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-ID",
+      "title": "Stable device input IDs survive all lifecycle operations",
+      "status": "implemented_unverified",
+      "scenarios": [
+        "SCN-ID-001",
+        "SCN-ID-002"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-REF",
+      "title": "Slot rename/delete preserves or safely blocks route and trigger references",
+      "status": "not_started",
+      "scenarios": [
+        "SCN-ID-003"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-REORDER-PTR",
+      "title": "Pointer reorder",
+      "status": "implemented_unverified",
+      "scenarios": [
+        "SCN-REORDER-POINTER"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-REORDER-TOUCH",
+      "title": "Touch reorder",
+      "status": "not_started",
+      "scenarios": [
+        "SCN-REORDER-TOUCH"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-REORDER-KBD",
+      "title": "Keyboard pickup/move/drop and cancel",
+      "status": "implemented_unverified",
+      "scenarios": [
+        "SCN-REORDER-KEYBOARD"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-REORDER-HISTORY",
+      "title": "Reorder undo/redo and reference stability",
+      "status": "implemented_unverified",
+      "scenarios": [
+        "SCN-REORDER-HISTORY"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-AUTOSAVE",
+      "title": "Real v08 autosave writer and explicit recovery",
+      "status": "implemented_unverified",
+      "scenarios": [
+        "SCN-AUTOSAVE-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-STORAGE",
+      "title": "Corrupt/unavailable/quota/schema storage handling",
+      "status": "implemented_unverified",
+      "scenarios": [
+        "SCN-STORAGE-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-V07-DRAFT",
+      "title": "Verified non-destructive v07 draft migration",
+      "status": "not_started",
+      "scenarios": [
+        "SCN-V07-MIGRATION"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-PREVIEW",
+      "title": "UNBUILT/FRESH/STALE/ERROR preview lifecycle",
+      "status": "implemented_unverified",
+      "scenarios": [
+        "SCN-PREVIEW-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-PREVIEW-SANDBOX",
+      "title": "Preview exporter parity and storage isolation",
+      "status": "implemented_unverified",
+      "scenarios": [
+        "SCN-PREVIEW-002"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-JSON",
+      "title": "Downloaded JSON inspection and round trip",
+      "status": "implemented_unverified",
+      "scenarios": [
+        "SCN-JSON-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-HTML",
+      "title": "Independent standalone HTML runtime parity",
+      "status": "implemented_unverified",
+      "scenarios": [
+        "SCN-HTML-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-JOURNEY",
+      "title": "Complete deterministic authored journey",
+      "status": "implemented_unverified",
+      "scenarios": [
+        "SCN-JOURNEY-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-CHROMIUM",
+      "title": "Chromium desktop CI",
+      "status": "failing_ci",
+      "scenarios": [
+        "SCN-CHROMIUM-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-FIREFOX",
+      "title": "Firefox desktop CI",
+      "status": "failing_ci",
+      "scenarios": [
+        "SCN-FIREFOX-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-WEBKIT",
+      "title": "WebKit desktop CI",
+      "status": "failing_ci",
+      "scenarios": [
+        "SCN-WEBKIT-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-MOBILE",
+      "title": "Chromium portrait/landscape and WebKit mobile CI",
+      "status": "failing_ci",
+      "scenarios": [
+        "SCN-MOBILE-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-A11Y",
+      "title": "Accessibility and responsive certification",
+      "status": "implemented_unverified",
+      "scenarios": [
+        "SCN-A11Y-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-FREEZE",
+      "title": "Frozen candidate with all required CI green",
+      "status": "not_started",
+      "scenarios": [
+        "SCN-FREEZE-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-REVIEW",
+      "title": "Three fresh candidate-bound reviews with no P0/P1",
+      "status": "not_started",
+      "scenarios": [
+        "SCN-REVIEW-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-DEPLOY",
+      "title": "Public root and /next/ verified for reviewed SHA",
+      "status": "not_started",
+      "scenarios": [
+        "SCN-DEPLOY-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-TRUTH",
+      "title": "PR and checkpoint truth surfaces synchronized",
+      "status": "not_started",
+      "scenarios": [
+        "SCN-TRUTH-001"
+      ],
+      "evidence": []
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "terminal_status": "active",
+  "canonical_repository": "mozareeduge/taroke-remixer",
+  "canonical_branch": "claude/v08-wp05-vertical-slice-recovery",
+  "canonical_pr": 15,
+  "base_branch": "main",
+  "starting_head": "3c503fceebbc1566693883ba49cc6e321e09c9eb",
+  "current_candidate": "3c503fceebbc1566693883ba49cc6e321e09c9eb",
+  "active_task": "T01",
+  "completed_tasks": ["T00"],
+  "residue": {
+    "claude/v08-wp05-checkpoint-a-73pije": "superseded — identical HEAD to canonical branch (3c503fceebbc1566693883ba49cc6e321e09c9eb), no unique commits"
+  },
+  "ci": {
+    "run_id": 29494936613,
+    "candidate": "3c503fceebbc1566693883ba49cc6e321e09c9eb",
+    "conclusion": "failure",
+    "passed_jobs": [
+      "v07 baseline",
+      "v08 TypeScript",
+      "v08 unit tests",
+      "v08 build /next/"
+    ],
+    "failed_jobs": [
+      "v08 E2E Chromium",
+      "v08 E2E Firefox",
+      "v08 E2E WebKit",
+      "v08 E2E Mobile"
+    ]
+  },
+  "review": {
+    "candidate": null,
+    "roles_passed": [],
+    "open_p0": 0,
+    "open_p1": 0
+  },
+  "deployment": {
+    "candidate": null,
+    "root_verified": false,
+    "next_verified": false,
+    "next_url": null
+  },
+  "blocker": null,
+  "next_exact_action": "T01: fetch the latest CI run logs for SHA 3c503fce; diagnose root failures in v08 E2E Chromium, Firefox, WebKit, and Mobile jobs; fix the E2E test harness or application code; push; verify green CI.",
+  "last_updated": "2026-07-16T16:58:00Z"
+}

@@ -1,35 +1,44 @@
-# TAROKE RIMIXER — Claude Code Rules
+# TAROKE RIMIXER — Claude Code rules
 
-Project type: static local-first browser app. No framework, no build step.
+## Architecture scope
 
-Run target: `index.html` at repository root.
+- Frozen v07 is the root static application and its legacy verifier. Preserve its behavior and 534/0 baseline.
+- v08 is the React/TypeScript/Vite workbench under `apps/workbench`, current packages, CI, and `/next/` build tooling.
+- Static/no-framework rules apply only to v07 files. Do not use them to reject the authorized v08 architecture.
 
-Core files:
-- `index.html`: app shell only.
-- `styles.css`: black/white functional workbench styling.
-- `src/core.js`: project model, generator, migration, export/import.
-- `src/app.js`: DOM rendering and editor interactions.
-- `tests/`: executable regression tests.
+## Current program
 
-Hard rules:
-- Keep the project light: no framework, bundler, database, server, or new dependency unless explicitly requested.
-- Do not redesign aesthetics. Keep black/white monospace workbench.
-- Do not reintroduce surface theme cards or surface family cards.
-- Do not reintroduce visible line numbers in run/export surfaces.
-- Preserve local-first import/export: `.taroke.json` and standalone `.taroke.html` must keep working.
-- Route templates are text-field/variable schemas. Slot chips must insert complete `{slot:form}` variables at the cursor.
-- Missing variables must not leave doubled punctuation such as `,,`.
-- Every editable layer must be user-editable: samples, forms, devices, stanza, flow, triggers, surface numbers, run notes, export.
+- Canonical branch and PR come from `docs/v08/control/RUN_STATE.json`.
+- Do not create another branch or PR unless current explicit user authority says so.
+- Do not merge or begin the next work package before its human checkpoint.
+- When a Relay workload is active, read its `START_HERE.md`, current run state, active task, and only the authority files named by that task.
 
-Workflow:
-- For small fixes, patch directly and run targeted tests.
-- For multi-file changes, inspect first, write a compact plan, then implement.
-- Always run `./tests/run_all_tests.sh` before claiming done. Expected: 534 passed, 0 failed.
-- Show evidence: changed files and test output.
-- If two attempts fail, stop, summarize root cause, and restart from a clean plan.
-- One session = one bounded task. See `docs/CLAUDE_WORKFLOW.md` for phase order.
+## Meaning of done
 
-Skills (repeatable procedures):
-- `.claude/skills/qa-evidence/SKILL.md` — acceptance evidence checklist
-- `.claude/skills/release-check/SKILL.md` — pre-merge checklist
-- `.claude/skills/feature-gate/SKILL.md` — feature plan template
+Code existence is `implemented`, not `done`.
+A required behavior is done only when its mapped scenarios pass for the current candidate, evidence is fresh, required CI and reviews pass, no P0/P1 remains, and public verification passes where required.
+Never use earlier-SHA evidence for a later SHA.
+
+## Workflow
+
+- One user kickoff may span multiple internal tasks and context-managed campaigns.
+- Continue through dependency-satisfied tasks without phase approvals.
+- Use targeted tests during edits; run broad gates only at task/freeze points.
+- Fix root causes. Do not mute failures, weaken tests, add vacuous assertions, or rerun unchanged failures.
+- Update durable state after each coherent atomic group; commit and push safe work.
+- Stop only for the workload completion gate, a verified authority/permission/material blocker, or external usage exhaustion after a clean handoff.
+
+## Context economy
+
+- Keep startup reads minimal.
+- Store full logs/screenshots on disk and report bounded summaries.
+- Use at most one bounded exploration subagent per task when it saves main-context reads.
+- Run fresh reviewers only after the candidate is frozen.
+- Before context saturation, finish or revert the atomic edit, update state, commit, and preserve the next exact action.
+
+## Project invariants
+
+- Preserve authored text, bank order, IDs, meaningful empty states, migration provenance, import/export, and local-first behavior.
+- Cue is private audition; Surface is committed generation.
+- Editor, runtime, UNMIX, JSON, preview, and standalone HTML must agree.
+- Maintain focus, caret, selection, scroll, reading position, keyboard, touch, accessibility, and responsive behavior.
