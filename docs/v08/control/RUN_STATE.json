@@ -19,26 +19,16 @@
     "claude/v08-wp05-checkpoint-a-73pije": "superseded — identical HEAD to canonical branch (3c503fceebbc1566693883ba49cc6e321e09c9eb), no unique commits"
   },
   "ci": {
-    "run_id": 29528374325,
-    "candidate": "fc0950f",
+    "run_id": 29528459715,
+    "candidate": "36de103",
     "conclusion": "in_progress",
-    "passed_jobs": [],
+    "passed_jobs": [
+      "v08 TypeScript",
+      "v08 unit tests",
+      "v08 build /next/"
+    ],
     "failed_jobs": [],
-    "prior_green": {
-      "run_id": 29527960994,
-      "candidate": "cb9848c",
-      "conclusion": "success",
-      "passed_jobs": [
-        "v07 baseline",
-        "v08 TypeScript",
-        "v08 unit tests",
-        "v08 build /next/",
-        "v08 E2E Chromium",
-        "v08 E2E Firefox",
-        "v08 E2E WebKit",
-        "v08 E2E Mobile"
-      ]
-    }
+    "note": "push run 29528374325 (fc0950f) was cancelled by state update 36de103; PR run 29528459715 is authoritative"
   },
   "review": {
     "candidate": null,
@@ -53,6 +43,6 @@
     "next_url": null
   },
   "blocker": null,
-  "next_exact_action": "T02: await CI green for fc0950f (run 29528374325); if green mark F-V07-DRAFT done and move to T03.",
-  "last_updated": "2026-07-16T22:05:00Z"
+  "next_exact_action": "T02: await CI green for 36de103 (run 29528459715); if green mark F-V07-DRAFT+F-FREEZE done, move T02→complete T03→complete, spawn 3 fresh reviewers for F-REVIEW, then F-DEPLOY+F-TRUTH to complete the workload gate.",
+  "last_updated": "2026-07-16T22:10:00Z"
 }
