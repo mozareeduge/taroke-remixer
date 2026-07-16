@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "candidate": "a2e3de5",
+  "candidate": "a781bf9",
   "features": [
     {
       "id": "F-CTRL",
@@ -65,8 +65,8 @@
       "evidence": [
         {
           "type": "ci",
-          "run_id": 29527960994,
-          "sha": "cb9848c",
+          "run_id": 29530118934,
+          "sha": "a781bf9",
           "conclusion": "success"
         }
       ]
@@ -224,7 +224,14 @@
       "scenarios": [
         "SCN-CHROMIUM-001"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29530118934,
+          "sha": "a781bf9",
+          "conclusion": "success"
+        }
+      ]
     },
     {
       "id": "F-FIREFOX",
@@ -233,7 +240,14 @@
       "scenarios": [
         "SCN-FIREFOX-001"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29530118934,
+          "sha": "a781bf9",
+          "conclusion": "success"
+        }
+      ]
     },
     {
       "id": "F-WEBKIT",
@@ -242,7 +256,14 @@
       "scenarios": [
         "SCN-WEBKIT-001"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29530118934,
+          "sha": "a781bf9",
+          "conclusion": "success"
+        }
+      ]
     },
     {
       "id": "F-MOBILE",
@@ -251,7 +272,14 @@
       "scenarios": [
         "SCN-MOBILE-001"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29530118934,
+          "sha": "a781bf9",
+          "conclusion": "success"
+        }
+      ]
     },
     {
       "id": "F-A11Y",
@@ -279,8 +307,8 @@
       "evidence": [
         {
           "type": "ci",
-          "run_id": 29528767668,
-          "sha": "a2e3de5",
+          "run_id": 29530118934,
+          "sha": "a781bf9",
           "conclusion": "success"
         }
       ]
@@ -288,11 +316,21 @@
     {
       "id": "F-REVIEW",
       "title": "Three fresh candidate-bound reviews with no P0/P1",
-      "status": "not_started",
+      "status": "done",
       "scenarios": [
         "SCN-REVIEW-001"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "type": "review",
+          "round": 3,
+          "sha": "a781bf9",
+          "reviewers": 3,
+          "conclusion": "approved",
+          "open_p0": 0,
+          "open_p1": 0
+        }
+      ]
     },
     {
       "id": "F-DEPLOY",
@@ -301,16 +339,23 @@
       "scenarios": [
         "SCN-DEPLOY-001"
       ],
-      "evidence": []
+      "evidence": [],
+      "blocker": "GitHub Pages source must be set to GitHub Actions by repo admin: Settings → Pages → Source: GitHub Actions. Once enabled, preview.yml will build and deploy root + /next/ for SHA a781bf9."
     },
     {
       "id": "F-TRUTH",
       "title": "PR and checkpoint truth surfaces synchronized",
-      "status": "not_started",
+      "status": "done",
       "scenarios": [
         "SCN-TRUTH-001"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "type": "commit",
+          "sha": "a781bf9",
+          "note": "HUMAN_CHECKPOINT_A.md, EVIDENCE_INDEX.md, STATUS.md all synchronized to candidate a781bf9"
+        }
+      ]
     }
   ]
 }

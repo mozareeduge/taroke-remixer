@@ -62,11 +62,11 @@ A fresh-context independent review (separate session, no prior exposure to this 
 
 **Branch:** claude/v08-wp05-vertical-slice-recovery  
 **Status:** AWAITING REVIEW (PR #15 → main)  
-**Commit:** 7e95556 (2026-07-16)
+**Commit:** a781bf9 (2026-07-16)
 
-**CI evidence (7e95556):**
-- PR run 29529359485: all 8 jobs green (TypeScript, v07 baseline 534, unit tests Vitest, build /next/, E2E Firefox/Chromium/WebKit/Mobile)
-- Push run 29529354249: success
+**CI evidence (a781bf9):**
+- PR run 29530118934: all 8 jobs green (TypeScript, v07 baseline 534, unit tests Vitest, build /next/, E2E Firefox/Chromium/WebKit/Mobile)
+- Push run 29530114283: success
 
 **Tests:**
 - v07 baseline: 534 passed, 0 failed (CI-verified)
@@ -85,7 +85,7 @@ A fresh-context independent review (separate session, no prior exposure to this 
 - F-A11Y: axe-core a11y gate; scope attributes; accessible names throughout
 - F-REORDER-PTR/F-REORDER-KBD/F-REORDER-HISTORY: Pointer drag, keyboard pickup, undo/redo
 - F-REF: Slot rename cascades `{slot:name}` in route templates; delete removes stale refs (CI-verified cb9848c)
-- F-REORDER-TOUCH: Touch drag-and-drop via touchstart/touchmove/touchend + native passive:false listener (CI-verified 7e95556)
+- F-REORDER-TOUCH: Touch drag-and-drop via touchstart/touchmove/touchend + native passive:false listener + dedicated onTouchCancel (CI-verified a781bf9)
 - F-V07-DRAFT: Non-destructive v07 draft migration banner — reads v07 key without deleting it (CI-verified a2e3de5)
 
 **Independent review (7e95556 — final candidate):**
@@ -105,7 +105,7 @@ A fresh-context independent review (separate session, no prior exposure to this 
 - [x] F-REF: slot rename/delete ref cascade (CI-verified)
 - [x] F-V07-DRAFT: non-destructive v07 migration (CI-verified)
 - [x] F-FREEZE: candidate 7e95556 frozen with all CI green
-- [ ] F-REVIEW: 3 fresh reviews no P0/P1 — Round 2 pending
+- [x] F-REVIEW: 3 fresh reviews no P0/P1 — Round 3 (a781bf9) APPROVED×3
 - [ ] F-DEPLOY: public root and /next/ — blocked on repo admin enabling GitHub Pages
 - [ ] Human Checkpoint A verdict from Mohammad
 - [ ] PR #15 merged

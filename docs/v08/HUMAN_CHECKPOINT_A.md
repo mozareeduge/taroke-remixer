@@ -1,9 +1,9 @@
 # Human Checkpoint A — WP05 Vertical Slice Gate
 
 **Program**: TAROKE Remixer v08 WP05 Vertical Slice  
-**Candidate commit**: `7e95556` (HEAD on `claude/v08-wp05-vertical-slice-recovery` = PR #15)  
-**CI gate**: run 29529359485 (pull_request, all 8 jobs green) → **conclusion: success** ✓  
-**Prepared**: 2026-07-16 (updated; candidate updated from 9ffdf50 → a2e3de5 → 7e95556)  
+**Candidate commit**: `a781bf9` (HEAD on `claude/v08-wp05-vertical-slice-recovery` = PR #15)  
+**CI gate**: run 29530118934 (pull_request, all 8 jobs green) → **conclusion: success** ✓  
+**Prepared**: 2026-07-16 (candidate history: 9ffdf50 → a2e3de5 → 7e95556 → a781bf9)  
 **Reviewer**: Mohammad (designated authority)  
 **Status**: AWAITING REVIEW
 
@@ -150,7 +150,19 @@ Fixes applied in commit `7e95556`:
 - `e.preventDefault()` removed from React synthetic `onTouchMove`
 - Redundant `timeLabel` shadow removed from `DraftRecoveryBanner.tsx`
 
-### WP05 T02 Reviews — Round 2 (candidate 7e95556) → pending
+### WP05 T02 Reviews — Round 2 (candidate 7e95556) → BLOCKED (new P1)
+
+Three fresh reviewers ran against 7e95556: Reviewers 1 and 2 APPROVED the passive touchmove and onTouchCancel fixes. Reviewer 3 (correctness) identified a new P1: `onTouchCancel={onTouchEnd}` would commit an unintended reorder if `touchOverId` was set when the OS cancelled — a cancel must never commit.
+
+Fix applied in commit `a781bf9`: added dedicated `onTouchCancel()` function that only clears `touchDragId` and `touchOverId` with no dispatch.
+
+### WP05 T02 Reviews — Round 3 (candidate a781bf9) → APPROVED ✓
+
+Three fresh independent reviewers ran against a781bf9. All three APPROVED with no P0 or P1 findings:
+
+- **Reviewer 1**: `onTouchCancel` is dedicated function (no dispatch); `useEffect` passive:false wiring correct; `slotsListRef` on correct container; non-destructive v07 read confirmed. APPROVED.
+- **Reviewer 2**: `onTouchCancel` wired to dedicated function not `onTouchEnd`; `onTouchEnd` commits only on valid reorder + unconditionally clears state; native `{ passive: false }` listener correct. APPROVED.
+- **Reviewer 3**: `onTouchCancel` never dispatches; `onTouchEnd` unconditionally clears both state vars; `useEffect` dependency/cleanup/passive:false all correct; cascade regexes correct and escaped. APPROVED.
 
 ---
 
