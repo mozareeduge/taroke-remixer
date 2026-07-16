@@ -17,13 +17,22 @@ export function saveToLocalStorage(project: RootState["project"]["present"]): vo
   }
 }
 
-export function loadFromLocalStorage(): { project: RootState["project"]["present"]; savedAt: string } | null {
+export type AutosaveDraft =
+  | { status: "ok"; project: RootState["project"]["present"]; savedAt: string }
+  | { status: "corrupt" }
+  | { status: "none" };
+
+export function loadFromLocalStorage(): AutosaveDraft {
   try {
     const raw = localStorage.getItem(AUTOSAVE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as { project: RootState["project"]["present"]; savedAt: string };
+    if (!raw) return { status: "none" };
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object" || !parsed["project"] || !parsed["savedAt"]) {
+      return { status: "corrupt" };
+    }
+    return { status: "ok", project: parsed["project"] as RootState["project"]["present"], savedAt: String(parsed["savedAt"]) };
   } catch {
-    return null;
+    return { status: "corrupt" };
   }
 }
 
