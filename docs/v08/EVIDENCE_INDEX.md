@@ -108,7 +108,8 @@ A fresh-context independent review (separate session, no prior exposure to this 
 - [x] F-REVIEW: 3 fresh reviews no P0/P1 — Round 3 (a781bf9) APPROVED×3
 - [x] F-DEPLOY: public root and /next/ deployed — workflow run 29539529622, all steps green, 2026-07-16T22:26:51Z
 - [x] Human Checkpoint A verdict from Mohammad — APPROVED_WITH_CONDITIONS 2026-07-16
-- [ ] PR #15 merged
+- [x] PR #15 merged — merge commit 0a2a71c8, 2026-07-16T22:47:03Z
+- [x] Post-merge CI green — run 29540521311, main branch, completed 2026-07-16T22:50:40Z
 
 ---
 

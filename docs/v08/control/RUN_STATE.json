@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "terminal_status": "ready_for_human_checkpoint",
+  "terminal_status": "merged",
   "canonical_repository": "mozareeduge/taroke-remixer",
   "canonical_branch": "claude/v08-wp05-vertical-slice-recovery",
   "canonical_pr": 15,
@@ -45,6 +45,13 @@
     ],
     "failed_jobs": []
   },
+  "post_merge_ci": {
+    "run_id": 29540521311,
+    "merge_sha": "0a2a71c8e8cce1f3afedbbd0eaf9f49b295cf004",
+    "branch": "main",
+    "conclusion": "success",
+    "completed_at": "2026-07-16T22:50:40Z"
+  },
   "review": {
     "candidate": "a781bf9",
     "roles_passed": ["correctness-r1", "touch-ux-r2", "data-integrity-r3"],
@@ -63,6 +70,14 @@
     "next_verified": true,
     "verification_note": "Deploy step success confirms live. WebFetch returns 403 due to proxy blocking github.io — not a Pages failure. All 10 workflow steps completed with runner assigned (id 1000001009)."
   },
+  "merge": {
+    "pr": 15,
+    "merge_sha": "0a2a71c8e8cce1f3afedbbd0eaf9f49b295cf004",
+    "merged_at": "2026-07-16T22:47:03Z",
+    "merge_method": "merge",
+    "post_merge_ci_run": 29540521311,
+    "post_merge_ci_conclusion": "success"
+  },
   "human_checkpoint_a": {
     "verdict": "APPROVED_WITH_CONDITIONS",
     "reviewer": "Mohammad",
@@ -72,6 +87,6 @@
     "wp06_condition": "Must begin only from a new GPT-authored Relay workload defining the visual, spatial, responsive, affordance, and sensory design contract"
   },
   "blocker": null,
-  "next_exact_action": "Merge PR #15. Update state with merge commit SHA, post-merge CI, and URL verification. Stop after WP05 post-merge closure.",
-  "last_updated": "2026-07-16T22:35:00Z"
+  "next_exact_action": "WP05 fully merged and closed. WP06 requires a new GPT-authored Relay workload. Do not begin WP06 without it.",
+  "last_updated": "2026-07-16T22:55:00Z"
 }

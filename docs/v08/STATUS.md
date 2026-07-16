@@ -33,7 +33,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 | WP02 | Core/Schema Boundary (recovery) | claude/v08-wp02-core-schema-recovery | MERGED (#11) | 534 | #11 | 735bcaa |
 | WP03 | State/Commands/Undo (recovery) | claude/v08-wp03-state-commands-recovery | MERGED (#12+#13) | 152 | #12+#13 | 539c0fa+6810bd8 |
 | WP04 | UI Foundation/Shell (recovery) | claude/v08-wp04-ui-shell-recovery | MERGED (#14) | 152 | #14 | 5a64cef |
-| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | MERGING | 206 | #15 | a781bf9 |
+| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | MERGED (#15) | 206 | #15 | a781bf9 |
 | [A]  | Human Checkpoint A          | —                                   | APPROVED_WITH_CONDITIONS | — | — | — |
 | WP06 | Materials                   | claude/v08-wp06-materials           | NOT STARTED| —     | —  | —      |
 | WP07 | Instruments                 | claude/v08-wp07-instruments         | NOT STARTED| —     | —  | —      |
@@ -49,13 +49,13 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 
 ## Current Focus
 
-**Human Checkpoint A** — APPROVED_WITH_CONDITIONS (Mohammad, 2026-07-16). Merging PR #15. WP06 requires a new GPT-authored Relay workload before starting.
+**WP05 CLOSED** — PR #15 merged to main (0a2a71c8, 2026-07-16). Post-merge CI green (run 29540521311). Human Checkpoint A APPROVED_WITH_CONDITIONS (Mohammad, 2026-07-16). WP06 requires a new GPT-authored Relay workload before starting.
 
-WP00 merged 2026-07-13 (PR #4). WP01–WP04 all merged (PRs #10–#14). WP05 recovery branch
-is the Checkpoint A candidate on PR #15 (commit `a05010e`). Do not merge or begin WP06
-before Checkpoint A verdict.
+WP00 merged 2026-07-13 (PR #4). WP01–WP04 all merged (PRs #10–#14). WP05 merged 2026-07-16
+(PR #15, merge commit 0a2a71c8). Post-merge CI green. Human Checkpoint A APPROVED_WITH_CONDITIONS.
+WP06 requires a new GPT-authored Relay workload.
 
-**Do NOT merge WP05 or begin WP06 until Checkpoint A verdict is received.**
+**WP06 requires a new GPT-authored Relay workload. Do not begin WP06 without it.**
 
 Checkpoint A packet: `docs/v08/HUMAN_CHECKPOINT_A.md`
 Experience reviews: `docs/v08/EXPERIENCE_REVIEWS_WP05.md`
@@ -64,7 +64,7 @@ Original PRs #5–#9 are frozen; close them after the recovery branches merge.
 Recovery audit branch: `claude/taroke-v08-recovery-audit-ajf7b3` — canonical reference for
 all phase decisions through WP05.
 
-**Evidence summary (2026-07-16 — candidate commit a781bf9)**
+**WP05 closure evidence (merged 2026-07-16 — merge commit 0a2a71c8)**
 - v07 baseline: 534 passed, 0 failed (CI run 29530118934)
 - v08 unit/component: 206 passed, 0 failed (9 test files, CI run 29530118934)
 - TypeScript: 0 errors (CI run 29530118934)
@@ -75,7 +75,8 @@ all phase decisions through WP05.
 - F-V07-DRAFT: non-destructive v07 migration banner (CI-verified a2e3de5)
 - F-FREEZE: candidate a781bf9 frozen, all 8 CI jobs green (run 29530118934)
 - F-REVIEW: 3 rounds of reviews; Round 3 (a781bf9) APPROVED×3, no P0/P1
-- F-DEPLOY: deployed — workflow run 29539529622, all 10 steps green, 2026-07-16T22:26:51Z (root + /next/ live)
+- F-DEPLOY: deployed (run 29539529622, 2026-07-16T22:26:51Z); post-merge CI green (run 29540521311)
+- Merge commit: 0a2a71c8 on main, 2026-07-16T22:47:03Z
 
 ---
 
@@ -129,4 +130,4 @@ See `docs/v08/EVIDENCE_INDEX.md` for per-WP evidence records.
 
 ---
 
-*Last updated: WP05 candidate commit a781bf9; F-REF; F-REORDER-TOUCH (passive:false + dedicated onTouchCancel); F-V07-DRAFT; F-FREEZE (CI green run 29530118934); F-REVIEW Round 3 APPROVED×3; F-DEPLOY deployed (run 29539529622, 2026-07-16T22:26:51Z, root + /next/ live); F-TRUTH synchronized; Human Checkpoint A AWAITING VERDICT — 2026-07-16*
+*Last updated: WP05 MERGED — PR #15 merge commit 0a2a71c8; post-merge CI green (run 29540521311); Human Checkpoint A APPROVED_WITH_CONDITIONS (Mohammad); WP06 requires GPT-authored Relay workload — 2026-07-16*
