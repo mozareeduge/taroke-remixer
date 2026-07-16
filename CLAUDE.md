@@ -2,7 +2,7 @@
 
 ## Architecture scope
 
-- Frozen v07 is the root static application and its legacy verifier. Preserve its behavior and 534/0 baseline.
+- Frozen v07 is the root static application and its legacy verifier. Preserve its behavior and 534 passed, 0 failed baseline.
 - v08 is the React/TypeScript/Vite workbench under `apps/workbench`, current packages, CI, and `/next/` build tooling.
 - Static/no-framework rules apply only to v07 files. Do not use them to reject the authorized v08 architecture.
 
