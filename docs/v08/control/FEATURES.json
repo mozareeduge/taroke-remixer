@@ -1,0 +1,369 @@
+{
+  "schema_version": "1.0.0",
+  "candidate": "a781bf9",
+  "features": [
+    {
+      "id": "F-CTRL",
+      "title": "Control-plane contradiction resolved and durable guard installed",
+      "status": "done",
+      "scenarios": [
+        "SCN-CTRL-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-STATE",
+      "title": "Candidate-bound state and feature ledger maintained",
+      "status": "done",
+      "scenarios": [
+        "SCN-STATE-001"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-ID",
+      "title": "Stable device input IDs survive all lifecycle operations",
+      "status": "done",
+      "scenarios": [
+        "SCN-ID-001",
+        "SCN-ID-002"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-REF",
+      "title": "Slot rename/delete preserves or safely blocks route and trigger references",
+      "status": "done",
+      "scenarios": [
+        "SCN-ID-003"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29527960994,
+          "sha": "cb9848c",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-REORDER-PTR",
+      "title": "Pointer reorder",
+      "status": "done",
+      "scenarios": [
+        "SCN-REORDER-POINTER"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-REORDER-TOUCH",
+      "title": "Touch reorder",
+      "status": "done",
+      "scenarios": [
+        "SCN-REORDER-TOUCH"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29530118934,
+          "sha": "a781bf9",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-REORDER-KBD",
+      "title": "Keyboard pickup/move/drop and cancel",
+      "status": "done",
+      "scenarios": [
+        "SCN-REORDER-KEYBOARD"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-REORDER-HISTORY",
+      "title": "Reorder undo/redo and reference stability",
+      "status": "done",
+      "scenarios": [
+        "SCN-REORDER-HISTORY"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "F-AUTOSAVE",
+      "title": "Real v08 autosave writer and explicit recovery",
+      "status": "done",
+      "scenarios": [
+        "SCN-AUTOSAVE-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29519806838,
+          "sha": "0a6d756",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-STORAGE",
+      "title": "Corrupt/unavailable/quota/schema storage handling",
+      "status": "done",
+      "scenarios": [
+        "SCN-STORAGE-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29519806838,
+          "sha": "0a6d756",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-V07-DRAFT",
+      "title": "Verified non-destructive v07 draft migration",
+      "status": "done",
+      "scenarios": [
+        "SCN-V07-MIGRATION"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29528767668,
+          "sha": "a2e3de5",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-PREVIEW",
+      "title": "UNBUILT/FRESH/STALE/ERROR preview lifecycle",
+      "status": "done",
+      "scenarios": [
+        "SCN-PREVIEW-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29519806838,
+          "sha": "0a6d756",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-PREVIEW-SANDBOX",
+      "title": "Preview exporter parity and storage isolation",
+      "status": "done",
+      "scenarios": [
+        "SCN-PREVIEW-002"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29519806838,
+          "sha": "0a6d756",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-JSON",
+      "title": "Downloaded JSON inspection and round trip",
+      "status": "done",
+      "scenarios": [
+        "SCN-JSON-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29519806838,
+          "sha": "0a6d756",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-HTML",
+      "title": "Independent standalone HTML runtime parity",
+      "status": "done",
+      "scenarios": [
+        "SCN-HTML-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29519806838,
+          "sha": "0a6d756",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-JOURNEY",
+      "title": "Complete deterministic authored journey",
+      "status": "done",
+      "scenarios": [
+        "SCN-JOURNEY-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29519806838,
+          "sha": "0a6d756",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-CHROMIUM",
+      "title": "Chromium desktop CI",
+      "status": "done",
+      "scenarios": [
+        "SCN-CHROMIUM-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29530118934,
+          "sha": "a781bf9",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-FIREFOX",
+      "title": "Firefox desktop CI",
+      "status": "done",
+      "scenarios": [
+        "SCN-FIREFOX-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29530118934,
+          "sha": "a781bf9",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-WEBKIT",
+      "title": "WebKit desktop CI",
+      "status": "done",
+      "scenarios": [
+        "SCN-WEBKIT-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29530118934,
+          "sha": "a781bf9",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-MOBILE",
+      "title": "Chromium portrait/landscape and WebKit mobile CI",
+      "status": "done",
+      "scenarios": [
+        "SCN-MOBILE-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29530118934,
+          "sha": "a781bf9",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-A11Y",
+      "title": "Accessibility and responsive certification",
+      "status": "done",
+      "scenarios": [
+        "SCN-A11Y-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29519806838,
+          "sha": "0a6d756",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-FREEZE",
+      "title": "Frozen candidate with all required CI green",
+      "status": "done",
+      "scenarios": [
+        "SCN-FREEZE-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29530118934,
+          "sha": "a781bf9",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "F-REVIEW",
+      "title": "Three fresh candidate-bound reviews with no P0/P1",
+      "status": "done",
+      "scenarios": [
+        "SCN-REVIEW-001"
+      ],
+      "evidence": [
+        {
+          "type": "review",
+          "round": 3,
+          "sha": "a781bf9",
+          "reviewers": 3,
+          "conclusion": "approved",
+          "open_p0": 0,
+          "open_p1": 0
+        }
+      ]
+    },
+    {
+      "id": "F-DEPLOY",
+      "title": "Public root and /next/ verified for reviewed SHA",
+      "status": "done",
+      "scenarios": [
+        "SCN-DEPLOY-001"
+      ],
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29539529622,
+          "sha": "1292aa07",
+          "candidate_sha": "a781bf9",
+          "conclusion": "success",
+          "note": "All 10 deployment steps green including 'Deploy to GitHub Pages'. Runner assigned (id 1000001009). Completed 2026-07-16T22:26:51Z. Root: https://mozareeduge.github.io/taroke-remixer/ | /next/: https://mozareeduge.github.io/taroke-remixer/next/"
+        }
+      ]
+    },
+    {
+      "id": "F-TRUTH",
+      "title": "PR and checkpoint truth surfaces synchronized",
+      "status": "done",
+      "scenarios": [
+        "SCN-TRUTH-001"
+      ],
+      "evidence": [
+        {
+          "type": "commit",
+          "sha": "a781bf9",
+          "note": "HUMAN_CHECKPOINT_A.md, EVIDENCE_INDEX.md, STATUS.md all synchronized to candidate a781bf9"
+        }
+      ]
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import {
   verb3Base,
   formToken,
   articleFor,
+  KEEP_UNCHANGED_SENTINEL,
 } from "../forms.js";
 import { defaultProject } from "../migration.js";
 
@@ -86,5 +87,57 @@ describe("formToken", () => {
   it("compound word preserves prefix on plural", () => {
     const tok = { id: "t1", literal: "giant-hole", role: "noun", weight: 1, lockedLiteral: false };
     expect(formToken(project, tok, "plural")).toBe("giant-holes");
+  });
+
+  describe("__keep__ sentinel — must never leak to generated text", () => {
+    it("KEEP_UNCHANGED_SENTINEL is the expected value", () => {
+      expect(KEEP_UNCHANGED_SENTINEL).toBe("__keep__");
+    });
+
+    it("plural kept returns literal not sentinel", () => {
+      const proj = { ...project, forms: { ...project.forms, overrides: { t1: { plural: KEEP_UNCHANGED_SENTINEL } } } };
+      const tok = { id: "t1", literal: "baby", role: "noun", weight: 1, lockedLiteral: false };
+      const result = formToken(proj, tok, "plural");
+      expect(result).toBe("baby");
+      expect(result).not.toContain("__keep__");
+    });
+
+    it("literal kept returns literal not sentinel", () => {
+      const proj = { ...project, forms: { ...project.forms, overrides: { t1: { literal: KEEP_UNCHANGED_SENTINEL } } } };
+      const tok = { id: "t1", literal: "floor", role: "noun", weight: 1, lockedLiteral: false };
+      const result = formToken(proj, tok, "literal");
+      expect(result).toBe("floor");
+      expect(result).not.toContain("__keep__");
+    });
+
+    it("thirdSingular kept returns head not sentinel", () => {
+      const proj = { ...project, forms: { ...project.forms, overrides: { t1: { thirdSingular: KEEP_UNCHANGED_SENTINEL } } } };
+      const tok = { id: "t1", literal: "carry", role: "verb", weight: 1, lockedLiteral: false };
+      const result = formToken(proj, tok, "thirdSingular");
+      expect(result).toBe("carry");
+      expect(result).not.toContain("__keep__");
+    });
+
+    it("imperative kept returns literal not sentinel", () => {
+      const proj = { ...project, forms: { ...project.forms, overrides: { t1: { imperative: KEEP_UNCHANGED_SENTINEL } } } };
+      const tok = { id: "t1", literal: "run", role: "verb", weight: 1, lockedLiteral: false };
+      const result = formToken(proj, tok, "imperative");
+      expect(result).toBe("run");
+      expect(result).not.toContain("__keep__");
+    });
+
+    it("custom form kept returns head not sentinel", () => {
+      const proj = { ...project, forms: { ...project.forms, overrides: { t1: { gerund: KEEP_UNCHANGED_SENTINEL } } } };
+      const tok = { id: "t1", literal: "run", role: "verb", weight: 1, lockedLiteral: false };
+      const result = formToken(proj, tok, "gerund");
+      expect(result).toBe("run");
+      expect(result).not.toContain("__keep__");
+    });
+
+    it("non-kept plural override still works normally", () => {
+      const proj = { ...project, forms: { ...project.forms, overrides: { t1: { plural: "babies" } } } };
+      const tok = { id: "t1", literal: "baby", role: "noun", weight: 1, lockedLiteral: false };
+      expect(formToken(proj, tok, "plural")).toBe("babies");
+    });
   });
 });

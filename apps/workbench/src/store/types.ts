@@ -1,4 +1,7 @@
 import type { TarokeProject, RunState, ValidationIssue } from "@taroke/schema";
+import type { ImportReceipt } from "@taroke/core";
+import type { TakesState } from "./takesSlice.js";
+import type { SurfaceState } from "./surfaceSlice.js";
 
 // ── Project state ──────────────────────────────────────────────────────────────
 
@@ -28,13 +31,14 @@ export interface SelectionState {
 
 // ── Editor state ───────────────────────────────────────────────────────────────
 
-export type EditorPanel = "materials" | "instruments" | "composition" | "automation" | "performance" | "archive";
+export type EditorPanel = "materials" | "forms" | "instruments" | "composition" | "automation" | "performance" | "archive";
 
 export interface EditorState {
   activePanel: EditorPanel;
   sidebarOpen: boolean;
   inspectorOpen: boolean;
   previewFresh: boolean;
+  previewHtml: string | null;
 }
 
 // ── Runtime state ──────────────────────────────────────────────────────────────
@@ -71,6 +75,7 @@ export interface ImportReceiptState {
   timestamp: string | null;
   issues: ValidationIssue[];
   repairCount: number;
+  fullReceipt: ImportReceipt | null;
 }
 
 // ── Root ──────────────────────────────────────────────────────────────────────
@@ -82,4 +87,6 @@ export interface RootState {
   runtime: RuntimeState;
   history: HistoryState;
   importReceipt: ImportReceiptState;
+  takes: TakesState;
+  surface: SurfaceState;
 }

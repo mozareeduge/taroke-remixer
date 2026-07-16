@@ -112,6 +112,22 @@ export function setBankLabel(project: TarokeProject, bankName: string, label: st
   });
 }
 
+export function addBank(project: TarokeProject, key: string, label: string, role = "literal"): CommandResult {
+  return cmd(project, "Add bank", (d) => {
+    if (!d.materials.trays[key]) {
+      d.materials.trays[key] = [];
+      d.materials.bankMeta[key] = { label, role, desc: "custom sample bank" };
+    }
+  });
+}
+
+export function removeBank(project: TarokeProject, bankName: string): CommandResult {
+  return cmd(project, "Remove bank", (d) => {
+    delete d.materials.trays[bankName];
+    delete d.materials.bankMeta[bankName];
+  });
+}
+
 // ── Line device commands ───────────────────────────────────────────────────────
 
 export function addLineDevice(project: TarokeProject, device: LineDevice): CommandResult {
@@ -153,19 +169,53 @@ export function reorderLineDevices(project: TarokeProject, orderedIds: string[])
   });
 }
 
-export function addDeviceInput(project: TarokeProject, deviceId: string, input: DeviceInput): CommandResult {
+export function addDeviceInput(project: TarokeProject, deviceId: string, input: Omit<DeviceInput, "id">): CommandResult {
   return cmd(project, "Add device input", (d) => {
     const dev = d.lineDevices.find((x) => x.id === deviceId);
-    if (dev) dev.inputs.push(input);
+    if (dev) dev.inputs.push({ id: uid("inp"), ...input });
   });
 }
 
-export function removeDeviceInput(project: TarokeProject, deviceId: string, slot: string): CommandResult {
+export function removeDeviceInput(project: TarokeProject, deviceId: string, inputId: string): CommandResult {
   return cmd(project, "Remove device input", (d) => {
     const dev = d.lineDevices.find((x) => x.id === deviceId);
     if (!dev) return;
-    const idx = dev.inputs.findIndex((i) => i.slot === slot);
-    if (idx >= 0) dev.inputs.splice(idx, 1);
+    const idx = dev.inputs.findIndex((i) => i.id === inputId);
+    if (idx < 0) return;
+    const removed = dev.inputs[idx];
+    if (!removed) return;
+    const removedSlot = removed.slot;
+    dev.inputs.splice(idx, 1);
+    // Remove dangling {slot:form} references from all routes on this device
+    const staleRe = new RegExp(`\\{${removedSlot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:[^}]*\\}`, "g");
+    for (const route of dev.routes) {
+      route.template = route.template.replace(staleRe, "");
+    }
+  });
+}
+
+export function updateDeviceInput(
+  project: TarokeProject,
+  deviceId: string,
+  inputId: string,
+  patch: Partial<Omit<DeviceInput, "id">>,
+): CommandResult {
+  return cmd(project, "Update device input", (d) => {
+    const dev = d.lineDevices.find((x) => x.id === deviceId);
+    if (!dev) return;
+    const inp = dev.inputs.find((i) => i.id === inputId);
+    if (!inp) return;
+    if (patch.slot !== undefined && patch.slot !== inp.slot) {
+      const oldSlot = inp.slot;
+      inp.slot = patch.slot;
+      // Cascade rename into route templates: {oldSlot:form} → {newSlot:form}
+      const renameRe = new RegExp(`\\{${oldSlot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:`, "g");
+      for (const route of dev.routes) {
+        route.template = route.template.replace(renameRe, `{${patch.slot}:`);
+      }
+    }
+    if (patch.tray !== undefined) inp.tray = patch.tray;
+    if (patch.role !== undefined) inp.role = patch.role;
   });
 }
 
@@ -258,6 +308,14 @@ export function setSlotChance(project: TarokeProject, stanzaId: string, slotId: 
     const s = d.stanzaPatterns.find((x) => x.id === stanzaId);
     const slot = s?.slots.find((sl) => sl.id === slotId);
     if (slot) slot.chance = chance;
+  });
+}
+
+export function setSlotRepeat(project: TarokeProject, stanzaId: string, slotId: string, repeat: "once" | "loop"): CommandResult {
+  return cmd(project, "Set slot repeat", (d) => {
+    const s = d.stanzaPatterns.find((x) => x.id === stanzaId);
+    const slot = s?.slots.find((sl) => sl.id === slotId);
+    if (slot) slot.repeat = repeat;
   });
 }
 

@@ -6,6 +6,7 @@ const initialState: EditorState = {
   sidebarOpen: true,
   inspectorOpen: true,
   previewFresh: false,
+  previewHtml: null,
 };
 
 const editorSlice = createSlice({
@@ -24,6 +25,9 @@ const editorSlice = createSlice({
     setPreviewFresh(state, action: PayloadAction<boolean>) {
       state.previewFresh = action.payload;
     },
+    setPreviewHtml(state, action: PayloadAction<string | null>) {
+      state.previewHtml = action.payload;
+    },
     markPreviewStale(state) {
       state.previewFresh = false;
     },
@@ -35,6 +39,7 @@ export const {
   toggleSidebar,
   toggleInspector,
   setPreviewFresh,
+  setPreviewHtml,
   markPreviewStale,
 } = editorSlice.actions;
 export default editorSlice.reducer;

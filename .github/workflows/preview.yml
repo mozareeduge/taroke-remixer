@@ -1,0 +1,79 @@
+name: Deploy Preview (Checkpoint A)
+
+# Deploys a public preview for Human Checkpoint A review.
+# v07.8 app at the root (/), v08 app at /next/.
+#
+# REQUIRES: GitHub Pages must be enabled for this repository.
+# Settings → Pages → Source: GitHub Actions
+#
+# Public URL after enabling: https://mozareeduge.github.io/taroke-remixer/
+# v07 (root):  https://mozareeduge.github.io/taroke-remixer/
+# v08 (/next/): https://mozareeduge.github.io/taroke-remixer/next/
+
+on:
+  push:
+    branches:
+      - "claude/v08-wp05-vertical-slice-recovery"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build and deploy checkpoint preview
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build v08 app for GitHub Pages (/taroke-remixer/next/ base)
+        run: npm run build --workspace=apps/workbench
+        env:
+          # Override base for GitHub Pages subpath deployment
+          VITE_BASE: /taroke-remixer/next/
+
+      - name: Assemble Pages output
+        run: |
+          mkdir -p _site/next
+          # v07.8 at root
+          cp index.html _site/
+          cp styles.css _site/
+          cp -r src/ _site/src/
+          cp sample_v07_reset.taroke.json _site/ 2>/dev/null || true
+          # v08 at /next/
+          cp -r next/. _site/next/
+
+      - name: Add Pages 404 fallback (SPA routing for v08)
+        run: |
+          # v08 SPA needs all /next/* paths to serve next/index.html
+          cp _site/next/index.html _site/next/404.html 2>/dev/null || true
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -102,6 +102,44 @@ describe("migrateProject", () => {
     expect((result as unknown as Record<string, unknown>)["_author_custom"]).toBe("keep-me");
   });
 
+  it("assigns stable id to DeviceInputs that lack one", () => {
+    const input = {
+      lineDevices: [{
+        id: "ld_test", name: "TEST", enabled: true, description: "",
+        inputs: [
+          { slot: "above", tray: "above", role: "noun" },
+          { slot: "below", tray: "below", role: "noun" },
+        ],
+        routes: [],
+      }],
+    };
+    const p = migrateProject(input);
+    const inputs = p.lineDevices[0]!.inputs;
+    expect(inputs[0]!.id).toBeTruthy();
+    expect(inputs[1]!.id).toBeTruthy();
+    expect(inputs[0]!.id).not.toBe(inputs[1]!.id);
+    // IDs must survive a second migration pass unchanged
+    const p2 = migrateProject(p);
+    expect(p2.lineDevices[0]!.inputs[0]!.id).toBe(p.lineDevices[0]!.inputs[0]!.id);
+    expect(p2.lineDevices[0]!.inputs[1]!.id).toBe(p.lineDevices[0]!.inputs[1]!.id);
+  });
+
+  it("repairs duplicate DeviceInput ids within a device", () => {
+    const input = {
+      lineDevices: [{
+        id: "ld_dup", name: "DUP", enabled: true, description: "",
+        inputs: [
+          { id: "inp_shared", slot: "above", tray: "above", role: "noun" },
+          { id: "inp_shared", slot: "below", tray: "below", role: "noun" },
+        ],
+        routes: [],
+      }],
+    };
+    const p = migrateProject(input);
+    const ids = p.lineDevices[0]!.inputs.map((i) => i.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it("merges importRepairs provenance across passes", () => {
     const dupId = "tok_shared";
     const input = {

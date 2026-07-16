@@ -6,6 +6,8 @@ import editorReducer, { setActivePanel, toggleSidebar, markPreviewStale, setPrev
 import runtimeReducer, { start, stop, pause, recordEvent } from "../../store/runtimeSlice.js";
 import historyReducer, { pushEntry, popForUndo, clearHistory } from "../../store/historySlice.js";
 import importReceiptReducer, { showReceipt, dismissReceipt, clearReceipt } from "../../store/importReceiptSlice.js";
+import surfaceReducer, { appendSurfaceLine, clearSurface, setRetention } from "../../store/surfaceSlice.js";
+import takesReducer, { captureTake, clearTakes, removeTake } from "../../store/takesSlice.js";
 import { defaultProject } from "@taroke/core";
 
 // ── projectSlice ────────────────────────────────────────────────────────────────
@@ -208,5 +210,69 @@ describe("importReceiptSlice", () => {
     expect(state.visible).toBe(false);
     expect(state.filename).toBeNull();
     expect(state.repairCount).toBe(0);
+  });
+});
+
+// ── surfaceSlice ────────────────────────────────────────────────────────────────
+
+describe("surfaceSlice", () => {
+  it("initial state has empty lines and default retention 28", () => {
+    const state = surfaceReducer(undefined, { type: "@@INIT" });
+    expect(state.lines).toEqual([]);
+    expect(state.retention).toBe(28);
+  });
+
+  it("appendSurfaceLine adds a line", () => {
+    const state = surfaceReducer(undefined, appendSurfaceLine("line one"));
+    expect(state.lines).toEqual(["line one"]);
+  });
+
+  it("appendSurfaceLine enforces retention limit", () => {
+    let state = surfaceReducer(undefined, setRetention(3));
+    state = surfaceReducer(state, appendSurfaceLine("a"));
+    state = surfaceReducer(state, appendSurfaceLine("b"));
+    state = surfaceReducer(state, appendSurfaceLine("c"));
+    expect(state.lines).toHaveLength(3);
+    state = surfaceReducer(state, appendSurfaceLine("d"));
+    expect(state.lines).toHaveLength(3);
+    expect(state.lines).toEqual(["b", "c", "d"]);
+  });
+
+  it("clearSurface resets lines to empty array", () => {
+    let state = surfaceReducer(undefined, appendSurfaceLine("x"));
+    state = surfaceReducer(state, appendSurfaceLine("y"));
+    state = surfaceReducer(state, clearSurface());
+    expect(state.lines).toEqual([]);
+  });
+});
+
+// ── takesSlice ─────────────────────────────────────────────────────────────────
+
+describe("takesSlice", () => {
+  const sampleTake = { id: "t1", tick: 3, surface: "walked the gorge", trace: "PATH>above>rock", deviceName: "PATH", route: "r1" };
+
+  it("initial state has empty takes", () => {
+    const state = takesReducer(undefined, { type: "@@INIT" });
+    expect(state.takes).toEqual([]);
+  });
+
+  it("captureTake appends to takes with capturedAt timestamp", () => {
+    const state = takesReducer(undefined, captureTake(sampleTake));
+    expect(state.takes).toHaveLength(1);
+    expect(state.takes[0]?.surface).toBe("walked the gorge");
+    expect(state.takes[0]?.capturedAt).toBeDefined();
+  });
+
+  it("removeTake removes by id", () => {
+    let state = takesReducer(undefined, captureTake(sampleTake));
+    state = takesReducer(state, removeTake("t1"));
+    expect(state.takes).toHaveLength(0);
+  });
+
+  it("clearTakes empties the list", () => {
+    let state = takesReducer(undefined, captureTake(sampleTake));
+    state = takesReducer(state, captureTake({ ...sampleTake, id: "t2" }));
+    state = takesReducer(state, clearTakes());
+    expect(state.takes).toEqual([]);
   });
 });

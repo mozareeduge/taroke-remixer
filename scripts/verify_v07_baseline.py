@@ -71,7 +71,7 @@ def find_chromium():
     # 2. PLAYWRIGHT_BROWSERS_PATH — directory where Playwright stores browsers
     pw_base = os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "").strip()
     if pw_base and os.path.isdir(pw_base):
-        for pat in ["chromium*/chrome-linux/chrome", "chromium*/chrome"]:
+        for pat in ["chromium*/chrome-linux64/chrome", "chromium*/chrome-linux/chrome", "chromium*/chrome"]:
             matches = sorted(glob.glob(os.path.join(pw_base, pat)))
             for m in matches:
                 if os.path.isfile(m) and os.access(m, os.X_OK):
@@ -81,7 +81,7 @@ def find_chromium():
     home = os.path.expanduser("~")
     for base in [f"{home}/.cache/ms-playwright", "/root/.cache/ms-playwright"]:
         if os.path.isdir(base):
-            for pat in ["chromium*/chrome-linux/chrome", "chromium*/chrome"]:
+            for pat in ["chromium*/chrome-linux64/chrome", "chromium*/chrome-linux/chrome", "chromium*/chrome"]:
                 matches = sorted(glob.glob(os.path.join(base, pat)))
                 for m in matches:
                     if os.path.isfile(m) and os.access(m, os.X_OK):
@@ -111,13 +111,15 @@ def banner(title):
     print("=" * width)
 
 
-def run_suite(label, cmd, expected_count, timeout_s=300):
+def run_suite(label, cmd, expected_count, timeout_s=300, extra_env=None):
     """
     Run one suite.  Return (passed, failed, skipped_reason).
     skipped_reason is None on normal execution.
     """
     print(f"\n── {label} ", end="", flush=True)
     env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
     try:
         result = subprocess.run(
             cmd,
@@ -201,7 +203,8 @@ def main():
             gate_ok = False
             continue
 
-        p, f, skip_reason = run_suite(label, cmd, expected)
+        extra = {"TAROKE_CHROMIUM_PATH": chromium} if (is_browser and chromium) else None
+        p, f, skip_reason = run_suite(label, cmd, expected, extra_env=extra)
 
         if skip_reason:
             suite_rows.append((label, None, None, expected, f"ERROR: {skip_reason}"))

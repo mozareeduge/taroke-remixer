@@ -7,6 +7,8 @@ import editorReducer from "../../store/editorSlice.js";
 import runtimeReducer from "../../store/runtimeSlice.js";
 import historyReducer, { popForUndo, popForRedo } from "../../store/historySlice.js";
 import importReceiptReducer from "../../store/importReceiptSlice.js";
+import takesReducer from "../../store/takesSlice.js";
+import surfaceReducer from "../../store/surfaceSlice.js";
 import { createUndoMiddleware } from "../../store/undoMiddleware.js";
 import { autosaveMiddleware } from "../../store/autosave.js";
 import { setProjectTitle, addToken, removeToken } from "../../store/commands.js";
@@ -25,6 +27,8 @@ function makeStore() {
       runtime: runtimeReducer,
       history: historyReducer,
       importReceipt: importReceiptReducer,
+      takes: takesReducer,
+      surface: surfaceReducer,
     },
     middleware: (get) =>
       get({ serializableCheck: { ignoredActionPaths: ["payload.patches", "payload.inversePatches"] } })

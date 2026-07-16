@@ -49,15 +49,26 @@ export function applyCase(project: TarokeProject, s: string): string {
   return s;
 }
 
+// Sentinel stored in overrides to mean "keep the literal unchanged for this form".
+// Must NEVER appear in generated text (Cue, Surface, UNMIX, exported HTML, visible poem).
+export const KEEP_UNCHANGED_SENTINEL = "__keep__";
+
 export function formToken(project: TarokeProject, tok: Token | null | undefined, form = "literal"): string {
   form = String(form ?? "literal").trim();
   if (!tok) return "";
   const lit = String(tok.literal ?? "");
   const ov: Record<string, string> = (project.forms?.overrides?.[tok.id] as Record<string, string>) ?? {};
+
+  // __keep__ means "use the literal text unchanged for this form" — never leak the sentinel.
+  const isKept = (f: string) => ov[f] === KEEP_UNCHANGED_SENTINEL;
+
   if (tok.lockedLiteral && !["uppercase", "lowercase", "title"].includes(form)) {
     return applyCase(project, lit);
   }
-  if (form === "literal" || form === "base") return applyCase(project, ov[form] ?? lit);
+  if (form === "literal" || form === "base") {
+    if (isKept(form)) return applyCase(project, lit);
+    return applyCase(project, ov[form] ?? lit);
+  }
   if (form === "literal+s") return applyCase(project, lit + "s");
   if (form === "uppercase") return lit.toUpperCase();
   if (form === "lowercase") return lit.toLowerCase();
@@ -65,11 +76,11 @@ export function formToken(project: TarokeProject, tok: Token | null | undefined,
   const [prefix, head] = splitHead(lit);
   const low = head.toLowerCase();
   let made = head;
-  if (form === "singular") made = ov["singular"] ?? head;
-  else if (form === "plural") made = ov["plural"] ?? pluralBase(low);
-  else if (form === "thirdSingular") made = ov["thirdSingular"] ?? verb3Base(low);
-  else if (form === "imperative") made = ov["imperative"] ?? head;
-  else made = ov[form] ?? head;
+  if (form === "singular") made = isKept("singular") ? head : (ov["singular"] ?? head);
+  else if (form === "plural") made = isKept("plural") ? head : (ov["plural"] ?? pluralBase(low));
+  else if (form === "thirdSingular") made = isKept("thirdSingular") ? head : (ov["thirdSingular"] ?? verb3Base(low));
+  else if (form === "imperative") made = isKept("imperative") ? head : (ov["imperative"] ?? head);
+  else made = isKept(form) ? head : (ov[form] ?? head);
   const out = prefix + styleLike(project.forms?.compoundPolicy === "literal" ? lit : head, made);
   return applyCase(project, out);
 }

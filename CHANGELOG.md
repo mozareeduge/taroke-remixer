@@ -1,5 +1,22 @@
 # TAROKE RIMIXER — Changelog
 
+## v08 WP05 — Human Checkpoint A (2026-07-16)
+
+v08 workbench (React + Redux + Vite) vertical slice, branch `claude/v08-wp05-vertical-slice-recovery`.
+
+- **Role-aware forms**: `KEEP_UNCHANGED_SENTINEL = "__keep__"` stored in `forms.overrides`; `formToken()` resolves sentinel back to literal text — sentinel never leaks into Cue, Surface, UNMIX, or exported HTML. 7 sentinel non-leak tests added.
+- **Authoritative import receipt**: `importProjectWithReceipt()` runs actual `migrateProject()` + `validateProject()` and returns a truthful `ImportReceipt` (20+ fields). `ImportReceiptBanner` renders the full receipt; no hardcoded empty arrays.
+- **Route variable palette**: searchable `VariablePalette` component with ArrowUp/Down/Enter/Escape keyboard nav, listbox semantics, and role-aware form chips that insert `{slot:form}` at the cursor caret.
+- **Stable device input keys**: array-index key for input rows (not `inp.slot`) prevents remount on each keystroke.
+- **a11y — nested-interactive eliminated**: removed `role="button"` from container divs that wrapped interactive controls in InstrumentsPanel, CompositionPanel, AutomationPanel. All replaced with proper `<button>` elements for selection intent.
+- **Playwright browser symlink**: `chromium_headless_shell-1228` symlinked to pre-installed rev-1194 binary to resolve Playwright 1.61.1 revision mismatch without network download.
+- **E2E suite**: 38 tests passing (smoke + 29-step checkpoint-a journey) on Chromium.
+- **axe-core audit**: 8 panels audited; 0 serious/critical violations.
+- v07 baseline: 534 passed, 0 failed (unchanged).
+- v08 unit tests: 204 passed, 0 failed.
+
+---
+
 ## v07.8 — Release checkpoint (2026-07-11)
 
 Final release verification and checkpoint for the v07 track.

@@ -4,16 +4,11 @@ Covers: exported artifact, mobile viewport, input slots, stanza/flow controls,
 trigger roundtrip, note workflows, form overrides, custom bank delete.
 """
 import json, subprocess, time, requests, websocket, shutil, pathlib, sys, tempfile, os
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from browser_runtime import resolve_chromium
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-CHROME = next(
-    (p for p in [
-        '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-        '/opt/pw-browsers/chromium/chrome-linux/chrome',
-        'chromium-browser','chromium','google-chrome'
-    ] if shutil.which(p) or os.path.exists(p)),
-    'chromium'
-)
+CHROME = resolve_chromium()
 
 passed=0; failed=0; rows=[]
 def rec(name, ok, msg=''):

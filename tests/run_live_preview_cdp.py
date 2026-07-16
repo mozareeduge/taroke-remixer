@@ -5,6 +5,8 @@
 #        F. Export/autosave regression  G. Accessibility/responsive
 #        H. Iframe stability (v07.8)
 import json, subprocess, time, requests, websocket, shutil, pathlib, sys, os, re
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from browser_runtime import resolve_chromium
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FIXTURE_PATH = ROOT / 'tests' / 'fixtures' / 'exact_custom_banks_project.taroke.json'
@@ -12,11 +14,7 @@ CUSTOM_FIXTURE = json.loads(FIXTURE_PATH.read_text())
 
 prof = '/tmp/chrome-prof-taroke-livepreview'
 shutil.rmtree(prof, ignore_errors=True)
-CHROME = next((p for p in [
-    '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-    '/opt/pw-browsers/chromium/chrome-linux/chrome',
-    'chromium-browser','chromium','google-chrome']
-    if __import__('shutil').which(p) or os.path.exists(p)), 'chromium')
+CHROME = resolve_chromium()
 cmd = [CHROME,'--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',
        '--disable-extensions','--disable-background-networking','--no-first-run',
        '--no-default-browser-check',f'--user-data-dir={prof}',

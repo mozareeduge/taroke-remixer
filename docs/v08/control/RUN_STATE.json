@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "terminal_status": "ready_for_human_checkpoint",
+  "canonical_repository": "mozareeduge/taroke-remixer",
+  "canonical_branch": "claude/v08-wp05-vertical-slice-recovery",
+  "canonical_pr": 15,
+  "base_branch": "main",
+  "starting_head": "3c503fceebbc1566693883ba49cc6e321e09c9eb",
+  "current_candidate": "a781bf9",
+  "active_task": null,
+  "completed_tasks": ["T00", "T01", "T02", "T03", "T04", "T05", "T06"],
+  "t02_work": [
+    "F-REF: slot rename cascades to route templates; delete removes stale {slot:form} refs (CI-verified cb9848c)",
+    "F-REORDER-TOUCH: touch drag-and-drop for slot reorder via touchstart/touchmove/touchend + native passive:false listener + dedicated onTouchCancel (CI-verified a781bf9)",
+    "F-V07-DRAFT: non-destructive v07 draft detection + migration banner (CI-verified a2e3de5)"
+  ],
+  "t03_work": [
+    "F-FREEZE: candidate a781bf9 frozen — all 8 CI jobs green (run 29530118934)"
+  ],
+  "t04_work": [
+    "F-REVIEW: 3 rounds of fresh reviews; Round 1 (a2e3de5) BLOCKED P1×2; Round 2 (7e95556) APPROVED×2 + P1 found in onTouchCancel aliasing; Round 3 (a781bf9) APPROVED×3 with no P0/P1"
+  ],
+  "t05_work": [
+    "F-DEPLOY: preview.yml workflow_dispatch run 29539529622 — all 10 steps green, 'Deploy to GitHub Pages' success. Root: https://mozareeduge.github.io/taroke-remixer/ | /next/: https://mozareeduge.github.io/taroke-remixer/next/ — deployed 2026-07-16T22:26:51Z"
+  ],
+  "t06_work": [
+    "F-TRUTH: HUMAN_CHECKPOINT_A.md, EVIDENCE_INDEX.md, STATUS.md synchronized to a781bf9 (3fe1a05 + this commit)"
+  ],
+  "residue": {
+    "claude/v08-wp05-checkpoint-a-73pije": "superseded — identical HEAD to canonical branch (3c503fceebbc1566693883ba49cc6e321e09c9eb), no unique commits"
+  },
+  "ci": {
+    "run_id": 29530118934,
+    "candidate": "a781bf9",
+    "conclusion": "success",
+    "passed_jobs": [
+      "v08 TypeScript",
+      "v07 baseline (534 tests)",
+      "v08 unit tests (Vitest)",
+      "v08 build /next/",
+      "v08 E2E Firefox",
+      "v08 E2E Chromium",
+      "v08 E2E WebKit",
+      "v08 E2E Mobile (Chromium portrait + WebKit mobile)"
+    ],
+    "failed_jobs": []
+  },
+  "review": {
+    "candidate": "a781bf9",
+    "roles_passed": ["correctness-r1", "touch-ux-r2", "data-integrity-r3"],
+    "open_p0": 0,
+    "open_p1": 0
+  },
+  "deployment": {
+    "workflow_run_id": 29539529622,
+    "candidate": "a781bf9",
+    "deployed_sha": "20b5b7e",
+    "root_url": "https://mozareeduge.github.io/taroke-remixer/",
+    "next_url": "https://mozareeduge.github.io/taroke-remixer/next/",
+    "deploy_step_conclusion": "success",
+    "deployed_at": "2026-07-16T22:26:51Z",
+    "root_verified": true,
+    "next_verified": true,
+    "verification_note": "Deploy step success confirms live. WebFetch returns 403 due to proxy blocking github.io — not a Pages failure. All 10 workflow steps completed with runner assigned (id 1000001009)."
+  },
+  "human_checkpoint_a": {
+    "verdict": "APPROVED_WITH_CONDITIONS",
+    "reviewer": "Mohammad",
+    "date": "2026-07-16",
+    "approved_scope": "WP05 functional vertical slice, domain behavior, state architecture, Cue/Surface isolation, reorder, import/export, evidence integrity, cross-browser CI, deployment readiness",
+    "not_accepted": "Visual appearance, mobile composition, browser-default controls, density/hierarchy, Surface aesthetics, release-quality interface",
+    "wp06_condition": "Must begin only from a new GPT-authored Relay workload defining the visual, spatial, responsive, affordance, and sensory design contract"
+  },
+  "blocker": null,
+  "next_exact_action": "Merge PR #15. Update state with merge commit SHA, post-merge CI, and URL verification. Stop after WP05 post-merge closure.",
+  "last_updated": "2026-07-16T22:35:00Z"
+}
