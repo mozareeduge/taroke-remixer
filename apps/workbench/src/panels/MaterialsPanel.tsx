@@ -139,8 +139,8 @@ export function MaterialsPanel() {
         {activeBank ? (
           <>
             <div className="tr-panel__section-head">
-              {bankMeta?.label ?? activeBank.toUpperCase()}
-              <span className="tr-panel__section-meta">{bankRole} · {tokens.length} samples</span>
+              SAMPLES
+              <span className="tr-panel__section-meta">{bankMeta?.label ?? activeBank.toUpperCase()} · {bankRole} · {tokens.length}</span>
             </div>
             <table className="tr-table">
               <thead>
@@ -254,7 +254,7 @@ export function MaterialsPanel() {
                             onChange={() => toggleKeep(selectedToken.id, key, kept)}
                             aria-label={`Keep ${label} unchanged for ${selectedToken.literal}`}
                           />
-                          {" "}Keep unchanged
+                          {" "}Keep text unchanged
                         </label>
                         <input
                           id={`form-${selectedToken.id}-${key}`}

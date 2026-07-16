@@ -294,6 +294,14 @@ export function setSlotChance(project: TarokeProject, stanzaId: string, slotId: 
   });
 }
 
+export function setSlotRepeat(project: TarokeProject, stanzaId: string, slotId: string, repeat: "once" | "loop"): CommandResult {
+  return cmd(project, "Set slot repeat", (d) => {
+    const s = d.stanzaPatterns.find((x) => x.id === stanzaId);
+    const slot = s?.slots.find((sl) => sl.id === slotId);
+    if (slot) slot.repeat = repeat;
+  });
+}
+
 // ── Flow scene commands ────────────────────────────────────────────────────────
 
 export function addFlowScene(project: TarokeProject, scene: FlowScene): CommandResult {

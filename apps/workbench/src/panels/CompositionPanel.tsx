@@ -4,7 +4,7 @@ import { mutateProject } from "../store/projectSlice.js";
 import { selectStanza, selectScene } from "../store/selectionSlice.js";
 import {
   addStanzaPattern, removeStanzaPattern, toggleStanzaEnabled,
-  addStanzaSlot, removeStanzaSlot, reorderStanzaSlots,
+  addStanzaSlot, removeStanzaSlot, reorderStanzaSlots, setSlotChance, setSlotRepeat,
   addFlowScene, removeFlowScene, toggleSceneEnabled, setSceneChance,
 } from "../store/commands.js";
 import { uid } from "@taroke/core";
@@ -131,8 +131,25 @@ export function CompositionPanel() {
                 <div key={slot.id} className="tr-slot">
                   <span className="tr-slot__index">{i + 1}</span>
                   <span className="tr-slot__type">{slot.type === "breath" ? "BREATH" : slot.label}</span>
-                  <span className="tr-slot__chance">{slot.chance}%</span>
-                  {slot.repeat === "loop" && <span className="tr-slot__repeat">LOOP</span>}
+                  <input
+                    type="number"
+                    className="tr-input tr-input--num"
+                    value={slot.chance}
+                    min={0}
+                    max={100}
+                    onChange={(e) => dispatch(mutateProject(setSlotChance(project, activeStanza!.id, slot.id, Number(e.target.value))))}
+                    aria-label={`Chance for slot ${slot.label}`}
+                  />
+                  <span className="tr-slot__pct" aria-hidden="true">%</span>
+                  <select
+                    className="tr-select tr-select--sm"
+                    value={slot.repeat}
+                    onChange={(e) => dispatch(mutateProject(setSlotRepeat(project, activeStanza!.id, slot.id, e.target.value as "once" | "loop")))}
+                    aria-label={`Repeat for slot ${slot.label}`}
+                  >
+                    <option value="once">once</option>
+                    <option value="loop">loop</option>
+                  </select>
                   <div className="tr-reorder" role="group" aria-label={`Reorder slot ${slot.label}`}>
                     <button
                       className="tr-btn tr-btn--icon"
@@ -193,7 +210,7 @@ export function CompositionPanel() {
               </div>
             </div>
 
-            <div className="tr-panel__subsection-head">FLOW SCENES using this pattern</div>
+            <div className="tr-panel__subsection-head">SCENES</div>
             <div className="tr-scenes">
               {scenes.filter((sc) => sc.stanzaId === activeStanza.id).map((sc) => (
                 <div

@@ -87,7 +87,7 @@ export function AutomationPanel() {
                   onChange={(e) => dispatch(mutateProject(setTriggerCondition(project, tr.id, tr.condition.tray, e.target.value)))}
                   aria-label="Condition term"
                 />
-                <span className="tr-trigger__label">@</span>
+                <span className="tr-trigger__label">Chance</span>
                 <input
                   type="number"
                   className="tr-input tr-input--num"
@@ -95,7 +95,7 @@ export function AutomationPanel() {
                   min={0}
                   max={100}
                   onChange={(e) => dispatch(mutateProject(setTriggerChance(project, tr.id, Number(e.target.value))))}
-                  aria-label="Trigger chance"
+                  aria-label={`Trigger chance for ${tr.name}`}
                 />
                 <span className="tr-trigger__pct">%</span>
               </div>

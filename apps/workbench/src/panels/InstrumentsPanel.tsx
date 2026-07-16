@@ -10,14 +10,18 @@ import {
 import { uid } from "@taroke/core";
 
 // Forms available per bank role — unknown roles degrade to ["literal"].
-const ROLE_FORMS: Record<string, string[]> = {
-  noun:      ["literal", "singular", "plural"],
-  verb:      ["literal", "thirdSingular", "imperative"],
-  adjective: ["literal"],
-  adverb:    ["literal"],
-  mixed:     ["literal"],
+// { key } matches the token form identifier; { label } is the user-visible name.
+const ROLE_FORMS: Record<string, { key: string; label: string }[]> = {
+  noun:      [{ key: "literal", label: "Literal" }, { key: "singular", label: "Singular" }, { key: "plural", label: "Plural" }],
+  verb:      [{ key: "literal", label: "Literal" }, { key: "thirdSingular", label: "3rd singular" }, { key: "imperative", label: "Imperative" }],
+  adjective: [{ key: "literal", label: "Literal" }],
+  adverb:    [{ key: "literal", label: "Literal" }],
+  mixed:     [{ key: "literal", label: "Literal" }],
 };
-const DEFAULT_FORMS = ["literal"];
+const DEFAULT_FORMS: { key: string; label: string }[] = [{ key: "literal", label: "Literal" }];
+
+// Canonical bank role vocabulary — used to constrain the Role input to a <select>.
+const BANK_ROLES = ["noun", "verb", "adjective", "adverb", "mixed", "literal"] as const;
 
 interface PaletteEntry { variable: string; slot: string; form: string; available: boolean; }
 
@@ -44,8 +48,8 @@ function VariablePalette({ deviceId, routeId, routeTemplate, templateRef, onClos
       const role = bankMeta?.role ?? inp.role ?? "literal";
       const forms = ROLE_FORMS[role] ?? DEFAULT_FORMS;
       const available = Object.keys(project.materials.trays).includes(inp.tray);
-      for (const form of forms) {
-        entries.push({ variable: `{${inp.slot}:${form}}`, slot: inp.slot, form, available });
+      for (const { key, label } of forms) {
+        entries.push({ variable: `{${inp.slot}:${key}}`, slot: inp.slot, form: label, available });
       }
     }
     entries.push({ variable: "{article:a}", slot: "article", form: "a", available: true });
@@ -63,7 +67,7 @@ function VariablePalette({ deviceId, routeId, routeTemplate, templateRef, onClos
     if (e.key === "Enter") {
       e.preventDefault();
       const item = filtered[focusIdx];
-      if (item) onInsert(item.variable, routeId);
+      if (item && item.available) onInsert(item.variable, routeId);
     }
   }, [filtered, focusIdx, onClose, onInsert, routeId]);
 
@@ -254,12 +258,14 @@ export function InstrumentsPanel() {
                       </select>
                     </td>
                     <td className="tr-table__td">
-                      <input
-                        className="tr-input"
+                      <select
+                        className="tr-select tr-select--sm"
                         value={inp.role}
                         onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.slot, { role: e.target.value })))}
                         aria-label="Role"
-                      />
+                      >
+                        {BANK_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                      </select>
                     </td>
                     <td className="tr-table__td tr-table__td--action">
                       <button
@@ -332,17 +338,20 @@ export function InstrumentsPanel() {
                           const bankMeta = project.materials.bankMeta[inp.tray];
                           const role = bankMeta?.role ?? inp.role ?? "literal";
                           const forms = ROLE_FORMS[role] ?? DEFAULT_FORMS;
-                          return forms.map((form) => (
+                          return forms.map(({ key, label }) => (
                             <button
-                              key={`${inp.slot}:${form}`}
+                              key={`${inp.slot}:${key}`}
                               className="tr-btn tr-btn--chip"
-                              aria-label={`Insert ${inp.slot}:${form} variable`}
+                              aria-label={`Insert ${inp.slot}:${key} variable`}
+                              title={`${inp.slot} — ${label}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleInsert(`{${inp.slot}:${form}}`, rt.id);
+                                handleInsert(`{${inp.slot}:${key}}`, rt.id);
                               }}
                             >
-                              {`{${inp.slot}:${form}}`}
+                              <span className="tr-chip__var">{`{${inp.slot}:`}</span>
+                              <span className="tr-chip__label">{label}</span>
+                              <span className="tr-chip__var">{"}"}</span>
                             </button>
                           ));
                         })}

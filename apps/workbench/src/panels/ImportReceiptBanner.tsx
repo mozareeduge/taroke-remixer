@@ -47,6 +47,10 @@ export function ImportReceiptBanner() {
                 </td>
               </tr>
               <tr className="tr-table__row">
+                <th className="tr-table__th tr-table__th--label">Editor</th>
+                <td className="tr-table__td">{r.editorVersion}</td>
+              </tr>
+              <tr className="tr-table__row">
                 <th className="tr-table__th tr-table__th--label">Migration</th>
                 <td className="tr-table__td">{r.migrationPath}</td>
               </tr>
@@ -94,7 +98,17 @@ export function ImportReceiptBanner() {
             </tbody>
           </table>
 
-          {r.repairDetails.length > 0 && (
+          {r.duplicateIdFindings.length > 0 && (
+            <details className="tr-import-receipt__details">
+              <summary className="tr-import-receipt__details-toggle">Duplicate ID repairs ({r.duplicateIdFindings.length})</summary>
+              <ul className="tr-import-receipt__list">
+                {r.duplicateIdFindings.map((f, i) => (
+                  <li key={i}>{f.bank}[{f.index}]: {f.originalId} → {f.newId}</li>
+                ))}
+              </ul>
+            </details>
+          )}
+          {r.repairDetails.length > 0 && !r.duplicateIdFindings.length && (
             <details className="tr-import-receipt__details">
               <summary className="tr-import-receipt__details-toggle">Repair details ({r.repairCount})</summary>
               <ul className="tr-import-receipt__list">
