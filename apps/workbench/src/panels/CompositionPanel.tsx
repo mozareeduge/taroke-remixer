@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectStanza, selectScene } from "../store/selectionSlice.js";
@@ -8,6 +8,7 @@ import {
   addFlowScene, removeFlowScene, toggleSceneEnabled, setSceneChance,
 } from "../store/commands.js";
 import { uid } from "@taroke/core";
+import type { StanzaSlot } from "@taroke/schema";
 
 export function CompositionPanel() {
   const dispatch = useAppDispatch();
@@ -23,6 +24,15 @@ export function CompositionPanel() {
 
   const [newStanzaName, setNewStanzaName] = useState("");
   const [newSceneName, setNewSceneName] = useState("");
+
+  // ── HTML5 pointer drag state ──────────────────────────────────────────────────
+  const [dragFromIdx, setDragFromIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  // ── Keyboard pickup/move/drop state ──────────────────────────────────────────
+  // When pickedUpId is set, the slot is "in the air"; localOrder is the preview.
+  const [pickedUpId, setPickedUpId] = useState<string | null>(null);
+  const [localOrder, setLocalOrder] = useState<string[] | null>(null);
 
   function doAddStanza() {
     const name = newStanzaName.trim();
@@ -61,6 +71,94 @@ export function CompositionPanel() {
     if (!activeStanzaId) return;
     dispatch(mutateProject(addStanzaSlot(project, activeStanzaId, { id: uid("slot"), type: "device", deviceId, label: deviceName, repeat: "once", chance: 100 })));
   }
+
+  // ── Pointer drag handlers ─────────────────────────────────────────────────────
+
+  function onDragStart(i: number) {
+    setDragFromIdx(i);
+    cancelPickup();
+  }
+
+  function onDragOver(e: React.DragEvent, i: number) {
+    e.preventDefault();
+    setDragOverIdx(i);
+  }
+
+  function onDrop(e: React.DragEvent, i: number) {
+    e.preventDefault();
+    if (dragFromIdx === null || dragFromIdx === i || !activeStanza) {
+      setDragFromIdx(null);
+      setDragOverIdx(null);
+      return;
+    }
+    const ids = activeStanza.slots.map((s) => s.id);
+    const moved = ids[dragFromIdx];
+    if (!moved) { setDragFromIdx(null); setDragOverIdx(null); return; }
+    ids.splice(dragFromIdx, 1);
+    ids.splice(i, 0, moved);
+    dispatch(mutateProject(reorderStanzaSlots(project, activeStanza.id, ids)));
+    setDragFromIdx(null);
+    setDragOverIdx(null);
+  }
+
+  function onDragEnd() {
+    setDragFromIdx(null);
+    setDragOverIdx(null);
+  }
+
+  // ── Keyboard pickup/move/drop handlers ───────────────────────────────────────
+
+  function startPickup(slotId: string) {
+    if (!activeStanza) return;
+    setPickedUpId(slotId);
+    setLocalOrder(activeStanza.slots.map((s) => s.id));
+  }
+
+  function movePickedUp(delta: number) {
+    if (!pickedUpId || !localOrder) return;
+    const idx = localOrder.indexOf(pickedUpId);
+    const newIdx = idx + delta;
+    if (newIdx < 0 || newIdx >= localOrder.length) return;
+    const next = [...localOrder];
+    next.splice(idx, 1);
+    next.splice(newIdx, 0, pickedUpId);
+    setLocalOrder(next);
+  }
+
+  function commitPickup() {
+    if (!pickedUpId || !localOrder || !activeStanza) { cancelPickup(); return; }
+    dispatch(mutateProject(reorderStanzaSlots(project, activeStanza.id, localOrder)));
+    setPickedUpId(null);
+    setLocalOrder(null);
+  }
+
+  function cancelPickup() {
+    setPickedUpId(null);
+    setLocalOrder(null);
+  }
+
+  const handleDragHandleKeyDown = useCallback(
+    (e: React.KeyboardEvent, slotId: string) => {
+      if (pickedUpId === null) {
+        if (e.key === " ") { e.preventDefault(); startPickup(slotId); }
+        return;
+      }
+      if (pickedUpId !== slotId) return; // Only the picked-up handle reacts
+      if (e.key === "ArrowUp")   { e.preventDefault(); movePickedUp(-1); }
+      if (e.key === "ArrowDown") { e.preventDefault(); movePickedUp(1); }
+      if (e.key === " " || e.key === "Enter") { e.preventDefault(); commitPickup(); }
+      if (e.key === "Escape")    { e.preventDefault(); cancelPickup(); }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pickedUpId, localOrder, activeStanza, project],
+  );
+
+  // Display order: use localOrder during keyboard pickup, otherwise follow Redux
+  const displaySlots: StanzaSlot[] = activeStanza
+    ? localOrder
+      ? localOrder.map((id) => activeStanza.slots.find((s) => s.id === id)!).filter(Boolean)
+      : activeStanza.slots
+    : [];
 
   return (
     <div className="tr-panel tr-panel--composition">
@@ -117,83 +215,120 @@ export function CompositionPanel() {
             </div>
 
             <div className="tr-panel__subsection-head">SLOTS</div>
-            <div className="tr-slots">
-              {activeStanza.slots.map((slot, i) => {
+            <div
+              className="tr-slots"
+              role="list"
+              aria-label="Pattern slots"
+            >
+              {displaySlots.map((slot, i) => {
+                const realIdx = activeStanza.slots.findIndex((s) => s.id === slot.id);
+                const isPickedUp = pickedUpId === slot.id;
+
                 function moveSlot(delta: number) {
                   const ids = activeStanza!.slots.map((s) => s.id);
-                  const newIdx = i + delta;
+                  const newIdx = realIdx + delta;
                   if (newIdx < 0 || newIdx >= ids.length) return;
-                  ids.splice(i, 1);
+                  ids.splice(realIdx, 1);
                   ids.splice(newIdx, 0, slot.id);
                   dispatch(mutateProject(reorderStanzaSlots(project, activeStanza!.id, ids)));
                 }
+
                 return (
-                <div key={slot.id} className="tr-slot">
-                  <span className="tr-slot__index">{i + 1}</span>
-                  <span className="tr-slot__type">{slot.type === "breath" ? "BREATH" : slot.label}</span>
-                  <input
-                    type="number"
-                    className="tr-input tr-input--num"
-                    value={slot.chance}
-                    min={0}
-                    max={100}
-                    onChange={(e) => dispatch(mutateProject(setSlotChance(project, activeStanza!.id, slot.id, Number(e.target.value))))}
-                    aria-label={`Chance for slot ${slot.label}`}
-                  />
-                  <span className="tr-slot__pct" aria-hidden="true">%</span>
-                  <select
-                    className="tr-select tr-select--sm"
-                    value={slot.repeat}
-                    onChange={(e) => dispatch(mutateProject(setSlotRepeat(project, activeStanza!.id, slot.id, e.target.value as "once" | "loop")))}
-                    aria-label={`Repeat for slot ${slot.label}`}
+                  <div
+                    key={slot.id}
+                    role="listitem"
+                    className={[
+                      "tr-slot",
+                      dragFromIdx === i ? "tr-slot--dragging" : "",
+                      dragOverIdx === i ? "tr-slot--drag-over" : "",
+                      isPickedUp ? "tr-slot--picked-up" : "",
+                    ].filter(Boolean).join(" ")}
+                    draggable
+                    onDragStart={() => onDragStart(i)}
+                    onDragOver={(e) => onDragOver(e, i)}
+                    onDrop={(e) => onDrop(e, i)}
+                    onDragEnd={onDragEnd}
+                    aria-grabbed={isPickedUp ? true : undefined}
                   >
-                    <option value="once">once</option>
-                    <option value="loop">loop</option>
-                  </select>
-                  <div className="tr-reorder" role="group" aria-label={`Reorder slot ${slot.label}`}>
+                    {/* Drag handle — keyboard pickup entry point */}
+                    <button
+                      className="tr-btn tr-btn--icon tr-slot__drag-handle"
+                      aria-label={
+                        isPickedUp
+                          ? `Slot ${slot.label} picked up — use arrow keys to move, Space to drop, Escape to cancel`
+                          : `Reorder slot ${slot.label} — press Space to pick up`
+                      }
+                      aria-pressed={isPickedUp}
+                      onKeyDown={(e) => handleDragHandleKeyDown(e, slot.id)}
+                      tabIndex={0}
+                    >
+                      ⣿
+                    </button>
+                    <span className="tr-slot__index">{i + 1}</span>
+                    <span className="tr-slot__type">{slot.type === "breath" ? "BREATH" : slot.label}</span>
+                    <input
+                      type="number"
+                      className="tr-input tr-input--num"
+                      value={slot.chance}
+                      min={0}
+                      max={100}
+                      onChange={(e) => dispatch(mutateProject(setSlotChance(project, activeStanza!.id, slot.id, Number(e.target.value))))}
+                      aria-label={`Chance for slot ${slot.label}`}
+                    />
+                    <span className="tr-slot__pct" aria-hidden="true">%</span>
+                    <select
+                      className="tr-select tr-select--sm"
+                      value={slot.repeat}
+                      onChange={(e) => dispatch(mutateProject(setSlotRepeat(project, activeStanza!.id, slot.id, e.target.value as "once" | "loop")))}
+                      aria-label={`Repeat for slot ${slot.label}`}
+                    >
+                      <option value="once">once</option>
+                      <option value="loop">loop</option>
+                    </select>
+                    <div className="tr-reorder" role="group" aria-label={`Reorder slot ${slot.label}`}>
+                      <button
+                        className="tr-btn tr-btn--icon"
+                        aria-label={`Move slot ${slot.label} to start`}
+                        disabled={realIdx === 0}
+                        onClick={() => {
+                          const ids = activeStanza!.slots.map((s) => s.id);
+                          ids.splice(realIdx, 1);
+                          ids.unshift(slot.id);
+                          dispatch(mutateProject(reorderStanzaSlots(project, activeStanza!.id, ids)));
+                        }}
+                      >⇈</button>
+                      <button
+                        className="tr-btn tr-btn--icon"
+                        aria-label={`Move slot ${slot.label} up`}
+                        disabled={realIdx === 0}
+                        onClick={() => moveSlot(-1)}
+                      >↑</button>
+                      <button
+                        className="tr-btn tr-btn--icon"
+                        aria-label={`Move slot ${slot.label} down`}
+                        disabled={realIdx === activeStanza!.slots.length - 1}
+                        onClick={() => moveSlot(1)}
+                      >↓</button>
+                      <button
+                        className="tr-btn tr-btn--icon"
+                        aria-label={`Move slot ${slot.label} to end`}
+                        disabled={realIdx === activeStanza!.slots.length - 1}
+                        onClick={() => {
+                          const ids = activeStanza!.slots.map((s) => s.id);
+                          ids.splice(realIdx, 1);
+                          ids.push(slot.id);
+                          dispatch(mutateProject(reorderStanzaSlots(project, activeStanza!.id, ids)));
+                        }}
+                      >⇊</button>
+                    </div>
                     <button
                       className="tr-btn tr-btn--icon"
-                      aria-label={`Move slot ${slot.label} to start`}
-                      disabled={i === 0}
-                      onClick={() => {
-                        const ids = activeStanza!.slots.map((s) => s.id);
-                        ids.splice(i, 1);
-                        ids.unshift(slot.id);
-                        dispatch(mutateProject(reorderStanzaSlots(project, activeStanza!.id, ids)));
-                      }}
-                    >⇈</button>
-                    <button
-                      className="tr-btn tr-btn--icon"
-                      aria-label={`Move slot ${slot.label} up`}
-                      disabled={i === 0}
-                      onClick={() => moveSlot(-1)}
-                    >↑</button>
-                    <button
-                      className="tr-btn tr-btn--icon"
-                      aria-label={`Move slot ${slot.label} down`}
-                      disabled={i === activeStanza!.slots.length - 1}
-                      onClick={() => moveSlot(1)}
-                    >↓</button>
-                    <button
-                      className="tr-btn tr-btn--icon"
-                      aria-label={`Move slot ${slot.label} to end`}
-                      disabled={i === activeStanza!.slots.length - 1}
-                      onClick={() => {
-                        const ids = activeStanza!.slots.map((s) => s.id);
-                        ids.splice(i, 1);
-                        ids.push(slot.id);
-                        dispatch(mutateProject(reorderStanzaSlots(project, activeStanza!.id, ids)));
-                      }}
-                    >⇊</button>
+                      aria-label={`Remove slot ${slot.label}`}
+                      onClick={() => dispatch(mutateProject(removeStanzaSlot(project, activeStanza!.id, slot.id)))}
+                    >
+                      ✕
+                    </button>
                   </div>
-                  <button
-                    className="tr-btn tr-btn--icon"
-                    aria-label={`Remove slot ${slot.label}`}
-                    onClick={() => dispatch(mutateProject(removeStanzaSlot(project, activeStanza!.id, slot.id)))}
-                  >
-                    ✕
-                  </button>
-                </div>
                 );
               })}
               <div className="tr-slots__actions">
