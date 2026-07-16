@@ -145,12 +145,12 @@ export function MaterialsPanel() {
             <table className="tr-table">
               <thead>
                 <tr>
-                  <th className="tr-table__th" aria-hidden="true"></th>
-                  <th className="tr-table__th">Literal</th>
-                  <th className="tr-table__th tr-table__th--num">Wt</th>
-                  <th className="tr-table__th tr-table__th--num">Share</th>
-                  <th className="tr-table__th tr-table__th--action" aria-label="Reorder"></th>
-                  <th className="tr-table__th tr-table__th--action" aria-label="Remove"></th>
+                  <th scope="col" className="tr-table__th" aria-hidden="true"></th>
+                  <th scope="col" className="tr-table__th">Literal</th>
+                  <th scope="col" className="tr-table__th tr-table__th--num">Wt</th>
+                  <th scope="col" className="tr-table__th tr-table__th--num">Share</th>
+                  <th scope="col" className="tr-table__th tr-table__th--action" aria-label="Reorder"></th>
+                  <th scope="col" className="tr-table__th tr-table__th--action" aria-label="Remove"></th>
                 </tr>
               </thead>
               <tbody>

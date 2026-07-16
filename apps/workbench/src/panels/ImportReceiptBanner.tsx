@@ -37,53 +37,53 @@ export function ImportReceiptBanner() {
           <table className="tr-table tr-import-receipt__table">
             <tbody>
               <tr className="tr-table__row">
-                <th className="tr-table__th tr-table__th--label">Format</th>
+                <th scope="row" className="tr-table__th tr-table__th--label">Format</th>
                 <td className="tr-table__td">{r.sourceFormat}</td>
               </tr>
               <tr className="tr-table__row">
-                <th className="tr-table__th tr-table__th--label">Schema</th>
+                <th scope="row" className="tr-table__th tr-table__th--label">Schema</th>
                 <td className="tr-table__td">
                   {r.sourceSchema ?? "(none)"} → {r.resultingSchema}
                 </td>
               </tr>
               <tr className="tr-table__row">
-                <th className="tr-table__th tr-table__th--label">Editor</th>
+                <th scope="row" className="tr-table__th tr-table__th--label">Editor</th>
                 <td className="tr-table__td">{r.editorVersion}</td>
               </tr>
               <tr className="tr-table__row">
-                <th className="tr-table__th tr-table__th--label">Migration</th>
+                <th scope="row" className="tr-table__th tr-table__th--label">Migration</th>
                 <td className="tr-table__td">{r.migrationPath}</td>
               </tr>
               <tr className="tr-table__row">
-                <th className="tr-table__th tr-table__th--label">Banks</th>
+                <th scope="row" className="tr-table__th tr-table__th--label">Banks</th>
                 <td className="tr-table__td">{r.bankCount} ({r.orderedBankIds.join(", ")})</td>
               </tr>
               <tr className="tr-table__row">
-                <th className="tr-table__th tr-table__th--label">Samples</th>
+                <th scope="row" className="tr-table__th tr-table__th--label">Samples</th>
                 <td className="tr-table__td">{r.tokenCount}</td>
               </tr>
               <tr className="tr-table__row">
-                <th className="tr-table__th tr-table__th--label">Devices</th>
+                <th scope="row" className="tr-table__th tr-table__th--label">Devices</th>
                 <td className="tr-table__td">{r.deviceCount} ({r.routeCount} routes)</td>
               </tr>
               <tr className="tr-table__row">
-                <th className="tr-table__th tr-table__th--label">Patterns</th>
+                <th scope="row" className="tr-table__th tr-table__th--label">Patterns</th>
                 <td className="tr-table__td">{r.patternCount}</td>
               </tr>
               <tr className="tr-table__row">
-                <th className="tr-table__th tr-table__th--label">Scenes</th>
+                <th scope="row" className="tr-table__th tr-table__th--label">Scenes</th>
                 <td className="tr-table__td">{r.flowSceneCount}</td>
               </tr>
               <tr className="tr-table__row">
-                <th className="tr-table__th tr-table__th--label">Triggers</th>
+                <th scope="row" className="tr-table__th tr-table__th--label">Triggers</th>
                 <td className="tr-table__td">{r.triggerCount}</td>
               </tr>
               <tr className="tr-table__row">
-                <th className="tr-table__th tr-table__th--label">Bank order</th>
+                <th scope="row" className="tr-table__th tr-table__th--label">Bank order</th>
                 <td className="tr-table__td">{r.authoredBankOrderPreserved ? "preserved" : "changed"}</td>
               </tr>
               <tr className="tr-table__row">
-                <th className="tr-table__th tr-table__th--label">Defaults applied</th>
+                <th scope="row" className="tr-table__th tr-table__th--label">Defaults applied</th>
                 <td className="tr-table__td">
                   {Object.entries(r.classicDefaultsApplied)
                     .filter(([, v]) => v).map(([k]) => k).join(", ") || "none"}
@@ -91,7 +91,7 @@ export function ImportReceiptBanner() {
               </tr>
               {r.repairCount > 0 && (
                 <tr className="tr-table__row">
-                  <th className="tr-table__th tr-table__th--label">Repairs</th>
+                  <th scope="row" className="tr-table__th tr-table__th--label">Repairs</th>
                   <td className="tr-table__td">{r.repairCount} ID conflict{r.repairCount !== 1 ? "s" : ""} resolved</td>
                 </tr>
               )}

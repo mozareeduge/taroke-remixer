@@ -227,10 +227,10 @@ export function InstrumentsPanel() {
             <table className="tr-table">
               <thead>
                 <tr>
-                  <th className="tr-table__th">Slot</th>
-                  <th className="tr-table__th">Bank</th>
-                  <th className="tr-table__th">Role</th>
-                  <th className="tr-table__th tr-table__th--action" aria-label="Remove input"></th>
+                  <th scope="col" className="tr-table__th">Slot</th>
+                  <th scope="col" className="tr-table__th">Bank</th>
+                  <th scope="col" className="tr-table__th">Role</th>
+                  <th scope="col" className="tr-table__th tr-table__th--action" aria-label="Remove input"></th>
                 </tr>
               </thead>
               <tbody>

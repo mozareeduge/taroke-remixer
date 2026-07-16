@@ -59,8 +59,8 @@ export function FormsPanel() {
               <table className="tr-table">
                 <thead>
                   <tr>
-                    <th className="tr-table__th">Token</th>
-                    <th className="tr-table__th">Plural override</th>
+                    <th scope="col" className="tr-table__th">Token</th>
+                    <th scope="col" className="tr-table__th">Plural override</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -170,35 +170,35 @@ export function ArchivePanel() {
         <table className="tr-table">
           <tbody>
             <tr className="tr-table__row">
-              <th className="tr-table__th tr-table__th--label">Title</th>
+              <th scope="row" className="tr-table__th tr-table__th--label">Title</th>
               <td className="tr-table__td">{project.project.title || "(untitled)"}</td>
             </tr>
             <tr className="tr-table__row">
-              <th className="tr-table__th tr-table__th--label">Author</th>
+              <th scope="row" className="tr-table__th tr-table__th--label">Author</th>
               <td className="tr-table__td">{project.project.author || "—"}</td>
             </tr>
             <tr className="tr-table__row">
-              <th className="tr-table__th tr-table__th--label">Source</th>
+              <th scope="row" className="tr-table__th tr-table__th--label">Source</th>
               <td className="tr-table__td">{project.project.sourceTitle || "—"}</td>
             </tr>
             <tr className="tr-table__row">
-              <th className="tr-table__th tr-table__th--label">Version</th>
+              <th scope="row" className="tr-table__th tr-table__th--label">Version</th>
               <td className="tr-table__td">{project.schemaVersion}</td>
             </tr>
             <tr className="tr-table__row">
-              <th className="tr-table__th tr-table__th--label">Banks</th>
+              <th scope="row" className="tr-table__th tr-table__th--label">Banks</th>
               <td className="tr-table__td">{Object.keys(project.materials.trays).length}</td>
             </tr>
             <tr className="tr-table__row">
-              <th className="tr-table__th tr-table__th--label">Devices</th>
+              <th scope="row" className="tr-table__th tr-table__th--label">Devices</th>
               <td className="tr-table__td">{project.lineDevices.length}</td>
             </tr>
             <tr className="tr-table__row">
-              <th className="tr-table__th tr-table__th--label">Patterns</th>
+              <th scope="row" className="tr-table__th tr-table__th--label">Patterns</th>
               <td className="tr-table__td">{project.stanzaPatterns.length}</td>
             </tr>
             <tr className="tr-table__row">
-              <th className="tr-table__th tr-table__th--label">Triggers</th>
+              <th scope="row" className="tr-table__th tr-table__th--label">Triggers</th>
               <td className="tr-table__td">{project.triggers.length}</td>
             </tr>
           </tbody>
