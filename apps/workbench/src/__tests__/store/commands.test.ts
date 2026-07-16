@@ -88,7 +88,7 @@ describe("commands — line devices", () => {
     const before = p.lineDevices.length;
     const newDevice = {
       id: uid("ld"), name: "TEST", enabled: true, description: "test",
-      inputs: [{ slot: "above", tray: "above", role: "noun" }],
+      inputs: [{ id: "inp_test_above", slot: "above", tray: "above", role: "noun" }],
       routes: [{ id: uid("rt"), name: "test route", weight: 100, template: "{above:literal}" }],
     };
     const result = addLineDevice(p, newDevice);

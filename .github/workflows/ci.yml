@@ -118,3 +118,114 @@ jobs:
       - name: Run E2E (Chromium)
         run: npm run test:e2e -- --project=chromium
         working-directory: apps/workbench
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromium-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  # ── v08 E2E (Firefox) ─────────────────────────────────────────
+  v08-e2e-firefox:
+    name: v08 E2E Firefox
+    runs-on: ubuntu-latest
+    needs: v08-build-next
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Install Playwright Firefox
+        run: npx playwright install --with-deps firefox
+        working-directory: apps/workbench
+      - name: Download /next/ build
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: next/
+      - name: Run E2E (Firefox)
+        run: npm run test:e2e -- --project=firefox
+        working-directory: apps/workbench
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefox-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  # ── v08 E2E (WebKit) ──────────────────────────────────────────
+  v08-e2e-webkit:
+    name: v08 E2E WebKit
+    runs-on: ubuntu-latest
+    needs: v08-build-next
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Install Playwright WebKit
+        run: npx playwright install --with-deps webkit
+        working-directory: apps/workbench
+      - name: Download /next/ build
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: next/
+      - name: Run E2E (WebKit)
+        run: npm run test:e2e -- --project=webkit
+        working-directory: apps/workbench
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webkit-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  # ── v08 E2E (Mobile) ──────────────────────────────────────────
+  v08-e2e-mobile:
+    name: v08 E2E Mobile (Chromium portrait + WebKit mobile)
+    runs-on: ubuntu-latest
+    needs: v08-build-next
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Install Playwright Chromium + WebKit
+        run: npx playwright install --with-deps chromium webkit
+        working-directory: apps/workbench
+      - name: Download /next/ build
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: next/
+      - name: Run E2E (mobile-portrait + webkit-mobile)
+        run: npm run test:e2e -- --project=mobile-portrait --project=webkit-mobile
+        working-directory: apps/workbench
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

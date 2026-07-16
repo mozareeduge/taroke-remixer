@@ -24,13 +24,15 @@ const chromiumOverride = chromiumPath
 export default defineConfig({
   testDir: "../../tests/e2e",
   outputDir: "../../test-results",
-  reporter: [["html", { outputFolder: "../../playwright-report" }]],
+  reporter: [["html", { outputFolder: "../../playwright-report" }], ["line"]],
   use: {
     baseURL: "http://localhost:4173",
     trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "on-first-retry",
   },
   projects: [
-    // Desktop viewports
+    // ── Chromium desktop viewports ────────────────────────────────
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"], ...chromiumOverride },
@@ -43,12 +45,17 @@ export default defineConfig({
       name: "desktop-1024",
       use: { ...devices["Desktop Chrome"], ...chromiumOverride, viewport: { width: 1024, height: 768 } },
     },
-    // Tablet viewport
+    // ── Firefox desktop ────────────────────────────────────────────
     {
-      name: "tablet-portrait",
-      use: { ...devices["Desktop Chrome"], ...chromiumOverride, viewport: { width: 768, height: 1024 } },
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
     },
-    // Mobile viewports
+    // ── WebKit desktop ─────────────────────────────────────────────
+    {
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
+    },
+    // ── Chromium mobile viewports ──────────────────────────────────
     {
       name: "mobile-portrait",
       use: { ...devices["Pixel 5"], ...chromiumOverride },
@@ -60,6 +67,16 @@ export default defineConfig({
     {
       name: "mobile-small",
       use: { ...devices["Desktop Chrome"], ...chromiumOverride, viewport: { width: 375, height: 667 } },
+    },
+    // ── Tablet viewport (Chromium) ─────────────────────────────────
+    {
+      name: "tablet-portrait",
+      use: { ...devices["Desktop Chrome"], ...chromiumOverride, viewport: { width: 768, height: 1024 } },
+    },
+    // ── WebKit mobile / Safari-like ────────────────────────────────
+    {
+      name: "webkit-mobile",
+      use: { ...devices["iPhone 14"] },
     },
   ],
   webServer: {

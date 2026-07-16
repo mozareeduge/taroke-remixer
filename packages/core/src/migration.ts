@@ -20,9 +20,9 @@ export function classicLineDevices(): LineDevice[] {
       enabled: true,
       description: "Actor / action / object line device.",
       inputs: [
-        { slot: "above", tray: "above", role: "noun" },
-        { slot: "trans", tray: "trans", role: "verb" },
-        { slot: "below", tray: "below", role: "noun" },
+        { id: "inp_path_above", slot: "above", tray: "above", role: "noun" },
+        { id: "inp_path_trans", slot: "trans", tray: "trans", role: "verb" },
+        { id: "inp_path_below", slot: "below", tray: "below", role: "noun" },
       ],
       routes: [
         { id: "rt_path_plural", name: "plural", weight: 55, template: "{above:plural} {trans:base} the {below:literal}." },
@@ -36,8 +36,8 @@ export function classicLineDevices(): LineDevice[] {
       enabled: true,
       description: "Movement / state line device.",
       inputs: [
-        { slot: "thing", tray: "above", role: "noun" },
-        { slot: "intrans", tray: "intrans", role: "verb" },
+        { id: "inp_site_thing", slot: "thing", tray: "above", role: "noun" },
+        { id: "inp_site_intrans", slot: "intrans", tray: "intrans", role: "verb" },
       ],
       routes: [
         { id: "rt_site_plural", name: "plural", weight: 60, template: "{thing:plural} {intrans:base}." },
@@ -51,9 +51,9 @@ export function classicLineDevices(): LineDevice[] {
       enabled: true,
       description: "Command / texture / breath line device.",
       inputs: [
-        { slot: "imper", tray: "imper", role: "verb" },
-        { slot: "adjs", tray: "adjs", role: "adjective" },
-        { slot: "texture", tray: "texture", role: "noun" },
+        { id: "inp_cave_imper", slot: "imper", tray: "imper", role: "verb" },
+        { id: "inp_cave_adjs", slot: "adjs", tray: "adjs", role: "adjective" },
+        { id: "inp_cave_texture", slot: "texture", tray: "texture", role: "noun" },
       ],
       routes: [
         { id: "rt_cave_command", name: "command", weight: 80, template: "{imper:literal} the {adjs:literal} {texture:singular}..." },
@@ -204,6 +204,23 @@ export function migrateProject(input: unknown): TarokeProject {
   p["lineDevices"] = hasLD
     ? Array.isArray(p["lineDevices"]) ? p["lineDevices"] : []
     : base.lineDevices;
+
+  // Ensure every DeviceInput has a stable id (migration for pre-id projects)
+  for (const dev of (p["lineDevices"] as Array<Record<string, unknown>>) ?? []) {
+    if (Array.isArray(dev["inputs"])) {
+      const seenInputIds = new Set<string>();
+      for (const inp2 of dev["inputs"] as Array<Record<string, unknown>>) {
+        if (!inp2["id"] || typeof inp2["id"] !== "string") {
+          inp2["id"] = uid("inp");
+        }
+        // Repair duplicate input IDs within this device
+        if (seenInputIds.has(inp2["id"] as string)) {
+          inp2["id"] = uid("inp");
+        }
+        seenInputIds.add(inp2["id"] as string);
+      }
+    }
+  }
   p["stanzaPatterns"] = hasSP
     ? Array.isArray(p["stanzaPatterns"]) ? p["stanzaPatterns"] : []
     : base.stanzaPatterns;

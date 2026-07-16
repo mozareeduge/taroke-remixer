@@ -234,14 +234,15 @@ export function InstrumentsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {activeDevice.inputs.map((inp, inputIdx) => (
-                  <tr key={inputIdx} className="tr-table__row">
+                {activeDevice.inputs.map((inp) => (
+                  <tr key={inp.id} className="tr-table__row">
                     <td className="tr-table__td">
                       <input
                         className="tr-input tr-input--mono"
                         value={inp.slot}
-                        onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.slot, { slot: e.target.value })))}
+                        onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.id, { slot: e.target.value })))}
                         aria-label="Slot name"
+                        data-input-id={inp.id}
                         data-input-slot={inp.slot}
                       />
                     </td>
@@ -249,7 +250,7 @@ export function InstrumentsPanel() {
                       <select
                         className="tr-select tr-select--sm"
                         value={inp.tray}
-                        onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.slot, { tray: e.target.value })))}
+                        onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.id, { tray: e.target.value })))}
                         aria-label="Bank"
                       >
                         {Object.keys(project.materials.trays).map((b) => (
@@ -261,7 +262,7 @@ export function InstrumentsPanel() {
                       <select
                         className="tr-select tr-select--sm"
                         value={inp.role}
-                        onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.slot, { role: e.target.value })))}
+                        onChange={(e) => dispatch(mutateProject(updateDeviceInput(project, activeDevice.id, inp.id, { role: e.target.value })))}
                         aria-label="Role"
                       >
                         {BANK_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -271,7 +272,7 @@ export function InstrumentsPanel() {
                       <button
                         className="tr-btn tr-btn--icon"
                         aria-label={`Remove input ${inp.slot}`}
-                        onClick={() => dispatch(mutateProject(removeDeviceInput(project, activeDevice.id, inp.slot)))}
+                        onClick={() => dispatch(mutateProject(removeDeviceInput(project, activeDevice.id, inp.id)))}
                       >✕</button>
                     </td>
                   </tr>
@@ -283,7 +284,7 @@ export function InstrumentsPanel() {
                 className="tr-btn tr-btn--ghost"
                 onClick={() => dispatch(mutateProject(addDeviceInput(project, activeDevice.id, {
                   slot: `slot${activeDevice.inputs.length + 1}`,
-                  tray: Object.keys(project.materials.trays)[0] ?? "",
+                  tray: Object.keys(project.materials.trays)[0] ?? "above",
                   role: "literal",
                 })))}
               >+ Input</button>

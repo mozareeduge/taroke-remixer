@@ -22,6 +22,7 @@ export type BankMeta = Record<TrayName, TrayDef>;
 // ── Line Device ───────────────────────────────────────────────────────────────
 
 export interface DeviceInput {
+  id: string;
   slot: string;
   tray: string;
   role: string;

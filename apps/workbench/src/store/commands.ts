@@ -169,18 +169,18 @@ export function reorderLineDevices(project: TarokeProject, orderedIds: string[])
   });
 }
 
-export function addDeviceInput(project: TarokeProject, deviceId: string, input: DeviceInput): CommandResult {
+export function addDeviceInput(project: TarokeProject, deviceId: string, input: Omit<DeviceInput, "id">): CommandResult {
   return cmd(project, "Add device input", (d) => {
     const dev = d.lineDevices.find((x) => x.id === deviceId);
-    if (dev) dev.inputs.push(input);
+    if (dev) dev.inputs.push({ id: uid("inp"), ...input });
   });
 }
 
-export function removeDeviceInput(project: TarokeProject, deviceId: string, slot: string): CommandResult {
+export function removeDeviceInput(project: TarokeProject, deviceId: string, inputId: string): CommandResult {
   return cmd(project, "Remove device input", (d) => {
     const dev = d.lineDevices.find((x) => x.id === deviceId);
     if (!dev) return;
-    const idx = dev.inputs.findIndex((i) => i.slot === slot);
+    const idx = dev.inputs.findIndex((i) => i.id === inputId);
     if (idx >= 0) dev.inputs.splice(idx, 1);
   });
 }
@@ -188,13 +188,13 @@ export function removeDeviceInput(project: TarokeProject, deviceId: string, slot
 export function updateDeviceInput(
   project: TarokeProject,
   deviceId: string,
-  slot: string,
-  patch: Partial<DeviceInput>,
+  inputId: string,
+  patch: Partial<Omit<DeviceInput, "id">>,
 ): CommandResult {
   return cmd(project, "Update device input", (d) => {
     const dev = d.lineDevices.find((x) => x.id === deviceId);
     if (!dev) return;
-    const inp = dev.inputs.find((i) => i.slot === slot);
+    const inp = dev.inputs.find((i) => i.id === inputId);
     if (!inp) return;
     if (patch.slot !== undefined) inp.slot = patch.slot;
     if (patch.tray !== undefined) inp.tray = patch.tray;
