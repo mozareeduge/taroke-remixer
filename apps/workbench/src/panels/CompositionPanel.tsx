@@ -156,6 +156,12 @@ export function CompositionPanel() {
     setTouchOverId(null);
   }
 
+  // OS-level cancel (call, notification, system gesture) — never commit; only clear state.
+  function onTouchCancel() {
+    setTouchDragId(null);
+    setTouchOverId(null);
+  }
+
   // ── Keyboard pickup/move/drop handlers ───────────────────────────────────────
 
   function startPickup(slotId: string) {
@@ -318,7 +324,7 @@ export function CompositionPanel() {
                       onTouchStart={() => onTouchStart(slot.id)}
                       onTouchMove={onTouchMove}
                       onTouchEnd={onTouchEnd}
-                      onTouchCancel={onTouchEnd}
+                      onTouchCancel={onTouchCancel}
                       tabIndex={0}
                     >
                       ⣿
