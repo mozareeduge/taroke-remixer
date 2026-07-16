@@ -53,8 +53,8 @@
   },
   "deployment": {
     "workflow_run_id": 29539529622,
-    "candidate_sha": "a781bf9",
-    "deployed_sha": "1292aa07",
+    "candidate": "a781bf9",
+    "deployed_sha": "20b5b7e",
     "root_url": "https://mozareeduge.github.io/taroke-remixer/",
     "next_url": "https://mozareeduge.github.io/taroke-remixer/next/",
     "deploy_step_conclusion": "success",
