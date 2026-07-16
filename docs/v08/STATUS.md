@@ -49,7 +49,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 
 ## Current Focus
 
-**Human Checkpoint A** — WP05 candidate complete; awaiting Mohammad's verdict before WP06.
+**Human Checkpoint A** — WP05 candidate complete and deployed; awaiting Mohammad's verdict before WP06.
 
 WP00 merged 2026-07-13 (PR #4). WP01–WP04 all merged (PRs #10–#14). WP05 recovery branch
 is the Checkpoint A candidate on PR #15 (commit `a05010e`). Do not merge or begin WP06
@@ -75,7 +75,7 @@ all phase decisions through WP05.
 - F-V07-DRAFT: non-destructive v07 migration banner (CI-verified a2e3de5)
 - F-FREEZE: candidate a781bf9 frozen, all 8 CI jobs green (run 29530118934)
 - F-REVIEW: 3 rounds of reviews; Round 3 (a781bf9) APPROVED×3, no P0/P1
-- F-DEPLOY: blocked — repo admin must enable GitHub Pages (Settings → Pages → Source: GitHub Actions)
+- F-DEPLOY: deployed — workflow run 29539529622, all 10 steps green, 2026-07-16T22:26:51Z (root + /next/ live)
 
 ---
 
@@ -129,4 +129,4 @@ See `docs/v08/EVIDENCE_INDEX.md` for per-WP evidence records.
 
 ---
 
-*Last updated: WP05 candidate commit a781bf9; F-REF; F-REORDER-TOUCH (passive:false + dedicated onTouchCancel); F-V07-DRAFT; F-FREEZE (CI green run 29530118934); F-REVIEW Round 3 APPROVED×3; F-DEPLOY blocked (admin GitHub Pages); F-TRUTH synchronized; Human Checkpoint A AWAITING REVIEW — 2026-07-16*
+*Last updated: WP05 candidate commit a781bf9; F-REF; F-REORDER-TOUCH (passive:false + dedicated onTouchCancel); F-V07-DRAFT; F-FREEZE (CI green run 29530118934); F-REVIEW Round 3 APPROVED×3; F-DEPLOY deployed (run 29539529622, 2026-07-16T22:26:51Z, root + /next/ live); F-TRUTH synchronized; Human Checkpoint A AWAITING VERDICT — 2026-07-16*

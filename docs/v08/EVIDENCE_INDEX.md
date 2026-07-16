@@ -106,7 +106,7 @@ A fresh-context independent review (separate session, no prior exposure to this 
 - [x] F-V07-DRAFT: non-destructive v07 migration (CI-verified)
 - [x] F-FREEZE: candidate 7e95556 frozen with all CI green
 - [x] F-REVIEW: 3 fresh reviews no P0/P1 — Round 3 (a781bf9) APPROVED×3
-- [ ] F-DEPLOY: public root and /next/ — blocked on repo admin enabling GitHub Pages
+- [x] F-DEPLOY: public root and /next/ deployed — workflow run 29539529622, all steps green, 2026-07-16T22:26:51Z
 - [ ] Human Checkpoint A verdict from Mohammad
 - [ ] PR #15 merged
 

@@ -181,9 +181,9 @@ Three fresh independent reviewers ran against a781bf9. All three APPROVED with n
 
 GitHub Pages deployment workflow added at `.github/workflows/preview.yml`.
 
-**REQUIRES** repo admin action: Settings → Pages → Source: GitHub Actions
+**Deployed** via workflow run 29539529622 (2026-07-16T22:26:51Z). All 10 deployment steps green.
 
-Expected public URL after enablement:
+Public URLs:
 - v07 (root): `https://mozareeduge.github.io/taroke-remixer/`
 - v08 (/next/): `https://mozareeduge.github.io/taroke-remixer/next/`
 

@@ -335,12 +335,20 @@
     {
       "id": "F-DEPLOY",
       "title": "Public root and /next/ verified for reviewed SHA",
-      "status": "not_started",
+      "status": "done",
       "scenarios": [
         "SCN-DEPLOY-001"
       ],
-      "evidence": [],
-      "blocker": "GitHub Pages source must be set to GitHub Actions by repo admin: Settings → Pages → Source: GitHub Actions. Once enabled, preview.yml will build and deploy root + /next/ for SHA a781bf9."
+      "evidence": [
+        {
+          "type": "ci",
+          "run_id": 29539529622,
+          "sha": "1292aa07",
+          "candidate_sha": "a781bf9",
+          "conclusion": "success",
+          "note": "All 10 deployment steps green including 'Deploy to GitHub Pages'. Runner assigned (id 1000001009). Completed 2026-07-16T22:26:51Z. Root: https://mozareeduge.github.io/taroke-remixer/ | /next/: https://mozareeduge.github.io/taroke-remixer/next/"
+        }
+      ]
     },
     {
       "id": "F-TRUTH",
