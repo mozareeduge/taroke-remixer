@@ -33,7 +33,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 | WP02 | Core/Schema Boundary (recovery) | claude/v08-wp02-core-schema-recovery | MERGED (#11) | 534 | #11 | 735bcaa |
 | WP03 | State/Commands/Undo (recovery) | claude/v08-wp03-state-commands-recovery | MERGED (#12+#13) | 152 | #12+#13 | 539c0fa+6810bd8 |
 | WP04 | UI Foundation/Shell (recovery) | claude/v08-wp04-ui-shell-recovery | MERGED (#14) | 152 | #14 | 5a64cef |
-| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | AWAITING REVIEW | 206 | #15 | 9ffdf50 |
+| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | AWAITING REVIEW | 206 | #15 | 7e95556 |
 | [A]  | Human Checkpoint A          | —                                   | AWAITING REVIEW | — | — | — |
 | WP06 | Materials                   | claude/v08-wp06-materials           | NOT STARTED| —     | —  | —      |
 | WP07 | Instruments                 | claude/v08-wp07-instruments         | NOT STARTED| —     | —  | —      |
@@ -64,18 +64,18 @@ Original PRs #5–#9 are frozen; close them after the recovery branches merge.
 Recovery audit branch: `claude/taroke-v08-recovery-audit-ajf7b3` — canonical reference for
 all phase decisions through WP05.
 
-**Evidence summary (2026-07-16 — candidate commit 9ffdf50)**
-- v07 baseline: 534 passed, 0 failed (verified locally; shared browser_runtime.py resolver)
-- v08 unit/component: 206 passed, 0 failed (9 test files; includes 2 new migration tests)
-- TypeScript: 0 errors
-- Build: 0 errors → artifact in /next/ (277.83 kB)
-- E2E checkpoint journey: 50 tests (expanded from 29); covers preview lifecycle, draft recovery, download inspection, multimodal reorder, UNMIX provenance, undo, add/remove slot/input/sample, compound policy
-- Cross-browser CI: Firefox, WebKit, mobile (Chromium + WebKit) jobs added to ci.yml
-- Stable DeviceInput IDs: schema-level `id: string`, migration assigns UIDs, commands use id as key
-- Archive preview lifecycle: UNBUILT/FRESH/STALE states; iframe sandbox="allow-scripts" only
-- DraftRecoveryBanner: explicit restore/dismiss/clear; corrupt JSON handled; no silent restore
-- Multimodal slot reorder: pointer drag (HTML5), keyboard pickup/move/drop (Space/Arrow/Escape)
-- a11y: scope attributes on all table th elements; accessible names on all interactive elements
+**Evidence summary (2026-07-16 — candidate commit 7e95556)**
+- v07 baseline: 534 passed, 0 failed (CI run 29529359485)
+- v08 unit/component: 206 passed, 0 failed (9 test files, CI run 29529359485)
+- TypeScript: 0 errors (CI run 29529359485)
+- Build: → artifact in /next/ (CI run 29529359485)
+- E2E: Firefox ✓, Chromium ✓, WebKit ✓, Mobile (Chromium portrait + WebKit) ✓ (CI run 29529359485)
+- F-REF: slot rename/delete cascades route template refs (CI-verified cb9848c)
+- F-REORDER-TOUCH: touch drag-and-drop with native passive:false touchmove (CI-verified 7e95556); onTouchCancel handles OS interrupts
+- F-V07-DRAFT: non-destructive v07 migration banner — reads without deleting v07 key (CI-verified a2e3de5)
+- F-FREEZE: candidate 7e95556 frozen with all 8 CI jobs green
+- F-REVIEW: 3 fresh reviews (Round 2) running against 7e95556
+- F-DEPLOY: blocked — GitHub Pages requires repo admin enabling (Settings → Pages → Source: GitHub Actions)
 
 ---
 
@@ -129,4 +129,4 @@ See `docs/v08/EVIDENCE_INDEX.md` for per-WP evidence records.
 
 ---
 
-*Last updated: WP05 candidate commit 9ffdf50; stable DeviceInput IDs; cross-browser CI (Firefox/WebKit/Mobile); DraftRecoveryBanner; archive preview lifecycle; multimodal slot reorder; 206 unit tests; 50-test E2E authored journey; a11y th scope fixes; Human Checkpoint A AWAITING REVIEW — 2026-07-16*
+*Last updated: WP05 candidate commit 7e95556; F-REF slot ref cascade; F-REORDER-TOUCH with passive:false fix + onTouchCancel; F-V07-DRAFT non-destructive migration; F-FREEZE candidate frozen CI green; F-REVIEW Round 2 running; F-DEPLOY blocked pending admin GitHub Pages enable; Human Checkpoint A AWAITING REVIEW — 2026-07-16*

@@ -61,42 +61,52 @@ A fresh-context independent review (separate session, no prior exposure to this 
 ## WP05 — Vertical Slice / Human Checkpoint A (candidate)
 
 **Branch:** claude/v08-wp05-vertical-slice-recovery  
-**Dev branch:** claude/v08-wp05-checkpoint-a-73pije  
 **Status:** AWAITING REVIEW (PR #15 → main)  
-**Commit:** 9ffdf50 (2026-07-16)
+**Commit:** 7e95556 (2026-07-16)
+
+**CI evidence (7e95556):**
+- PR run 29529359485: all 8 jobs green (TypeScript, v07 baseline 534, unit tests Vitest, build /next/, E2E Firefox/Chromium/WebKit/Mobile)
+- Push run 29529354249: success
 
 **Tests:**
-- v07 baseline: 534 passed, 0 failed
-- v08 unit/component: 206 passed, 0 failed (9 test files)
-- TypeScript: 0 errors
-- Build: 277.83 kB → /next/
+- v07 baseline: 534 passed, 0 failed (CI-verified)
+- v08 unit/component: 206 passed, 0 failed (9 test files, CI-verified)
+- TypeScript: 0 errors (CI-verified)
+- Build: → /next/ (CI-verified)
+- E2E: Firefox ✓, Chromium ✓, WebKit ✓, Mobile (Chromium portrait + WebKit) ✓ (CI-verified)
 
-**E2E:**
-- 50-test authored journey (checkpoint-a.spec.ts) — up from 29
-- Cross-browser CI jobs added: Firefox, WebKit, mobile (Chromium + WebKit)
-- a11y.spec.ts: 8 tests across all panels with axe-core (serious/critical violations filtered)
+**Features delivered (WP05 complete):**
+- F-ID: Stable DeviceInput IDs — schema `id: string`, migration assigns UIDs, commands use id as key
+- F-AUTOSAVE/F-STORAGE: Real v08 autosave writer, corrupt/quota storage handling
+- F-PREVIEW/F-PREVIEW-SANDBOX: Archive preview lifecycle (UNBUILT/FRESH/STALE/ERROR); sandbox isolation
+- F-JSON/F-HTML: JSON download inspection + round-trip; standalone HTML runtime parity
+- F-JOURNEY: 50-step authored E2E journey
+- F-CHROMIUM/F-FIREFOX/F-WEBKIT/F-MOBILE: Cross-browser CI gates
+- F-A11Y: axe-core a11y gate; scope attributes; accessible names throughout
+- F-REORDER-PTR/F-REORDER-KBD/F-REORDER-HISTORY: Pointer drag, keyboard pickup, undo/redo
+- F-REF: Slot rename cascades `{slot:name}` in route templates; delete removes stale refs (CI-verified cb9848c)
+- F-REORDER-TOUCH: Touch drag-and-drop via touchstart/touchmove/touchend + native passive:false listener (CI-verified 7e95556)
+- F-V07-DRAFT: Non-destructive v07 draft migration banner — reads v07 key without deleting it (CI-verified a2e3de5)
 
-**Features delivered in WP05 completion campaign:**
-- Stable DeviceInput IDs: schema `id: string`, migration, commands use id as lookup key
-- Archive preview lifecycle: UNBUILT/FRESH/STALE/ERROR; iframe sandbox="allow-scripts" only
-- DraftRecoveryBanner: explicit restore/dismiss/clear; corrupt JSON; no silent restore
-- Multimodal slot reorder: pointer drag (HTML5 draggable), keyboard pickup/move/drop
-- a11y: scope attributes on all table th elements; accessible names throughout
-- 50-step authored E2E journey covering: preview lifecycle, draft recovery, download inspection,
-  UNMIX provenance, add/remove slot/input/sample, undo reorder, compound policy edit
+**Independent review (7e95556 — final candidate):**
+- Round 1 (a2e3de5): 2 BLOCKED (P1: onTouchCancel missing; P1: passive touchmove); 1 APPROVED. Fixes applied in 7e95556.
+- Round 2 (7e95556): pending (3 fresh reviewers running)
 
 **Gate conditions:**
-- [x] v07 534 baseline unchanged
-- [x] 206 v08 unit tests pass
-- [x] TypeScript clean
-- [x] Build produces /next/ artifact
+- [x] v07 534 baseline unchanged (CI run 29529359485)
+- [x] 206 v08 unit tests pass (CI run 29529359485)
+- [x] TypeScript clean (CI run 29529359485)
+- [x] Build produces /next/ artifact (CI run 29529359485)
 - [x] 50-test E2E journey authored
-- [x] Cross-browser CI configured (Firefox, WebKit, mobile)
-- [x] Archive preview lifecycle implemented (UNBUILT/FRESH/STALE)
+- [x] Cross-browser CI green: Firefox/WebKit/Mobile (CI run 29529359485)
+- [x] Archive preview lifecycle implemented
 - [x] DraftRecoveryBanner with explicit user action (no silent restore)
-- [x] Multimodal reorder (pointer drag + keyboard pickup)
-- [x] a11y table scope attributes fixed
-- [ ] Cross-browser CI results (Firefox/WebKit/mobile) — pending CI run
+- [x] Multimodal reorder (pointer drag + touch + keyboard pickup)
+- [x] F-REF: slot rename/delete ref cascade (CI-verified)
+- [x] F-V07-DRAFT: non-destructive v07 migration (CI-verified)
+- [x] F-FREEZE: candidate 7e95556 frozen with all CI green
+- [ ] F-REVIEW: 3 fresh reviews no P0/P1 — Round 2 pending
+- [ ] F-DEPLOY: public root and /next/ — blocked on repo admin enabling GitHub Pages
 - [ ] Human Checkpoint A verdict from Mohammad
 - [ ] PR #15 merged
 

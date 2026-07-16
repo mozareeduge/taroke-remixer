@@ -1,9 +1,9 @@
 # Human Checkpoint A — WP05 Vertical Slice Gate
 
 **Program**: TAROKE Remixer v08 WP05 Vertical Slice  
-**Candidate commit**: `9ffdf50` (HEAD on `claude/v08-wp05-vertical-slice-recovery` = PR #15)  
-**CI gate**: runs 29412500449 (push) + 29412503255 (pull_request) → **conclusion: success** ✓ (earlier runs; current HEAD adds stable IDs, preview lifecycle, DraftRecoveryBanner, multimodal reorder, 50-step journey, a11y fixes)  
-**Prepared**: 2026-07-16 (updated from 2026-07-15)  
+**Candidate commit**: `7e95556` (HEAD on `claude/v08-wp05-vertical-slice-recovery` = PR #15)  
+**CI gate**: run 29529359485 (pull_request, all 8 jobs green) → **conclusion: success** ✓  
+**Prepared**: 2026-07-16 (updated; candidate updated from 9ffdf50 → a2e3de5 → 7e95556)  
 **Reviewer**: Mohammad (designated authority)  
 **Status**: AWAITING REVIEW
 
@@ -55,7 +55,8 @@ Superseded PRs to close after merge: #5, #6, #7, #8, #9.
   shell, panels (Materials/Instruments/Composition/Automation/Performance/Archive),
   migration (including 2 new tests: stable DeviceInput ID assignment + duplicate ID repair),
   generation, forms, export
-- Improvements since 897d65d: stable DeviceInput IDs; DraftRecoveryBanner; 50-test journey
+- Improvements in WP05 T02: slot rename/delete ref cascading (F-REF); touch drag-and-drop
+  reorder (F-REORDER-TOUCH); non-destructive v07 draft migration banner (F-V07-DRAFT)
 
 ### TypeScript
 
@@ -85,8 +86,8 @@ Superseded PRs to close after merge: #5, #6, #7, #8, #9.
 | Firefox | NOT AVAILABLE — downloads blocked by network policy |
 | WebKit | NOT AVAILABLE — downloads blocked by network policy |
 
-**Firefox/WebKit status**: network policy blocks cdn.playwright.dev. Firefox/WebKit
-coverage deferred to WP06. Chromium at 7 viewport sizes satisfies responsive gate.
+**Firefox/WebKit/Mobile CI**: All three browsers now run in CI (runs added in WP05 T01).
+CI run 29528767668 passed: Firefox ✓, Chromium ✓, WebKit ✓, Mobile (Chromium + WebKit) ✓.
 
 ### E2E Journey Coverage (30 tests)
 
@@ -127,29 +128,29 @@ coverage deferred to WP06. Chromium at 7 viewport sizes satisfies responsive gat
 
 ## Independent Review Findings
 
-Three bounded review subagents ran against the candidate commit. No FAIL-level issues found.
+### WP05 T01 Reviews (candidate 9ffdf50 → merged to a2e3de5 state)
 
-### Runtime/Compatibility Review
+Three bounded review subagents ran against the T01 candidate. No FAIL-level issues found.
 
-**PASS** — Cue/Surface isolation correct: `doCueAudition()` dispatches nothing; `doSurfaceGenerate()` dispatches both `recordEvent` and `appendSurfaceLine`.  
-**PASS** — `surfaceSlice`: `appendSurfaceLine` enforces retention limit; `clearSurface` resets to [].  
-**PASS** — `takesSlice`: `captureTake` appends with `capturedAt`; takes survive panel navigation (Redux, not local state).  
-**PASS** — Import/export: JSON export produces valid blob; import routes through migration pipeline; parse error shows `role="alert"`.  
-**PASS** — `defaultProject()`: classic line devices + 8 banks guarantee UNMIX events within the first generate call.  
-**WARN** — Stanza queue position (`cueQueueRef`) lost on panel remount; by design (code comment present), no user signal. Deferred.  
-**WARN** — Double `migrateProject` call on import (idempotent). Deferred.
+**Runtime/Compatibility Review**: Cue/Surface isolation correct; surfaceSlice retention/clear; takesSlice persistence; import/export pipeline; defaultProject() guarantees UNMIX. Deferred: cueQueueRef lost on remount (by design), double migrateProject on import (idempotent).
 
-### Interaction/Accessibility Review
+**Interaction/Accessibility Review**: All interactive elements accessible; reorder buttons carry aria-label with entity name; import error uses role="alert"; h1/header/surface section correctly labelled. Fixed in `3e514b2`: device toggle, stanza toggle/remove, trigger ON/OFF, takes "Clear all" now carry entity-contextual aria-label.
 
-**PASS** — All interactive elements have accessible names (no completely unnamed buttons).  
-**PASS** — Navigation buttons have full visible labels ("Banks & Samples", "Devices", etc.).  
-**PASS** — Reorder buttons have `aria-label="Move X up/down"` with entity name.  
-**PASS** — Import error uses `role="alert" aria-live="assertive"`.  
-**PASS** — Surface section has `aria-labelledby="surface-head"`.  
-**PASS** — No modals exist; focus-trap requirement N/A.  
-**PASS** — `.tr-cue__output` renders after `doCueAudition()` with `aria-live="polite"`.  
-**PASS** — h1 contains "TAROKE RIMIXER" in `<header role="banner">`.  
-**WARN** — Four button types had generic labels without entity context; **fixed in commit `3e514b2`**: device toggle, stanza toggle/remove, trigger ON/OFF, takes "Clear all" now all carry entity-contextual `aria-label`.
+### WP05 T02 Reviews — Round 1 (candidate a2e3de5) → BLOCKED
+
+Three fresh independent reviewers ran against a2e3de5:
+
+- **Reviewer 1 (correctness)**: BLOCKED — P1: missing `onTouchCancel` on drag handle in `CompositionPanel.tsx`. P2: no unit tests for F-REF cascade commands; no unit tests for F-V07-DRAFT; redundant `timeLabel` shadowing.
+- **Reviewer 2 (a11y/UX/touch)**: BLOCKED — P1: missing `onTouchCancel`; P1: `e.preventDefault()` in React synthetic `onTouchMove` is passive on iOS/Chrome — page scrolls during drag. P2: redundant `timeLabel` shadowing.
+- **Reviewer 3 (data integrity/types)**: APPROVED — P2: `V07Draft.project` field typed as `TarokeProject` instead of `unknown` (safe at runtime; migration accepts `unknown`).
+
+Fixes applied in commit `7e95556`:
+- `onTouchCancel={onTouchEnd}` added to drag handle button
+- Native `{ passive: false }` touchmove listener via `useEffect`/`useRef` on `.tr-slots` container
+- `e.preventDefault()` removed from React synthetic `onTouchMove`
+- Redundant `timeLabel` shadow removed from `DraftRecoveryBanner.tsx`
+
+### WP05 T02 Reviews — Round 2 (candidate 7e95556) → pending
 
 ---
 
