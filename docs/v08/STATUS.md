@@ -33,8 +33,8 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 | WP02 | Core/Schema Boundary (recovery) | claude/v08-wp02-core-schema-recovery | MERGED (#11) | 534 | #11 | 735bcaa |
 | WP03 | State/Commands/Undo (recovery) | claude/v08-wp03-state-commands-recovery | MERGED (#12+#13) | 152 | #12+#13 | 539c0fa+6810bd8 |
 | WP04 | UI Foundation/Shell (recovery) | claude/v08-wp04-ui-shell-recovery | MERGED (#14) | 152 | #14 | 5a64cef |
-| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | AWAITING REVIEW | 206 | #15 | a781bf9 |
-| [A]  | Human Checkpoint A          | —                                   | AWAITING REVIEW | — | — | — |
+| WP05 | Vertical Slice (recovery)   | claude/v08-wp05-vertical-slice-recovery | MERGING | 206 | #15 | a781bf9 |
+| [A]  | Human Checkpoint A          | —                                   | APPROVED_WITH_CONDITIONS | — | — | — |
 | WP06 | Materials                   | claude/v08-wp06-materials           | NOT STARTED| —     | —  | —      |
 | WP07 | Instruments                 | claude/v08-wp07-instruments         | NOT STARTED| —     | —  | —      |
 | WP08 | Composition                 | claude/v08-wp08-composition         | NOT STARTED| —     | —  | —      |
@@ -49,7 +49,7 @@ A fresh claude-sonnet-4-6 / medium session resuming this program must:
 
 ## Current Focus
 
-**Human Checkpoint A** — WP05 candidate complete and deployed; awaiting Mohammad's verdict before WP06.
+**Human Checkpoint A** — APPROVED_WITH_CONDITIONS (Mohammad, 2026-07-16). Merging PR #15. WP06 requires a new GPT-authored Relay workload before starting.
 
 WP00 merged 2026-07-13 (PR #4). WP01–WP04 all merged (PRs #10–#14). WP05 recovery branch
 is the Checkpoint A candidate on PR #15 (commit `a05010e`). Do not merge or begin WP06

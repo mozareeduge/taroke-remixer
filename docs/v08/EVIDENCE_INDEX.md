@@ -107,7 +107,7 @@ A fresh-context independent review (separate session, no prior exposure to this 
 - [x] F-FREEZE: candidate 7e95556 frozen with all CI green
 - [x] F-REVIEW: 3 fresh reviews no P0/P1 — Round 3 (a781bf9) APPROVED×3
 - [x] F-DEPLOY: public root and /next/ deployed — workflow run 29539529622, all steps green, 2026-07-16T22:26:51Z
-- [ ] Human Checkpoint A verdict from Mohammad
+- [x] Human Checkpoint A verdict from Mohammad — APPROVED_WITH_CONDITIONS 2026-07-16
 - [ ] PR #15 merged
 
 ---

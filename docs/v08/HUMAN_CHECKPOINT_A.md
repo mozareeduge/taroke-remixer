@@ -222,7 +222,24 @@ apps into `_site/` for Pages deployment.
 ## Checkpoint Result
 
 - [ ] APPROVED — proceed with merge and WP06 planning
-- [ ] APPROVED_WITH_CONDITIONS — conditions: _______________
+- [x] APPROVED_WITH_CONDITIONS — conditions: see below
 - [ ] BLOCKED — reason: _______________
 
-Reviewer signature: __________________ Date: __________
+Reviewer signature: Mohammad  Date: 2026-07-16
+
+### Conditions
+
+**Approval covers:**
+- WP05 functional vertical slice, domain behavior, state architecture
+- Cue/Surface isolation, reorder behavior (pointer/touch/keyboard)
+- Import/export pipeline, evidence integrity
+- Cross-browser CI verification (Firefox/Chromium/WebKit/Mobile)
+- Deployment readiness
+
+**Approval does NOT accept:**
+- Current visual appearance, mobile composition, browser-default controls
+- Present density and hierarchy, Surface aesthetics
+- Candidate as a release-quality interface
+
+**WP06 condition:**
+WP06 must begin only from a new GPT-authored Relay workload defining the visual, spatial, responsive, affordance, and sensory design contract. Do not improvise or begin WP06 design implementation without that workload.

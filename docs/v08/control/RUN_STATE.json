@@ -63,7 +63,15 @@
     "next_verified": true,
     "verification_note": "Deploy step success confirms live. WebFetch returns 403 due to proxy blocking github.io — not a Pages failure. All 10 workflow steps completed with runner assigned (id 1000001009)."
   },
+  "human_checkpoint_a": {
+    "verdict": "APPROVED_WITH_CONDITIONS",
+    "reviewer": "Mohammad",
+    "date": "2026-07-16",
+    "approved_scope": "WP05 functional vertical slice, domain behavior, state architecture, Cue/Surface isolation, reorder, import/export, evidence integrity, cross-browser CI, deployment readiness",
+    "not_accepted": "Visual appearance, mobile composition, browser-default controls, density/hierarchy, Surface aesthetics, release-quality interface",
+    "wp06_condition": "Must begin only from a new GPT-authored Relay workload defining the visual, spatial, responsive, affordance, and sensory design contract"
+  },
   "blocker": null,
-  "next_exact_action": "Workload complete. Await Human Checkpoint A verdict from Mohammad on PR #15. Do not merge or begin WP06 before verdict.",
-  "last_updated": "2026-07-16T22:30:00Z"
+  "next_exact_action": "Merge PR #15. Update state with merge commit SHA, post-merge CI, and URL verification. Stop after WP05 post-merge closure.",
+  "last_updated": "2026-07-16T22:35:00Z"
 }
