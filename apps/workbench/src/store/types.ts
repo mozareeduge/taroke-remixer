@@ -38,6 +38,7 @@ export interface EditorState {
   sidebarOpen: boolean;
   inspectorOpen: boolean;
   previewFresh: boolean;
+  previewHtml: string | null;
 }
 
 // ── Runtime state ──────────────────────────────────────────────────────────────

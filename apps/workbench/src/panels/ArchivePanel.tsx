@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { setProject } from "../store/projectSlice.js";
-import { setPreviewFresh } from "../store/editorSlice.js";
+import { setPreviewFresh, setPreviewHtml } from "../store/editorSlice.js";
 import { showReceipt } from "../store/importReceiptSlice.js";
 import { exportProjectJson, exportProjectHtml, importProjectWithReceipt, downloadName } from "@taroke/core";
 
@@ -21,9 +21,9 @@ export function ArchivePanel() {
   const dispatch = useAppDispatch();
   const project = useAppSelector((s) => s.project.present);
   const previewFresh = useAppSelector((s) => s.editor.previewFresh);
+  const previewHtml = useAppSelector((s) => s.editor.previewHtml);
   const importRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   const lifecycle: PreviewLifecycle =
@@ -39,12 +39,12 @@ export function ArchivePanel() {
     setPreviewError(null);
     try {
       const html = exportProjectHtml(project);
-      setPreviewHtml(html);
+      dispatch(setPreviewHtml(html));
       dispatch(setPreviewFresh(true));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setPreviewError(msg);
-      setPreviewHtml(null);
+      dispatch(setPreviewHtml(null));
     }
   }
 

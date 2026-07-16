@@ -331,18 +331,18 @@ export function CompositionPanel() {
                   </div>
                 );
               })}
-              <div className="tr-slots__actions">
-                <button className="tr-btn tr-btn--ghost" onClick={doAddBreathSlot}>+ Breath</button>
-                {devices.map((dev) => (
-                  <button
-                    key={dev.id}
-                    className="tr-btn tr-btn--ghost"
-                    onClick={() => doAddDeviceSlot(dev.id, dev.name)}
-                  >
-                    + {dev.name}
-                  </button>
-                ))}
-              </div>
+            </div>
+            <div className="tr-slots__actions">
+              <button className="tr-btn tr-btn--ghost" onClick={doAddBreathSlot}>+ Breath</button>
+              {devices.map((dev) => (
+                <button
+                  key={dev.id}
+                  className="tr-btn tr-btn--ghost"
+                  onClick={() => doAddDeviceSlot(dev.id, dev.name)}
+                >
+                  + {dev.name}
+                </button>
+              ))}
             </div>
 
             <div className="tr-panel__subsection-head">SCENES</div>

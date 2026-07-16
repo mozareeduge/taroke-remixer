@@ -7,8 +7,8 @@
   "base_branch": "main",
   "starting_head": "3c503fceebbc1566693883ba49cc6e321e09c9eb",
   "current_candidate": "3c503fceebbc1566693883ba49cc6e321e09c9eb",
-  "active_task": "T01",
-  "completed_tasks": ["T00"],
+  "active_task": "T02",
+  "completed_tasks": ["T00", "T01"],
   "residue": {
     "claude/v08-wp05-checkpoint-a-73pije": "superseded — identical HEAD to canonical branch (3c503fceebbc1566693883ba49cc6e321e09c9eb), no unique commits"
   },
@@ -27,6 +27,14 @@
       "v08 E2E Firefox",
       "v08 E2E WebKit",
       "v08 E2E Mobile"
+    ],
+    "t01_fixes": [
+      "export.ts: DOCTYPE uppercase (test 35)",
+      "checkpoint-a.spec.ts: getByText strict mode (test 38)",
+      "checkpoint-a.spec.ts: banner locator strict mode (test 41)",
+      "AppShell.tsx: Ctrl+Z/Meta+Z global undo handler (test 47)",
+      "editorSlice+ArchivePanel: previewHtml in Redux for stale lifecycle (test 32)",
+      "CompositionPanel.tsx: tr-slots__actions outside role=list (a11y)"
     ]
   },
   "review": {
@@ -42,6 +50,6 @@
     "next_url": null
   },
   "blocker": null,
-  "next_exact_action": "T01: fetch the latest CI run logs for SHA 3c503fce; diagnose root failures in v08 E2E Chromium, Firefox, WebKit, and Mobile jobs; fix the E2E test harness or application code; push; verify green CI.",
-  "last_updated": "2026-07-16T16:58:00Z"
+  "next_exact_action": "T02: await CI green on pushed T01 fixes; then proceed to stable identity, references, and multimodal reorder work.",
+  "last_updated": "2026-07-16T19:30:00Z"
 }

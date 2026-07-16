@@ -812,7 +812,7 @@ test("38 — DraftRecoveryBanner: Restore draft loads the saved project", async 
 
   // Project title in Archive must reflect the restored project ("draft-test")
   await clickNav(page, "Archive");
-  await expect(page.getByText("draft-test")).toBeVisible({ timeout: 3000 });
+  await expect(page.locator(".tr-table__row").filter({ hasText: "Title" }).locator(".tr-table__td")).toContainText("draft-test", { timeout: 3000 });
 });
 
 // ── 39. DraftRecoveryBanner: Dismiss button hides banner without restoring ────
@@ -878,7 +878,7 @@ test("41 — DraftRecoveryBanner: corrupt localStorage JSON shows error banner",
   await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
 
   // Error banner variant must appear
-  const banner = page.locator("[class*='tr-draft-banner']");
+  const banner = page.locator("[class*='tr-draft-banner']").first();
   await expect(banner).toBeVisible({ timeout: 3000 });
   // Must describe the corruption (corrupt or schema mismatch message)
   await expect(banner).toContainText(/corrupt|could not|schema|mismatch/i);

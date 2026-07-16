@@ -173,7 +173,7 @@ export function safeJsonForHtml(project: TarokeProject): string {
 export function exportProjectHtml(project: TarokeProject): string {
   const json = safeJsonForHtml(project);
   const css = surfaceCss(project);
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(project.project?.title ?? "TAROKE")}</title><style>${css}</style></head><body><script type="application/json" id="taroke-project">${json}</script><div class="wrap"><div class="head" id="head"></div><main class="stage" id="stage"></main><div class="trace" id="trace">TAROKE RIMIXER artifact / import this HTML to edit</div></div><script>${standaloneRuntime()}<\/script></body></html>`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(project.project?.title ?? "TAROKE")}</title><style>${css}</style></head><body><script type="application/json" id="taroke-project">${json}</script><div class="wrap"><div class="head" id="head"></div><main class="stage" id="stage"></main><div class="trace" id="trace">TAROKE RIMIXER artifact / import this HTML to edit</div></div><script>${standaloneRuntime()}<\/script></body></html>`;
 }
 
 export function exportProjectJson(project: TarokeProject): string {
