@@ -34,6 +34,10 @@ export function CompositionPanel() {
   const [pickedUpId, setPickedUpId] = useState<string | null>(null);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
 
+  // ── Touch drag state ──────────────────────────────────────────────────────────
+  const [touchDragId, setTouchDragId] = useState<string | null>(null);
+  const [touchOverId, setTouchOverId] = useState<string | null>(null);
+
   function doAddStanza() {
     const name = newStanzaName.trim();
     if (!name) return;
@@ -104,6 +108,40 @@ export function CompositionPanel() {
   function onDragEnd() {
     setDragFromIdx(null);
     setDragOverIdx(null);
+  }
+
+  // ── Touch drag handlers ───────────────────────────────────────────────────────
+
+  function onTouchStart(slotId: string) {
+    cancelPickup();
+    setTouchDragId(slotId);
+    setTouchOverId(null);
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    if (!touchDragId) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    if (!touch) return;
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const row = el?.closest("[data-slot-id]");
+    const overId = row?.getAttribute("data-slot-id") ?? null;
+    setTouchOverId(overId !== touchDragId ? overId : null);
+  }
+
+  function onTouchEnd() {
+    if (touchDragId && touchOverId && activeStanza) {
+      const ids = activeStanza.slots.map((s) => s.id);
+      const fromIdx = ids.indexOf(touchDragId);
+      const toIdx = ids.indexOf(touchOverId);
+      if (fromIdx >= 0 && toIdx >= 0 && fromIdx !== toIdx) {
+        ids.splice(fromIdx, 1);
+        ids.splice(toIdx, 0, touchDragId);
+        dispatch(mutateProject(reorderStanzaSlots(project, activeStanza.id, ids)));
+      }
+    }
+    setTouchDragId(null);
+    setTouchOverId(null);
   }
 
   // ── Keyboard pickup/move/drop handlers ───────────────────────────────────────
@@ -233,15 +271,19 @@ export function CompositionPanel() {
                   dispatch(mutateProject(reorderStanzaSlots(project, activeStanza!.id, ids)));
                 }
 
+                const isTouchOver = touchOverId === slot.id;
                 return (
                   <div
                     key={slot.id}
                     role="listitem"
+                    data-slot-id={slot.id}
                     className={[
                       "tr-slot",
                       dragFromIdx === i ? "tr-slot--dragging" : "",
                       dragOverIdx === i ? "tr-slot--drag-over" : "",
                       isPickedUp ? "tr-slot--picked-up" : "",
+                      touchDragId === slot.id ? "tr-slot--dragging" : "",
+                      isTouchOver ? "tr-slot--drag-over" : "",
                     ].filter(Boolean).join(" ")}
                     draggable
                     onDragStart={() => onDragStart(i)}
@@ -250,7 +292,7 @@ export function CompositionPanel() {
                     onDragEnd={onDragEnd}
                     aria-grabbed={isPickedUp ? true : undefined}
                   >
-                    {/* Drag handle — keyboard pickup entry point */}
+                    {/* Drag handle — keyboard pickup entry point + touch drag */}
                     <button
                       className="tr-btn tr-btn--icon tr-slot__drag-handle"
                       aria-label={
@@ -260,6 +302,9 @@ export function CompositionPanel() {
                       }
                       aria-pressed={isPickedUp}
                       onKeyDown={(e) => handleDragHandleKeyDown(e, slot.id)}
+                      onTouchStart={() => onTouchStart(slot.id)}
+                      onTouchMove={onTouchMove}
+                      onTouchEnd={onTouchEnd}
                       tabIndex={0}
                     >
                       ⣿

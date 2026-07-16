@@ -181,7 +181,16 @@ export function removeDeviceInput(project: TarokeProject, deviceId: string, inpu
     const dev = d.lineDevices.find((x) => x.id === deviceId);
     if (!dev) return;
     const idx = dev.inputs.findIndex((i) => i.id === inputId);
-    if (idx >= 0) dev.inputs.splice(idx, 1);
+    if (idx < 0) return;
+    const removed = dev.inputs[idx];
+    if (!removed) return;
+    const removedSlot = removed.slot;
+    dev.inputs.splice(idx, 1);
+    // Remove dangling {slot:form} references from all routes on this device
+    const staleRe = new RegExp(`\\{${removedSlot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:[^}]*\\}`, "g");
+    for (const route of dev.routes) {
+      route.template = route.template.replace(staleRe, "");
+    }
   });
 }
 
@@ -196,7 +205,15 @@ export function updateDeviceInput(
     if (!dev) return;
     const inp = dev.inputs.find((i) => i.id === inputId);
     if (!inp) return;
-    if (patch.slot !== undefined) inp.slot = patch.slot;
+    if (patch.slot !== undefined && patch.slot !== inp.slot) {
+      const oldSlot = inp.slot;
+      inp.slot = patch.slot;
+      // Cascade rename into route templates: {oldSlot:form} → {newSlot:form}
+      const renameRe = new RegExp(`\\{${oldSlot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:`, "g");
+      for (const route of dev.routes) {
+        route.template = route.template.replace(renameRe, `{${patch.slot}:`);
+      }
+    }
     if (patch.tray !== undefined) inp.tray = patch.tray;
     if (patch.role !== undefined) inp.role = patch.role;
   });
