@@ -20,7 +20,7 @@ describe("exportProjectHtml / extractProjectFromText round-trip", () => {
   it("embeds project in HTML and extracts it back", () => {
     const project = defaultProject();
     const html = exportProjectHtml(project);
-    expect(html).toContain("<!doctype html>");
+    expect(html).toContain("<!DOCTYPE html>");
     expect(html).toContain("taroke-project");
     const extracted = extractProjectFromText(html);
     expect(extracted.project.title).toBe(project.project.title);
