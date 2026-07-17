@@ -3,7 +3,7 @@
   "terminal_status": "active",
   "canonical_repository": "mozareeduge/taroke-remixer",
   "canonical_branch": "claude/taroke-remixer-reconcile-tydcn5",
-  "canonical_pr": null,
+  "canonical_pr": 16,
   "base_branch": "main",
   "workload_package": "TAROKE_Relay_WP05_Closure_and_WP06_12_Experience_v1.0",
 
@@ -18,22 +18,24 @@
     "post_merge_ci": "run 29530118934 — all 8 jobs green on candidate a781bf9",
     "deployment": "run 29539529622 — root + /next/ live at https://mozareeduge.github.io/taroke-remixer/",
     "truth_synchronized": true,
-    "closure_commit": "this commit"
+    "closure_commit": "15fa3e4"
   },
 
-  "current_candidate": null,
-  "active_task": "T01",
-  "completed_tasks": ["T00"],
+  "current_candidate": "d751add",
+  "active_task": "T02",
+  "completed_tasks": ["T00", "T01"],
 
   "ci": {
-    "run_id": null,
-    "candidate": null,
-    "conclusion": null,
-    "failed_jobs": []
+    "run_id": "29580857823",
+    "candidate": "d751add",
+    "conclusion": "in_progress",
+    "failed_jobs": [],
+    "prev_fixed": "axe color-contrast on tr-route__template (run 29579123933)",
+    "note": "Deploy Preview (29580855243) fails on feature branch — Pages env restricted to main; not a code issue"
   },
 
   "review": {
-    "candidate": null,
+    "candidate": "f91b91d",
     "roles_passed": [],
     "open_p0": null,
     "open_p1": null
@@ -50,6 +52,6 @@
   },
 
   "blocker": null,
-  "next_exact_action": "T01: Wire CSS bundle into main.tsx. Update tokens.css to design spec. Create app.css with shell layout. Commit and push to experience branch.",
-  "last_updated": "2026-07-17T00:00:00Z"
+  "next_exact_action": "Await CI run 29580857823 (d751add). If Firefox axe pass, continue T02 shell refinements.",
+  "last_updated": "2026-07-17T12:38:00Z"
 }
