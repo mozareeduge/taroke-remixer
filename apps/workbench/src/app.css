@@ -1746,7 +1746,6 @@ input[type="checkbox"] {
     border-bottom: 2px solid transparent;
     cursor: pointer;
     text-align: center;
-    text-transform: uppercase;
     letter-spacing: 0.04em;
     min-height: 40px;
     touch-action: manipulation;
