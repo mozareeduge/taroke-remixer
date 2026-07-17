@@ -28,7 +28,7 @@ function makeStore(editorOverrides?: Partial<{ sidebarOpen: boolean; inspectorOp
     },
   });
   if (editorOverrides?.sidebarOpen === false) store.dispatch(toggleSidebar());
-  if (editorOverrides?.inspectorOpen === false) store.dispatch(toggleInspector());
+  if (editorOverrides?.inspectorOpen === true) store.dispatch(toggleInspector());
   return store;
 }
 
@@ -60,17 +60,17 @@ describe("Transport", () => {
     expect(screen.getByText("STOPPED")).toBeInTheDocument();
   });
 
-  it("has inspector toggle button with aria-pressed=true by default", () => {
+  it("has inspector toggle button with aria-pressed=false by default", () => {
     wrap(<Transport />);
-    const toggle = screen.getByLabelText("Hide inspector");
-    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    const toggle = screen.getByLabelText("Show inspector");
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
   });
 
   it("inspector toggle dispatches and flips label", () => {
     wrap(<Transport />);
-    const toggle = screen.getByLabelText("Hide inspector");
+    const toggle = screen.getByLabelText("Show inspector");
     fireEvent.click(toggle);
-    expect(screen.getByLabelText("Show inspector")).toBeInTheDocument();
+    expect(screen.getByLabelText("Hide inspector")).toBeInTheDocument();
   });
 });
 
@@ -118,7 +118,7 @@ describe("Workspace", () => {
 describe("Inspector", () => {
   it("renders complementary landmark always", () => {
     wrap(<Inspector />);
-    expect(screen.getByRole("complementary")).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { hidden: true })).toBeInTheDocument();
   });
 
   it("is aria-hidden when inspectorOpen=false", () => {
@@ -128,7 +128,8 @@ describe("Inspector", () => {
   });
 
   it("is not aria-hidden when inspectorOpen=true", () => {
-    wrap(<Inspector />);
+    const store = makeStore({ inspectorOpen: true });
+    wrap(<Inspector />, store);
     expect(screen.getByRole("complementary")).not.toHaveAttribute("aria-hidden", "true");
   });
 
@@ -146,7 +147,7 @@ describe("AppShell", () => {
     expect(screen.getByRole("banner")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Editor sections" })).toBeInTheDocument();
     expect(screen.getByRole("main")).toBeInTheDocument();
-    expect(screen.getByRole("complementary")).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { hidden: true })).toBeInTheDocument();
   });
 
   it("renders mobile nav with 6 destinations", () => {
@@ -157,7 +158,8 @@ describe("AppShell", () => {
   });
 
   it("inspector is aria-visible when open", () => {
-    wrap(<AppShell />);
+    const store = makeStore({ inspectorOpen: true });
+    wrap(<AppShell />, store);
     const inspector = screen.getByRole("complementary");
     expect(inspector).not.toHaveAttribute("aria-hidden", "true");
   });
