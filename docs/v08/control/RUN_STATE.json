@@ -21,16 +21,16 @@
     "closure_commit": "15fa3e4"
   },
 
-  "current_candidate": "dd571c6",
-  "active_task": "T03",
-  "completed_tasks": ["T00", "T01", "T02"],
+  "current_candidate": "802df73",
+  "active_task": "T10",
+  "completed_tasks": ["T00", "T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09"],
 
   "ci": {
     "run_id": null,
-    "candidate": "dd571c6",
+    "candidate": "802df73",
     "conclusion": "pending",
     "failed_jobs": [],
-    "prev_fixed": "T02 complete: badge contrast x2, select custom arrow, disabled states, mobile transport, select--sm dedup; T03 in progress: summary marker, mobile sidebar stacking",
+    "prev_fixed": "T09 complete: full contrast audit — no --tr-muted-min on --tr-raised remains; tr-btn--secondary added; Checkpoint A residual items resolved",
     "note": "Deploy Preview always fails on feature branch — Pages env restricted to main; not a code issue"
   },
 
@@ -52,6 +52,6 @@
   },
 
   "blocker": null,
-  "next_exact_action": "Continue T03 (Materials/Forms): summary marker done, mobile sidebar done. Next: T04 Instruments, T05 Composition, T06 Automation, T07 Performance, T08 Archive. Then T09 a11y audit, T10 freeze/review/deploy.",
-  "last_updated": "2026-07-17T15:30:00Z"
+  "next_exact_action": "T10: await CI green on 802df73, then run 3 fresh review subagents against frozen candidate, deploy /next/, prepare Checkpoint B packet.",
+  "last_updated": "2026-07-17T16:00:00Z"
 }
