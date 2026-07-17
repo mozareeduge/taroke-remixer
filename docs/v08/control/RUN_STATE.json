@@ -21,16 +21,16 @@
     "closure_commit": "15fa3e4"
   },
 
-  "current_candidate": "7cf02a6",
+  "current_candidate": "5750192",
   "active_task": "T02",
   "completed_tasks": ["T00", "T01"],
 
   "ci": {
     "run_id": null,
-    "candidate": "7cf02a6",
+    "candidate": "5750192",
     "conclusion": "pending",
     "failed_jobs": [],
-    "prev_fixed": "axe color-contrast on tr-form-row__input (MaterialsPanel) + all missing panel CSS added",
+    "prev_fixed": "axe color-contrast tr-badge--lifecycle-unbuilt: --tr-muted-min(4.27:1 FAIL)→--tr-muted(5.55:1 PASS); all 16 panel CSS sections added; tr-form-row__input background/color explicit",
     "note": "Deploy Preview always fails on feature branch — Pages env restricted to main; not a code issue"
   },
 
@@ -52,6 +52,6 @@
   },
 
   "blocker": null,
-  "next_exact_action": "Await CI 7cf02a6 axe results for all panels. T02 in progress: all missing panel CSS added (16 new sections).",
-  "last_updated": "2026-07-17T13:00:00Z"
+  "next_exact_action": "Await CI 5750192 — expect all E2E axe jobs green (Archive badge contrast fixed). Then continue T02: global visual system, shell layout, mobile viewport CSS.",
+  "last_updated": "2026-07-17T14:15:00Z"
 }
