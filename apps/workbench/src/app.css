@@ -444,7 +444,7 @@ h1, h2, h3, h4 { font-weight: normal; }
   cursor: not-allowed;
 }
 .tr-select--sm {
-  height: 22px;
+  height: 24px;
   font-size: var(--tr-font-size-sm);
   padding: 0 18px 0 var(--tr-sp-2);
 }
@@ -962,13 +962,6 @@ input[type="checkbox"] {
 
 .tr-table__row:hover .tr-table__td {
   background: var(--tr-plate);
-}
-
-/* ── Select size modifier ───────────────────────────────────────────────── */
-
-.tr-select--sm {
-  height: 24px;
-  font-size: var(--tr-font-size-sm);
 }
 
 /* ── Route editor ────────────────────────────────────────────────────────── */
