@@ -44,8 +44,8 @@ export function AppShell() {
       </a>
 
       <Transport />
-      <Navigator />
       <Workspace />
+      <Navigator />
       <Inspector />
 
       <nav className="tr-mobile-nav" aria-label="Main navigation">
