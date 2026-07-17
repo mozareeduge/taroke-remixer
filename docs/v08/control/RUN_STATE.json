@@ -21,21 +21,21 @@
     "closure_commit": "15fa3e4"
   },
 
-  "current_candidate": "ed3a505",
+  "current_candidate": "bda0c5e",
   "active_task": "T10",
   "completed_tasks": ["T00", "T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09"],
 
   "ci": {
     "run_id": null,
-    "candidate": "ed3a505",
+    "candidate": "bda0c5e",
     "conclusion": "pending",
     "failed_jobs": [],
-    "prev_fixed": "T10 P1 fixes: SR chevron silenced (content alt text), mobile touch targets raised to 44px, section-16 flex override corrected with post-section mobile @media block",
+    "prev_fixed": "T10 mobile regression: inspectorOpen initial state changed to false — on mobile the inspector is position:fixed z-index:30 covering full viewport, causing all 100 mobile E2E tests to fail. Fix: inspectorOpen:false default, unit tests updated (208/208 pass).",
     "note": "Deploy Preview always fails on feature branch — Pages env restricted to main; not a code issue"
   },
 
   "review": {
-    "candidate": "ed3a505",
+    "candidate": "bda0c5e",
     "roles_passed": [],
     "open_p0": null,
     "open_p1": null
@@ -49,10 +49,10 @@
     "root_verified": true,
     "next_verified": true,
     "deployed_at": "2026-07-16T22:26:51Z",
-    "note": "Pages env restricted to main branch; /next/ will deploy to 1ef8050 upon PR merge (Checkpoint B approval)"
+    "note": "Pages env restricted to main branch; /next/ will deploy upon PR merge (Checkpoint B approval)"
   },
 
   "blocker": null,
-  "next_exact_action": "T10: await CI green on 1ef8050; 3 fresh review subagents running against 1ef8050; after all green — update terminal_status to ready_for_human_checkpoint and prepare Checkpoint B packet.",
-  "last_updated": "2026-07-17T17:00:00Z"
+  "next_exact_action": "T10: await CI green on bda0c5e; run 3 fresh review subagents against bda0c5e; after all green — update terminal_status to ready_for_human_checkpoint and prepare Checkpoint B packet.",
+  "last_updated": "2026-07-17T18:00:00Z"
 }
