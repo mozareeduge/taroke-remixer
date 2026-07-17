@@ -516,6 +516,15 @@ input[type="checkbox"] {
   border-color: var(--tr-line);
   color: var(--tr-text);
 }
+.tr-btn--secondary {
+  background: var(--tr-plate-2);
+  border-color: var(--tr-line);
+  color: var(--tr-text);
+}
+.tr-btn--secondary:hover {
+  background: var(--tr-raised);
+  border-color: var(--tr-muted);
+}
 .tr-btn--sm {
   height: 24px;
   padding: 0 var(--tr-sp-3);
@@ -1685,7 +1694,8 @@ input[type="checkbox"] {
 
   /* Sidebar panels: stack on mobile */
   .tr-panel--materials,
-  .tr-panel--instruments {
+  .tr-panel--instruments,
+  .tr-panel--composition {
     flex-direction: column;
   }
 
@@ -1726,6 +1736,11 @@ input[type="checkbox"] {
 
   .tr-panel__sidebar .tr-panel__section-head { display: none; }
   .tr-panel__sidebar .tr-panel__add-row { display: none; }
+
+  /* Add-row: wrap on narrow viewports */
+  .tr-panel__add-row {
+    flex-wrap: wrap;
+  }
 
   /* Performance mobile: Surface first */
   .tr-perf {
