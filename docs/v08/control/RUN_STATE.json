@@ -21,21 +21,21 @@
     "closure_commit": "15fa3e4"
   },
 
-  "current_candidate": "802df73",
+  "current_candidate": "1ef8050",
   "active_task": "T10",
   "completed_tasks": ["T00", "T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09"],
 
   "ci": {
     "run_id": null,
-    "candidate": "802df73",
+    "candidate": "1ef8050",
     "conclusion": "pending",
     "failed_jobs": [],
-    "prev_fixed": "T09 complete: full contrast audit — no --tr-muted-min on --tr-raised remains; tr-btn--secondary added; Checkpoint A residual items resolved",
+    "prev_fixed": "T10 P1 fixes: SR chevron silenced (content alt text), mobile touch targets raised to 44px, section-16 flex override corrected with post-section mobile @media block",
     "note": "Deploy Preview always fails on feature branch — Pages env restricted to main; not a code issue"
   },
 
   "review": {
-    "candidate": "f91b91d",
+    "candidate": "1ef8050",
     "roles_passed": [],
     "open_p0": null,
     "open_p1": null
@@ -48,10 +48,11 @@
     "next_url": "https://mozareeduge.github.io/taroke-remixer/next/",
     "root_verified": true,
     "next_verified": true,
-    "deployed_at": "2026-07-16T22:26:51Z"
+    "deployed_at": "2026-07-16T22:26:51Z",
+    "note": "Pages env restricted to main branch; /next/ will deploy to 1ef8050 upon PR merge (Checkpoint B approval)"
   },
 
   "blocker": null,
-  "next_exact_action": "T10: await CI green on 802df73, then run 3 fresh review subagents against frozen candidate, deploy /next/, prepare Checkpoint B packet.",
-  "last_updated": "2026-07-17T16:00:00Z"
+  "next_exact_action": "T10: await CI green on 1ef8050; 3 fresh review subagents running against 1ef8050; after all green — update terminal_status to ready_for_human_checkpoint and prepare Checkpoint B packet.",
+  "last_updated": "2026-07-17T17:00:00Z"
 }
