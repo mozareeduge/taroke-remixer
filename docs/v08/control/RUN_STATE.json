@@ -52,6 +52,6 @@
   },
 
   "blocker": null,
-  "next_exact_action": "Await CI run 29580857823 (d751add). If Firefox axe pass, continue T02 shell refinements.",
-  "last_updated": "2026-07-17T12:38:00Z"
+  "next_exact_action": "Await CI run 29580857823 (d751add) Firefox axe result. T02 in progress: inspector toggle added to Transport.",
+  "last_updated": "2026-07-17T12:41:00Z"
 }

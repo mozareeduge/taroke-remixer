@@ -59,6 +59,19 @@ describe("Transport", () => {
     wrap(<Transport />);
     expect(screen.getByText("STOPPED")).toBeInTheDocument();
   });
+
+  it("has inspector toggle button with aria-pressed=true by default", () => {
+    wrap(<Transport />);
+    const toggle = screen.getByLabelText("Hide inspector");
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("inspector toggle dispatches and flips label", () => {
+    wrap(<Transport />);
+    const toggle = screen.getByLabelText("Hide inspector");
+    fireEvent.click(toggle);
+    expect(screen.getByLabelText("Show inspector")).toBeInTheDocument();
+  });
 });
 
 // ── Navigator ──────────────────────────────────────────────────────────────────
