@@ -49,17 +49,40 @@ async function goto(page: Page) {
   await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
 }
 
+const NAV_LABELS_A11Y: Record<string, string> = {
+  "Materials": "Banks & Samples",
+  "Forms": "Forms",
+  "Instruments": "Devices",
+  "Composition": "Patterns",
+  "Automation": "Triggers",
+  "Performance": "Cue & Surface",
+  "Archive": "Import & Export",
+};
+
+const MOBILE_NAV_A11Y: Record<string, { top: string; sub?: string }> = {
+  "Banks & Samples": { top: "Material", sub: "Banks & Samples" },
+  "Forms":           { top: "Material", sub: "Forms" },
+  "Devices":         { top: "Devices" },
+  "Patterns":        { top: "Compose" },
+  "Triggers":        { top: "Automate" },
+  "Cue & Surface":   { top: "Perform" },
+  "Import & Export": { top: "Archive" },
+};
+
 async function clickNav(page: Page, label: string) {
-  const labels: Record<string, string> = {
-    "Materials": "Banks & Samples",
-    "Forms": "Forms",
-    "Instruments": "Devices",
-    "Composition": "Patterns",
-    "Automation": "Triggers",
-    "Performance": "Cue & Surface",
-    "Archive": "Import & Export",
-  };
-  await page.getByRole("button", { name: labels[label] ?? label }).click();
+  const desktopName = NAV_LABELS_A11Y[label] ?? label;
+
+  if (await page.locator(".tr-navigator").isVisible()) {
+    await page.getByRole("button", { name: desktopName }).click();
+    return;
+  }
+
+  const route = MOBILE_NAV_A11Y[desktopName];
+  if (!route) throw new Error(`No mobile nav route for "${desktopName}"`);
+  await page.getByRole("button", { name: route.top }).click();
+  if (route.sub) {
+    await page.getByRole("button", { name: route.sub }).click();
+  }
 }
 
 test("a11y — shell (no panel active)", async ({ page }) => {

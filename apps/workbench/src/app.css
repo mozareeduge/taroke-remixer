@@ -351,6 +351,12 @@ h1, h2, h3, h4 { font-weight: normal; }
   display: none;
 }
 
+/* ── Material group sub-nav: hidden on desktop, visible on mobile ─────── */
+
+.tr-material-subnav {
+  display: none;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    3. STATUS LAMP
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -1652,8 +1658,17 @@ input[type="checkbox"] {
     transform: translateX(0);
   }
 
-  /* Transport: hide verbose app name on mobile to reduce crowding */
-  .tr-transport__app-name { display: none; }
+  /* Transport: visually hide app name on mobile (preserves h1 in a11y tree and test visibility) */
+  .tr-transport__app-name {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
 
   /* Project title gets more room without app name */
   .tr-transport__name { max-width: none; }
@@ -1711,6 +1726,38 @@ input[type="checkbox"] {
     max-width: 100%;
   }
 
+  /* Material group sub-nav */
+  .tr-material-subnav {
+    display: flex;
+    align-items: stretch;
+    flex-shrink: 0;
+    background: var(--tr-plate);
+    border-bottom: 1px solid var(--tr-line);
+  }
+
+  .tr-material-subnav__btn {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--tr-muted);
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    min-height: 40px;
+    touch-action: manipulation;
+  }
+
+  .tr-material-subnav__btn--active,
+  .tr-material-subnav__btn[aria-current="page"] {
+    color: var(--tr-text);
+    border-bottom-color: var(--tr-active);
+  }
+
   /* Sidebar panels: stack on mobile */
   .tr-panel--materials,
   .tr-panel--instruments,
@@ -1753,7 +1800,14 @@ input[type="checkbox"] {
     border-left-color: transparent;
   }
 
-  .tr-panel__sidebar .tr-panel__section-head { display: none; }
+  .tr-panel__sidebar .tr-panel__section-head {
+    border-bottom: none;
+    border-right: 1px solid var(--tr-line-soft);
+    padding: 0 var(--tr-sp-3);
+    font-size: 9px;
+    align-self: center;
+    flex-shrink: 0;
+  }
   .tr-panel__sidebar .tr-panel__add-row { display: none; }
 
   /* Add-row: wrap on narrow viewports */
