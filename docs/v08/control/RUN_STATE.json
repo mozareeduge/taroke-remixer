@@ -21,13 +21,13 @@
     "closure_commit": "15fa3e4"
   },
 
-  "current_candidate": "1ef8050",
+  "current_candidate": "ed3a505",
   "active_task": "T10",
   "completed_tasks": ["T00", "T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09"],
 
   "ci": {
     "run_id": null,
-    "candidate": "1ef8050",
+    "candidate": "ed3a505",
     "conclusion": "pending",
     "failed_jobs": [],
     "prev_fixed": "T10 P1 fixes: SR chevron silenced (content alt text), mobile touch targets raised to 44px, section-16 flex override corrected with post-section mobile @media block",
@@ -35,7 +35,7 @@
   },
 
   "review": {
-    "candidate": "1ef8050",
+    "candidate": "ed3a505",
     "roles_passed": [],
     "open_p0": null,
     "open_p1": null
