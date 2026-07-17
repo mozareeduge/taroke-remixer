@@ -1707,7 +1707,7 @@ input[type="checkbox"] {
     overflow-y: hidden;
     border-right: none;
     border-bottom: 1px solid var(--tr-line);
-    max-height: var(--tr-row-h-lg);
+    max-height: 44px;
     flex-shrink: 0;
     scrollbar-width: none;
   }
@@ -1724,7 +1724,7 @@ input[type="checkbox"] {
   .tr-panel__sidebar .tr-list__btn {
     border-left: none;
     border-bottom: 2px solid transparent;
-    height: var(--tr-row-h-lg);
+    height: 44px;
     padding: 0 var(--tr-sp-5);
     white-space: nowrap;
   }
@@ -1846,6 +1846,18 @@ input[type="checkbox"] {
 .tr-panel--performance,
 .tr-panel--archive {
   flex-direction: column;
+}
+
+/* Mobile: re-assert column stacking after the global flex-direction row above */
+@media (max-width: 959px) {
+  .tr-panel--materials,
+  .tr-panel--composition {
+    flex-direction: column;
+  }
+
+  .tr-forms__bank-label {
+    min-height: 44px;
+  }
 }
 
 /* ── Panel section wrappers ─────────────────────────────────────────────── */
@@ -2045,7 +2057,7 @@ summary::-webkit-details-marker {
 }
 
 .tr-forms__bank-label::before {
-  content: "▸";
+  content: "▸" / "";
   font-size: 10px;
   color: var(--tr-muted-min);
   transition: transform 100ms;
