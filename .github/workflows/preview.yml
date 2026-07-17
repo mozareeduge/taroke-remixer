@@ -1,19 +1,20 @@
-name: Deploy Preview (Checkpoint A)
+name: Deploy Preview
 
-# Deploys a public preview for Human Checkpoint A review.
-# v07.8 app at the root (/), v08 app at /next/.
+# Deploys the public Pages preview.
+# v07.8 app at the root (/), v08 candidate app at /next/.
 #
-# REQUIRES: GitHub Pages must be enabled for this repository.
-# Settings → Pages → Source: GitHub Actions
+# REQUIRES: GitHub Pages enabled (Settings → Pages → Source: GitHub Actions)
 #
-# Public URL after enabling: https://mozareeduge.github.io/taroke-remixer/
+# Public URL: https://mozareeduge.github.io/taroke-remixer/
 # v07 (root):  https://mozareeduge.github.io/taroke-remixer/
 # v08 (/next/): https://mozareeduge.github.io/taroke-remixer/next/
 
 on:
   push:
     branches:
-      - "claude/v08-wp05-vertical-slice-recovery"
+      - main
+      - "claude/taroke-remixer-reconcile-tydcn5"
+      - "claude/v08-wp06-12-experience-system"
   workflow_dispatch:
 
 permissions:
