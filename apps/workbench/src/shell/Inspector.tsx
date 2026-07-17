@@ -289,10 +289,12 @@ export function Inspector() {
   const primary = useAppSelector((s) => s.selection.primary);
   const inspectorOpen = useAppSelector((s) => s.editor.inspectorOpen);
 
-  if (!inspectorOpen) return null;
-
   return (
-    <aside className="tr-inspector" aria-label="Inspector">
+    <aside
+      className={inspectorOpen ? "tr-inspector tr-inspector--open" : "tr-inspector"}
+      aria-label="Inspector"
+      aria-hidden={!inspectorOpen}
+    >
       {primary ? (
         <div className="tr-inspector__content">
           <div className="tr-inspector__type">{primary.type.toUpperCase()}</div>

@@ -98,25 +98,25 @@ describe("Workspace", () => {
     wrap(<Workspace />);
     expect(screen.getByRole("main")).toBeInTheDocument();
   });
-
-  it("shows current panel id uppercased", () => {
-    wrap(<Workspace />);
-    expect(screen.getByText("MATERIALS")).toBeInTheDocument();
-  });
 });
 
 // ── Inspector ──────────────────────────────────────────────────────────────────
 
 describe("Inspector", () => {
-  it("renders when inspectorOpen=true", () => {
+  it("renders complementary landmark always", () => {
     wrap(<Inspector />);
     expect(screen.getByRole("complementary")).toBeInTheDocument();
   });
 
-  it("returns null when inspectorOpen=false", () => {
+  it("is aria-hidden when inspectorOpen=false", () => {
     const store = makeStore({ inspectorOpen: false });
-    const { container } = wrap(<Inspector />, store);
-    expect(container.firstChild).toBeNull();
+    wrap(<Inspector />, store);
+    expect(screen.getByRole("complementary", { hidden: true })).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("is not aria-hidden when inspectorOpen=true", () => {
+    wrap(<Inspector />);
+    expect(screen.getByRole("complementary")).not.toHaveAttribute("aria-hidden", "true");
   });
 
   it("shows hint text when nothing is selected", () => {
@@ -128,35 +128,32 @@ describe("Inspector", () => {
 // ── AppShell ───────────────────────────────────────────────────────────────────
 
 describe("AppShell", () => {
-  it("renders transport, navigator, workspace, inspector by default", () => {
+  it("renders transport, navigator, workspace, inspector", () => {
     wrap(<AppShell />);
     expect(screen.getByRole("banner")).toBeInTheDocument();
-    expect(screen.getByRole("navigation")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Editor sections" })).toBeInTheDocument();
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(screen.getByRole("complementary")).toBeInTheDocument();
   });
 
-  it("close navigator toggle hides Navigator", () => {
+  it("renders mobile nav with 6 destinations", () => {
     wrap(<AppShell />);
-    const navToggle = screen.getByLabelText("Close navigator");
-    fireEvent.click(navToggle);
-    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    const mobileNav = screen.getByRole("navigation", { name: "Main navigation" });
+    expect(mobileNav).toBeInTheDocument();
+    expect(mobileNav.querySelectorAll("button")).toHaveLength(6);
   });
 
-  it("close inspector toggle hides Inspector", () => {
+  it("inspector is aria-visible when open", () => {
     wrap(<AppShell />);
-    const insToggle = screen.getByLabelText("Close inspector");
-    fireEvent.click(insToggle);
-    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    const inspector = screen.getByRole("complementary");
+    expect(inspector).not.toHaveAttribute("aria-hidden", "true");
   });
 
-  it("re-open navigator toggle restores Navigator", () => {
-    wrap(<AppShell />);
-    const toggle = screen.getByLabelText("Close navigator");
-    fireEvent.click(toggle); // close
-    const reopenBtn = screen.getByLabelText("Open navigator");
-    fireEvent.click(reopenBtn); // reopen
-    expect(screen.getByRole("navigation")).toBeInTheDocument();
+  it("inspector is aria-hidden when inspectorOpen=false", () => {
+    const store = makeStore({ inspectorOpen: false });
+    wrap(<AppShell />, store);
+    const inspector = screen.getByRole("complementary", { hidden: true });
+    expect(inspector).toHaveAttribute("aria-hidden", "true");
   });
 
   it("skip-nav link is the first link and points to #tr-main-content (a11y WCAG 2.4.1)", () => {
@@ -164,7 +161,6 @@ describe("AppShell", () => {
     const skipLink = screen.getByText("Skip to main content");
     expect(skipLink.tagName).toBe("A");
     expect(skipLink).toHaveAttribute("href", "#tr-main-content");
-    // Must be before the Transport banner in DOM order
     const banner = screen.getByRole("banner");
     expect(banner.compareDocumentPosition(skipLink) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
   });

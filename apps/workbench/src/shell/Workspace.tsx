@@ -6,6 +6,8 @@ import { CompositionPanel } from "../panels/CompositionPanel.js";
 import { AutomationPanel } from "../panels/AutomationPanel.js";
 import { PerformancePanel } from "../panels/PerformancePanel.js";
 import { ArchivePanel } from "../panels/ArchivePanel.js";
+import { ImportReceiptBanner } from "../panels/ImportReceiptBanner.js";
+import { DraftRecoveryBanner } from "../panels/DraftRecoveryBanner.js";
 
 export function Workspace() {
   const activePanel = useAppSelector((s) => s.editor.activePanel);
@@ -24,9 +26,8 @@ export function Workspace() {
 
   return (
     <main id="tr-main-content" className="tr-workspace" aria-label="Workspace">
-      <div className="tr-workspace__panel-id" aria-hidden="true">
-        {activePanel.toUpperCase()}
-      </div>
+      <DraftRecoveryBanner />
+      <ImportReceiptBanner />
       {panel}
     </main>
   );
