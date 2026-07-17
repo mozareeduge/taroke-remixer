@@ -1683,6 +1683,50 @@ input[type="checkbox"] {
     max-width: 100%;
   }
 
+  /* Sidebar panels: stack on mobile */
+  .tr-panel--materials,
+  .tr-panel--instruments {
+    flex-direction: column;
+  }
+
+  .tr-panel__sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: none;
+    border-bottom: 1px solid var(--tr-line);
+    max-height: var(--tr-row-h-lg);
+    flex-shrink: 0;
+    scrollbar-width: none;
+  }
+  .tr-panel__sidebar::-webkit-scrollbar { display: none; }
+
+  .tr-panel__sidebar .tr-list {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    flex: 1;
+  }
+
+  .tr-panel__sidebar .tr-list__item { flex-shrink: 0; }
+
+  .tr-panel__sidebar .tr-list__btn {
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    height: var(--tr-row-h-lg);
+    padding: 0 var(--tr-sp-5);
+    white-space: nowrap;
+  }
+  .tr-panel__sidebar .tr-list__btn--active,
+  .tr-panel__sidebar .tr-list__btn[aria-current="true"] {
+    border-bottom-color: var(--tr-active);
+    border-left-color: transparent;
+  }
+
+  .tr-panel__sidebar .tr-panel__section-head { display: none; }
+  .tr-panel__sidebar .tr-panel__add-row { display: none; }
+
   /* Performance mobile: Surface first */
   .tr-perf {
     display: flex;
@@ -1972,6 +2016,29 @@ input[type="checkbox"] {
   opacity: 0.5;
   cursor: not-allowed;
   background: var(--tr-raised);
+}
+
+/* ── Details/summary (Forms bank disclosure) ──────────────────────────── */
+
+summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+
+.tr-forms__bank-label::before {
+  content: "▸";
+  font-size: 10px;
+  color: var(--tr-muted-min);
+  transition: transform 100ms;
+  flex-shrink: 0;
+  margin-right: var(--tr-sp-2);
+}
+details[open] > .tr-forms__bank-label::before {
+  transform: rotate(90deg);
 }
 
 /* ── Forms panel policy controls ────────────────────────────────────────── */
