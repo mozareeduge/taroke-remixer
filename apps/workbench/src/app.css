@@ -389,6 +389,10 @@ h1, h2, h3, h4 { font-weight: normal; }
 .tr-input::placeholder {
   color: var(--tr-muted-min);
 }
+.tr-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 .tr-input--num {
   font-variant-numeric: tabular-nums;
@@ -415,8 +419,12 @@ h1, h2, h3, h4 { font-weight: normal; }
 .tr-select {
   width: 100%;
   height: var(--tr-input-h);
-  padding: 0 var(--tr-sp-2);
+  padding: 0 20px 0 var(--tr-sp-2);
   background: var(--tr-well);
+  /* SVG chevron arrow in --tr-muted: #9a927d encoded */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239a927d'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
   border: 1px solid var(--tr-line);
   color: var(--tr-text);
   font-family: var(--tr-font-ui);
@@ -429,6 +437,16 @@ h1, h2, h3, h4 { font-weight: normal; }
 }
 .tr-select:focus {
   border-color: var(--tr-focus);
+  box-shadow: 0 0 0 1px var(--tr-focus);
+}
+.tr-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.tr-select--sm {
+  height: 22px;
+  font-size: var(--tr-font-size-sm);
+  padding: 0 18px 0 var(--tr-sp-2);
 }
 
 /* Checkbox */
@@ -601,6 +619,14 @@ input[type="checkbox"] {
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--tr-line-soft) transparent;
+}
+
+/* Content padding wrapper for non-tabbed panels */
+.tr-panel__content {
+  padding: var(--tr-sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-4);
 }
 
 /* ── Tablist within panel ───────────────────────────────────────────────── */
@@ -1611,6 +1637,12 @@ input[type="checkbox"] {
     transform: translateX(0);
   }
 
+  /* Transport: hide verbose app name on mobile to reduce crowding */
+  .tr-transport__app-name { display: none; }
+
+  /* Project title gets more room without app name */
+  .tr-transport__name { max-width: none; }
+
   .tr-mobile-nav {
     grid-area: mobile-nav;
     display: flex;
@@ -1678,6 +1710,7 @@ input[type="checkbox"] {
   .tr-perf__surface-lines {
     font-size: 18px;
   }
+
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
