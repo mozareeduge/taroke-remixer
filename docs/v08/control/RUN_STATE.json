@@ -21,17 +21,17 @@
     "closure_commit": "15fa3e4"
   },
 
-  "current_candidate": "d751add",
+  "current_candidate": "7cf02a6",
   "active_task": "T02",
   "completed_tasks": ["T00", "T01"],
 
   "ci": {
-    "run_id": "29580857823",
-    "candidate": "d751add",
-    "conclusion": "in_progress",
+    "run_id": null,
+    "candidate": "7cf02a6",
+    "conclusion": "pending",
     "failed_jobs": [],
-    "prev_fixed": "axe color-contrast on tr-route__template (run 29579123933)",
-    "note": "Deploy Preview (29580855243) fails on feature branch — Pages env restricted to main; not a code issue"
+    "prev_fixed": "axe color-contrast on tr-form-row__input (MaterialsPanel) + all missing panel CSS added",
+    "note": "Deploy Preview always fails on feature branch — Pages env restricted to main; not a code issue"
   },
 
   "review": {
@@ -52,6 +52,6 @@
   },
 
   "blocker": null,
-  "next_exact_action": "Await CI run 29580857823 (d751add) Firefox axe result. T02 in progress: inspector toggle added to Transport.",
-  "last_updated": "2026-07-17T12:41:00Z"
+  "next_exact_action": "Await CI 7cf02a6 axe results for all panels. T02 in progress: all missing panel CSS added (16 new sections).",
+  "last_updated": "2026-07-17T13:00:00Z"
 }
