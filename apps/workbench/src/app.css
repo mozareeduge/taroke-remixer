@@ -2135,7 +2135,7 @@ input[type="checkbox"] {
 }
 .tr-badge--lifecycle-unbuilt {
   background: var(--tr-raised);
-  color: var(--tr-muted-min);
+  color: var(--tr-muted);
   border: 1px solid var(--tr-line);
 }
 .tr-badge--lifecycle-fresh {
