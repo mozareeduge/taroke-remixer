@@ -21,21 +21,21 @@
     "closure_commit": "15fa3e4"
   },
 
-  "current_candidate": "3481f3c",
+  "current_candidate": "81ab9eb",
   "active_task": "T10",
   "completed_tasks": ["T00", "T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09"],
 
   "ci": {
     "run_id": null,
-    "candidate": "3481f3c",
+    "candidate": "81ab9eb",
     "conclusion": "pending",
     "failed_jobs": [],
-    "prev_fixed": "Mobile E2E gate: (1) AppShell DOM order reverted (Navigator before Workspace) so locator('nav').first() on desktop finds .tr-navigator not hidden subnav; (2) removed text-transform:uppercase from .tr-material-subnav__btn so getByText('BANKS')/'FORMS' no longer matches hidden subnav buttons. Prior fixes (b385e45): mobile clickNav responsive routing, material sub-nav, section-head flex, h1 visually-hidden on mobile.",
+    "prev_fixed": "Mobile E2E gate (81ab9eb): Workspace before Navigator in AppShell DOM so getByText('DEVICES') etc finds visible workspace section heads before hidden navigator buttons. useIsMobile hook in Workspace renders subnav only on mobile so locator('nav').first() on desktop finds tr-navigator; on mobile finds visible subnav. Prior: (3481f3c) navigator DOM order revert + removed text-transform:uppercase from subnav__btn. Prior (b385e45): mobile clickNav responsive routing, material sub-nav, section-head flex.",
     "note": "Deploy Preview always fails on feature branch — Pages env restricted to main; not a code issue"
   },
 
   "review": {
-    "candidate": "3481f3c",
+    "candidate": "81ab9eb",
     "roles_passed": [],
     "open_p0": null,
     "open_p1": null
@@ -53,6 +53,6 @@
   },
 
   "blocker": null,
-  "next_exact_action": "T10: await CI green on 3481f3c; run 3 fresh review subagents against 3481f3c; after all green — update terminal_status to ready_for_human_checkpoint and prepare Checkpoint B packet.",
-  "last_updated": "2026-07-17T21:00:00Z"
+  "next_exact_action": "T10: await CI green on 81ab9eb; run 3 fresh review subagents against 81ab9eb; after all green — update terminal_status to ready_for_human_checkpoint and prepare Checkpoint B packet.",
+  "last_updated": "2026-07-17T21:10:00Z"
 }
