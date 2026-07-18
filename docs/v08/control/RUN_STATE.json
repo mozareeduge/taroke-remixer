@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "terminal_status": "ready_for_human_checkpoint",
+  "terminal_status": "blocked",
   "canonical_repository": "mozareeduge/taroke-remixer",
   "canonical_branch": "claude/taroke-remixer-reconcile-tydcn5",
   "canonical_pr": 16,
@@ -56,7 +56,7 @@
     "note": "Pages env restricted to main branch; /next/ will deploy upon PR merge (Checkpoint B approval)"
   },
 
-  "blocker": null,
-  "next_exact_action": "CHECKPOINT B: Await Mohammad approval on PR #16. Upon APPROVED: merge PR, verify /next/ deploy, update terminal_status to closed.",
+  "blocker": "AWAITING CHECKPOINT B: All pre-merge gates pass (CI green run 29636287663, 3 reviews PASS on e8a4906, no P0/P1). Deployment gate (deployment.candidate === e8a4906) can only be satisfied after PR #16 merges and the Pages workflow redeploys. Packet posted on PR #16 comment 5010498475.",
+  "next_exact_action": "CHECKPOINT B: Await Mohammad approval on PR #16. Upon APPROVED: merge PR — Pages workflow will auto-run — verify root + /next/ URLs serve e8a4906 — update deployment block (candidate, root_verified, next_verified) — update terminal_status to closed and blocker to null.",
   "last_updated": "2026-07-18T08:20:00Z"
 }
