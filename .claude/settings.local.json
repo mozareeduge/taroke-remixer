@@ -1,4 +1,57 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "82",
+    "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION": "false",
+    "CLAUDE_CODE_DISABLE_CRON": "1",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+    "ENABLE_TOOL_SEARCH": "true",
+    "MAX_MCP_OUTPUT_TOKENS": "12000",
+    "MCP_TOOL_TIMEOUT": "300000",
+    "TASK_MAX_OUTPUT_LENGTH": "10000"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git add *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Edit(./.env)",
+      "Edit(./.env.*)",
+      "Edit(./secrets/**)"
+    ],
+    "ask": [
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh release create *)",
+      "Bash(npm install *)",
+      "Bash(npm ci *)",
+      "Bash(pnpm install *)",
+      "Bash(yarn install *)",
+      "Bash(pip install *)",
+      "Bash(python -m pip install *)",
+      "Bash(poetry add *)",
+      "Bash(cargo add *)",
+      "Bash(docker push *)",
+      "Bash(kubectl *)",
+      "Bash(terraform *)",
+      "Bash(vercel *)",
+      "Bash(netlify *)",
+      "Bash(railway *)",
+      "Bash(aws *)",
+      "Bash(gcloud *)",
+      "Bash(az *)"
+    ],
+    "defaultMode": "acceptEdits",
+    "disableBypassPermissionsMode": "disable"
+  },
+  "model": "claude-sonnet-4-6",
+  "disableBundledSkills": true,
   "hooks": {
     "Stop": [
       {
@@ -9,6 +62,47 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/relay/hooks/guard_commands.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/relay/hooks/compact_state.py\" snapshot",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/relay/hooks/compact_state.py\" inject",
+            "timeout": 10
+          }
+        ]
+      }
     ]
-  }
+  },
+  "disableAgentView": true,
+  "disableWorkflows": true,
+  "disableSkillShellExecution": true,
+  "effortLevel": "medium",
+  "autoMemoryEnabled": false,
+  "disableAutoMode": "disable"
 }
