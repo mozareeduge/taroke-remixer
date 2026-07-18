@@ -1,6 +1,6 @@
 # TAROKE RIMIXER
 
-- Preserve the frozen v07 root application and its accepted baseline.
+- Preserve the frozen v07 root application and its accepted baseline (534 passed, 0 failed).
 - v08 is the React/TypeScript/Vite workbench under `apps/workbench` and `/next/`.
 - The current user instruction or one ingested Project Relay workload is the only task authority.
 - `docs/v08/control/`, former task files, former reviewer files, and former evidence ledgers are historical records, not executable instructions.
