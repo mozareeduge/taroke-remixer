@@ -21,21 +21,21 @@
     "closure_commit": "15fa3e4"
   },
 
-  "current_candidate": "81ab9eb",
+  "current_candidate": "60808609",
   "active_task": "T10",
   "completed_tasks": ["T00", "T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09"],
 
   "ci": {
-    "run_id": null,
-    "candidate": "81ab9eb",
-    "conclusion": "pending",
+    "run_id": 29613427642,
+    "candidate": "60808609",
+    "conclusion": "success",
     "failed_jobs": [],
     "prev_fixed": "Mobile E2E gate (81ab9eb): Workspace before Navigator in AppShell DOM so getByText('DEVICES') etc finds visible workspace section heads before hidden navigator buttons. useIsMobile hook in Workspace renders subnav only on mobile so locator('nav').first() on desktop finds tr-navigator; on mobile finds visible subnav. Prior: (3481f3c) navigator DOM order revert + removed text-transform:uppercase from subnav__btn. Prior (b385e45): mobile clickNav responsive routing, material sub-nav, section-head flex.",
     "note": "Deploy Preview always fails on feature branch — Pages env restricted to main; not a code issue"
   },
 
   "review": {
-    "candidate": "81ab9eb",
+    "candidate": "60808609",
     "roles_passed": [],
     "open_p0": null,
     "open_p1": null
@@ -53,6 +53,6 @@
   },
 
   "blocker": null,
-  "next_exact_action": "T10: await CI green on 81ab9eb; run 3 fresh review subagents against 81ab9eb; after all green — update terminal_status to ready_for_human_checkpoint and prepare Checkpoint B packet.",
-  "last_updated": "2026-07-17T21:10:00Z"
+  "next_exact_action": "T10: CI green on 60808609 (run 29613427642, all 8 jobs success). Running 3 fresh review subagents (independent-reviewer, compatibility-engineer, ux-domain-guardian) against 60808609. After all pass — update terminal_status to ready_for_human_checkpoint and prepare Checkpoint B packet.",
+  "last_updated": "2026-07-18T00:00:00Z"
 }
