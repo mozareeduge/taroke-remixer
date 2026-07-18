@@ -153,7 +153,8 @@ export function surfaceCss(project: TarokeProject): string {
   const lh = Number(project.surface?.lineHeight ?? 1.48);
   const { surfaceBg: bg, surfaceText: text, surfaceMuted: muted, surfaceAccent: accent } = theme;
   const traceHidden = project.surface?.traceMode === "hidden";
-  return `:root{--bg:${bg};--text:${text};--muted:${muted};--accent:${accent}}body{margin:0;background:var(--bg);color:var(--text);font:${size}px/${lh} ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:hidden}.wrap{height:100vh;display:grid;grid-template-rows:auto 1fr ${traceHidden ? "0" : "auto"}}.head{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding:16px 22px;border-bottom:1px solid color-mix(in srgb,var(--muted),transparent 55%)}.stage{padding:32px;overflow:auto}.line{margin:0 0 14px}.tick{display:none}.trace{${traceHidden ? "display:none;" : ""}font-size:12px;color:var(--muted);border-top:1px solid color-mix(in srgb,var(--muted),transparent 55%);padding:10px 18px;white-space:nowrap;overflow:auto;background:var(--bg)}.rare{color:var(--accent)}`;
+  const divider = `1px solid color-mix(in srgb,var(--muted),transparent 55%)`;
+  return `:root{--bg:${bg};--text:${text};--muted:${muted};--accent:${accent}}body{margin:0;background:var(--bg);color:var(--text);font:${size}px/${lh} ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:hidden}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}.wrap{height:100vh;display:flex;flex-direction:column}.head{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding:16px 22px;border-bottom:${divider};flex-shrink:0}.byline{font-size:13px;color:var(--muted);padding:8px 22px;border-bottom:${divider};flex-shrink:0;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.byline a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}.byline__sep{opacity:.5}.identity{border-bottom:${divider};flex-shrink:0}.identity summary{padding:8px 22px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);cursor:pointer;list-style:none}.identity summary::-webkit-details-marker{display:none}.identity__body{padding:10px 22px 16px;font-size:0.85em;color:var(--muted);line-height:1.6}.identity__statement{margin:0 0 8px;white-space:pre-line}.identity__credits{margin:0;font-size:.9em;opacity:.75;white-space:pre-line}.stage{flex:1;padding:32px;overflow:auto}.line{margin:0 0 14px}.tick{display:none}.trace{${traceHidden ? "display:none;" : ""}font-size:12px;color:var(--muted);border-top:${divider};padding:10px 18px;white-space:nowrap;overflow:auto;background:var(--bg);flex-shrink:0}.rare{color:var(--accent)}`;
 }
 
 export function miniRuntime(): string {
@@ -161,7 +162,12 @@ export function miniRuntime(): string {
 }
 
 export function standaloneRuntime(): string {
-  return `(()=>{const project=JSON.parse(document.getElementById('taroke-project').textContent);${miniRuntime()}let state={tick:0,queue:[]};const stage=document.getElementById('stage'),trace=document.getElementById('trace'),max=project.surface?.retention||28;document.getElementById('head').textContent=(project.project?.title||'Untitled')+' / '+(project.project?.author||'')+' / after '+(project.project?.sourceTitle||'Taroko');function line(){const e=generateEvent(project,state);state.tick++;if(e.type!=='breath'){const p=document.createElement('p');p.className='line';p.innerHTML=esc(e.surface);stage.appendChild(p);}while(stage.children.length>max)stage.removeChild(stage.firstChild);stage.scrollTop=stage.scrollHeight;if(trace)trace.textContent=e.trace}line();setInterval(line,Math.max(250,project.surface?.speedMs||1200));})();`;
+  return `(()=>{const project=JSON.parse(document.getElementById('taroke-project').textContent);${miniRuntime()}let state={tick:0,queue:[]};const stage=document.getElementById('stage'),trace=document.getElementById('trace'),max=project.surface?.retention||28;function line(){const e=generateEvent(project,state);state.tick++;if(e.type!=='breath'){const p=document.createElement('p');p.className='line';p.innerHTML=esc(e.surface);stage.appendChild(p);}while(stage.children.length>max)stage.removeChild(stage.firstChild);stage.scrollTop=stage.scrollHeight;if(trace)trace.textContent=e.trace}line();setInterval(line,Math.max(250,project.surface?.speedMs||1200));})();`;
+}
+
+function safeExportUrl(url: string): string | null {
+  if (!url) return null;
+  return /^https?:\/\//i.test(url) ? url : null;
 }
 
 export function safeJsonForHtml(project: TarokeProject): string {
@@ -173,7 +179,35 @@ export function safeJsonForHtml(project: TarokeProject): string {
 export function exportProjectHtml(project: TarokeProject): string {
   const json = safeJsonForHtml(project);
   const css = surfaceCss(project);
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(project.project?.title ?? "TAROKE")}</title><style>${css}</style></head><body><script type="application/json" id="taroke-project">${json}</script><div class="wrap"><div class="head" id="head"></div><main class="stage" id="stage"></main><div class="trace" id="trace">TAROKE RIMIXER artifact / import this HTML to edit</div></div><script>${standaloneRuntime()}<\/script></body></html>`;
+  const info = project.project ?? {};
+  const title = info.title || "Untitled";
+  const author = info.author ?? "";
+  const sourceTitle = info.sourceTitle ?? "";
+  const sourceUrl = info.sourceUrl ?? "";
+  const statement = info.statement ?? "";
+  const credits = info.credits ?? "";
+
+  const safeSrcUrl = safeExportUrl(sourceUrl);
+  const sourceRef = sourceTitle
+    ? safeSrcUrl
+      ? `<a href="${esc(safeSrcUrl)}" class="byline__link" rel="noopener noreferrer">${esc(sourceTitle)}</a>`
+      : esc(sourceTitle)
+    : "";
+
+  const bylineParts: string[] = [];
+  if (author) bylineParts.push(`<span class="byline__author">${esc(author)}</span>`);
+  if (sourceRef) bylineParts.push(`<span class="byline__source">${sourceRef}</span>`);
+  const bylineHtml = bylineParts.length
+    ? `<div class="byline">${bylineParts.join('<span class="byline__sep"> / </span>')}</div>`
+    : "";
+
+  const stmtHtml = statement ? `<p class="identity__statement">${esc(statement)}</p>` : "";
+  const credHtml = credits ? `<p class="identity__credits">${esc(credits)}</p>` : "";
+  const detailsHtml = stmtHtml || credHtml
+    ? `<details class="identity"><summary>Statement &amp; credits</summary><div class="identity__body">${stmtHtml}${credHtml}</div></details>`
+    : "";
+
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${css}</style></head><body><script type="application/json" id="taroke-project">${json}</script><div class="wrap"><div class="head" id="head">${esc(title)}</div>${bylineHtml}${detailsHtml}<main class="stage" id="stage"></main><div class="trace" id="trace">TAROKE RIMIXER artifact / import this HTML to edit</div></div><script>${standaloneRuntime()}<\/script></body></html>`;
 }
 
 export function exportProjectJson(project: TarokeProject): string {

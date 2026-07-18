@@ -2741,3 +2741,54 @@ details[open] > .tr-forms__bank-label::before {
   padding: 0 var(--tr-sp-2);
   font-size: 11px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SOURCE PANEL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.tr-panel--source .tr-source__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-4);
+  padding-bottom: var(--tr-sp-2);
+}
+
+.tr-source__optional {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+  font-style: italic;
+}
+
+.tr-source__url-error {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-danger);
+}
+
+.tr-input--error {
+  border-color: var(--tr-danger);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ARCHIVE PANEL — INFO TABLE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.tr-panel__section-head--subordinate {
+  font-size: var(--tr-font-size-sm);
+  opacity: 0.75;
+}
+
+.tr-archive__info-table {
+  margin-bottom: var(--tr-sp-4);
+}
+
+.tr-archive__source-link {
+  color: var(--tr-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+}
+
+.tr-archive__multiline {
+  white-space: pre-line;
+  display: block;
+}

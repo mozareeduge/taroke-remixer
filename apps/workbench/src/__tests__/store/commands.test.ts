@@ -4,6 +4,12 @@ import { enablePatches } from "immer";
 enablePatches();
 import {
   setProjectTitle,
+  setProjectAuthor,
+  setProjectLanguage,
+  setProjectSourceTitle,
+  setProjectSourceUrl,
+  setProjectStatement,
+  setProjectCredits,
   addToken,
   updateTokenLiteral,
   removeToken,
@@ -31,6 +37,49 @@ describe("commands — project info", () => {
     expect(result.label).toBe("Set title");
     expect(result.patches.length).toBeGreaterThan(0);
     expect(result.inversePatches.length).toBeGreaterThan(0);
+  });
+
+  it("setProjectAuthor produces correct patch", () => {
+    const p = defaultProject();
+    const result = setProjectAuthor(p, "Jane Doe");
+    expect(result.present.project.author).toBe("Jane Doe");
+    expect(result.label).toBe("Set author");
+  });
+
+  it("setProjectLanguage produces correct patch", () => {
+    const p = defaultProject();
+    const result = setProjectLanguage(p, "Tagalog");
+    expect(result.present.project.language).toBe("Tagalog");
+    expect(result.label).toBe("Set language");
+    expect(result.patches.length).toBeGreaterThan(0);
+  });
+
+  it("setProjectSourceTitle produces correct patch", () => {
+    const p = defaultProject();
+    const result = setProjectSourceTitle(p, "Taroko Gorge");
+    expect(result.present.project.sourceTitle).toBe("Taroko Gorge");
+    expect(result.label).toBe("Set source title");
+  });
+
+  it("setProjectSourceUrl produces correct patch", () => {
+    const p = defaultProject();
+    const result = setProjectSourceUrl(p, "https://example.com");
+    expect(result.present.project.sourceUrl).toBe("https://example.com");
+    expect(result.label).toBe("Set source URL");
+  });
+
+  it("setProjectStatement produces correct patch", () => {
+    const p = defaultProject();
+    const result = setProjectStatement(p, "A poem about gorges.");
+    expect(result.present.project.statement).toBe("A poem about gorges.");
+    expect(result.label).toBe("Set statement");
+  });
+
+  it("setProjectCredits produces correct patch", () => {
+    const p = defaultProject();
+    const result = setProjectCredits(p, "After Montfort.");
+    expect(result.present.project.credits).toBe("After Montfort.");
+    expect(result.label).toBe("Set credits");
   });
 });
 

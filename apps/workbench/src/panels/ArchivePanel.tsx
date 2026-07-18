@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { setProject } from "../store/projectSlice.js";
 import { setPreviewFresh, setPreviewHtml } from "../store/editorSlice.js";
@@ -6,6 +6,23 @@ import { showReceipt } from "../store/importReceiptSlice.js";
 import { exportProjectJson, exportProjectHtml, importProjectWithReceipt, downloadName } from "@taroke/core";
 
 type PreviewLifecycle = "unbuilt" | "fresh" | "stale" | "error";
+
+function safeLink(url: string): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    return (u.protocol === "http:" || u.protocol === "https:") ? url : null;
+  } catch { return null; }
+}
+
+function InfoRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <tr className="tr-table__row">
+      <th scope="row" className="tr-table__th tr-table__th--label">{label}</th>
+      <td className="tr-table__td">{children}</td>
+    </tr>
+  );
+}
 
 function download(filename: string, content: string, mime: string) {
   const blob = new Blob([content], { type: mime });
@@ -166,41 +183,35 @@ export function ArchivePanel() {
           </div>
         )}
 
-        <div className="tr-panel__section-head">PROJECT INFO</div>
-        <table className="tr-table">
+        <div className="tr-panel__section-head tr-panel__section-head--subordinate">PROJECT INFO</div>
+        <table className="tr-table tr-archive__info-table">
           <tbody>
-            <tr className="tr-table__row">
-              <th scope="row" className="tr-table__th tr-table__th--label">Title</th>
-              <td className="tr-table__td">{project.project.title || "(untitled)"}</td>
-            </tr>
-            <tr className="tr-table__row">
-              <th scope="row" className="tr-table__th tr-table__th--label">Author</th>
-              <td className="tr-table__td">{project.project.author || "—"}</td>
-            </tr>
-            <tr className="tr-table__row">
-              <th scope="row" className="tr-table__th tr-table__th--label">Source</th>
-              <td className="tr-table__td">{project.project.sourceTitle || "—"}</td>
-            </tr>
-            <tr className="tr-table__row">
-              <th scope="row" className="tr-table__th tr-table__th--label">Version</th>
-              <td className="tr-table__td">{project.schemaVersion}</td>
-            </tr>
-            <tr className="tr-table__row">
-              <th scope="row" className="tr-table__th tr-table__th--label">Banks</th>
-              <td className="tr-table__td">{Object.keys(project.materials.trays).length}</td>
-            </tr>
-            <tr className="tr-table__row">
-              <th scope="row" className="tr-table__th tr-table__th--label">Devices</th>
-              <td className="tr-table__td">{project.lineDevices.length}</td>
-            </tr>
-            <tr className="tr-table__row">
-              <th scope="row" className="tr-table__th tr-table__th--label">Patterns</th>
-              <td className="tr-table__td">{project.stanzaPatterns.length}</td>
-            </tr>
-            <tr className="tr-table__row">
-              <th scope="row" className="tr-table__th tr-table__th--label">Triggers</th>
-              <td className="tr-table__td">{project.triggers.length}</td>
-            </tr>
+            <InfoRow label="Title">{project.project.title || "(untitled)"}</InfoRow>
+            <InfoRow label="Author">{project.project.author || "—"}</InfoRow>
+            <InfoRow label="Language">{project.project.language || "—"}</InfoRow>
+            <InfoRow label="Source title">{project.project.sourceTitle || "—"}</InfoRow>
+            <InfoRow label="Source URL">
+              {(() => {
+                const href = safeLink(project.project.sourceUrl);
+                if (href) return <a href={href} className="tr-archive__source-link" target="_blank" rel="noopener noreferrer">{project.project.sourceUrl}</a>;
+                return project.project.sourceUrl || "—";
+              })()}
+            </InfoRow>
+            <InfoRow label="Statement">
+              {project.project.statement
+                ? <span className="tr-archive__multiline">{project.project.statement}</span>
+                : "—"}
+            </InfoRow>
+            <InfoRow label="Credits">
+              {project.project.credits
+                ? <span className="tr-archive__multiline">{project.project.credits}</span>
+                : "—"}
+            </InfoRow>
+            <InfoRow label="Version">{project.schemaVersion}</InfoRow>
+            <InfoRow label="Banks">{Object.keys(project.materials.trays).length}</InfoRow>
+            <InfoRow label="Devices">{project.lineDevices.length}</InfoRow>
+            <InfoRow label="Patterns">{project.stanzaPatterns.length}</InfoRow>
+            <InfoRow label="Triggers">{project.triggers.length}</InfoRow>
           </tbody>
         </table>
       </div>

@@ -8,7 +8,7 @@ import { markPreviewStale } from "./editorSlice.js";
 // Commands that should NOT be coalesced (per architecture spec):
 // import, delete, bulk merge, route replacement are already distinct actions.
 // Coalesce typing and numeric scrubbing only.
-const COALESCING_LABELS = new Set(["Edit sample", "Set title", "Set author", "Edit route template", "Set statement", "Set credits"]);
+const COALESCING_LABELS = new Set(["Edit sample", "Set title", "Set author", "Set language", "Set source title", "Set source URL", "Edit route template", "Set statement", "Set credits"]);
 const COALESCE_WINDOW_MS = 800;
 
 // Factory so each store instance (and each test) gets isolated coalescing state.

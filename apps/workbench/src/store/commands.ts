@@ -38,6 +38,18 @@ export function setProjectCredits(project: TarokeProject, credits: string): Comm
   return cmd(project, "Set credits", (d) => { d.project.credits = credits; });
 }
 
+export function setProjectLanguage(project: TarokeProject, language: string): CommandResult {
+  return cmd(project, "Set language", (d) => { d.project.language = language; });
+}
+
+export function setProjectSourceTitle(project: TarokeProject, sourceTitle: string): CommandResult {
+  return cmd(project, "Set source title", (d) => { d.project.sourceTitle = sourceTitle; });
+}
+
+export function setProjectSourceUrl(project: TarokeProject, sourceUrl: string): CommandResult {
+  return cmd(project, "Set source URL", (d) => { d.project.sourceUrl = sourceUrl; });
+}
+
 export function setProjectSource(project: TarokeProject, sourceTitle: string, sourceUrl: string): CommandResult {
   return cmd(project, "Set source", (d) => {
     d.project.sourceTitle = sourceTitle;
