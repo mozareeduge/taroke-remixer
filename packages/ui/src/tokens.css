@@ -1,72 +1,104 @@
-/* TAROKE RIMIXER v08 — Design Tokens */
-/* Archaeological modernism: dark field, monospaced, apparatus register */
+/* TAROKE RIMIXER v08 — Design Tokens
+   Aligned to workload visual-system spec 2026-07-17
+   Archaeological modernism: dark field, monospaced, apparatus + poetic registers */
 
 :root {
-  /* ── Surface / background ──────────────────────────────────────────────── */
-  --tr-bg:         #050604;
-  --tr-panel:      #11120d;
-  --tr-panel2:     #171811;
-  --tr-well:       #000000;
-  --tr-border:     #38362b;
+  /* ── Color: Background layers ───────────────────────────────────────────── */
+  --tr-field:       #050604;   /* open field / page background */
+  --tr-plate:       #0d0f0b;   /* flush plate / panel background */
+  --tr-plate-2:     #14160f;   /* secondary plate / grouped rows */
+  --tr-raised:      #1a1d15;   /* slightly raised control surface */
+  --tr-well:        #020302;   /* recessed well / editable text bg */
 
-  /* ── Text ──────────────────────────────────────────────────────────────── */
-  --tr-text:       #f4ecd8;
-  --tr-muted:      #9d9277;
-  --tr-dim:        #857f67;  /* AA: ~5:1 on --tr-bg */
+  /* ── Color: Text ────────────────────────────────────────────────────────── */
+  --tr-text:        #eee6d2;   /* primary text */
+  --tr-muted:       #9a927d;   /* secondary / supporting text */
+  --tr-muted-min:   #857f67;   /* minimum contrast text (AA on field) */
 
-  /* ── Semantic state ────────────────────────────────────────────────────── */
-  --tr-accent:     #a7ff3f;  /* active / selected */
-  --tr-warn:       #ffb84d;  /* warning */
-  --tr-danger:     #ff5a2a;  /* danger / error */
-  --tr-stale:      #857f67;  /* stale / disabled — AA: ~5:1 on --tr-bg */
-  --tr-focus:      #7de7ff;  /* focus ring */
+  /* ── Color: Structure ───────────────────────────────────────────────────── */
+  --tr-line:        #625e50;   /* essential component boundaries */
+  --tr-line-soft:   #39372c;   /* decorative separators only */
 
-  /* ── Semantic contexts ─────────────────────────────────────────────────── */
-  --tr-cue:        #a7ff3f;
-  --tr-surface-bg: #000000;
+  /* ── Color: Semantic state ──────────────────────────────────────────────── */
+  --tr-active:      #b6ff48;   /* active / running / committed (green) */
+  --tr-focus:       #76dcf4;   /* keyboard / editing focus (cyan) */
+  --tr-warning:     #d89d45;   /* warning — always with text or shape */
+  --tr-danger:      #ff6742;   /* danger / error — always with text or shape */
+  --tr-shadow:      rgba(0,0,0,.55);
 
-  /* ── Typography ────────────────────────────────────────────────────────── */
-  --tr-font:       ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --tr-font-size:  13px;
-  --tr-line-height: 1.5;
+  /* ── Color: Semantic aliases (backwards compat) ─────────────────────────── */
+  --tr-bg:          var(--tr-field);
+  --tr-panel:       var(--tr-plate);
+  --tr-panel2:      var(--tr-plate-2);
+  --tr-border:      var(--tr-line);
+  --tr-accent:      var(--tr-active);
+  --tr-warn:        var(--tr-warning);
+  --tr-cue:         var(--tr-active);
+  --tr-surface-bg:  var(--tr-well);
+  --tr-dim:         var(--tr-muted-min);
+  --tr-stale:       var(--tr-muted-min);
 
-  /* ── Spacing ───────────────────────────────────────────────────────────── */
-  --tr-gap-xs: 4px;
-  --tr-gap-sm: 8px;
-  --tr-gap-md: 12px;
-  --tr-gap-lg: 20px;
-  --tr-gap-xl: 32px;
+  /* ── Typography ─────────────────────────────────────────────────────────── */
+  --tr-font-ui:      ui-monospace, "Cascadia Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  --tr-font-reading: ui-serif, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --tr-font:         var(--tr-font-ui);
+  --tr-font-size:    13px;
+  --tr-font-size-sm: 12px;
+  --tr-font-size-md: 14px;
+  --tr-font-size-lg: 16px;
+  --tr-line-height:  1.5;
 
-  /* ── Borders ───────────────────────────────────────────────────────────── */
-  --tr-radius: 2px;
+  /* ── Spacing scale: 4 6 8 12 16 24 32 48 ──────────────────────────────── */
+  --tr-sp-1:  4px;
+  --tr-sp-2:  6px;
+  --tr-sp-3:  8px;
+  --tr-sp-4:  12px;
+  --tr-sp-5:  16px;
+  --tr-sp-6:  24px;
+  --tr-sp-7:  32px;
+  --tr-sp-8:  48px;
+
+  --tr-gap-xs: var(--tr-sp-1);
+  --tr-gap-sm: var(--tr-sp-3);
+  --tr-gap-md: var(--tr-sp-4);
+  --tr-gap-lg: var(--tr-sp-5);
+  --tr-gap-xl: var(--tr-sp-7);
+
+  /* ── Geometry ───────────────────────────────────────────────────────────── */
+  --tr-radius:       0px;
+  --tr-radius-sm:    2px;
+  --tr-radius-md:    3px;
   --tr-border-width: 1px;
-  --tr-border-color: var(--tr-border);
+  --tr-border-color: var(--tr-line);
+
+  /* ── Shell dimensions ──────────────────────────────────────────────────── */
+  --tr-transport-h:  52px;
+  --tr-navigator-w:  216px;
+  --tr-inspector-w:  304px;
+  --tr-mobile-nav-h: 56px;
 
   /* ── Component dimensions ──────────────────────────────────────────────── */
-  --tr-transport-h: 40px;
-  --tr-navigator-w: 180px;
-  --tr-inspector-w: 280px;
-  --tr-row-h: 28px;
-  --tr-row-h-lg: 36px;
+  --tr-row-h:     28px;
+  --tr-row-h-lg:  36px;
+  --tr-ctrl-h:    26px;
+  --tr-input-h:   26px;
 }
 
-/* ── Global accessibility resets ──────────────────────────────────────────── */
-/* Wire --tr-focus token to the browser's keyboard-navigation indicator */
+/* ── Global accessibility ──────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--tr-focus);
+  outline: 3px solid var(--tr-focus);
   outline-offset: 2px;
 }
 
-/* Skip-nav link: visually hidden until keyboard-focused (WCAG 2.4.1) */
 .tr-skip-nav {
   position: absolute;
   top: -100%;
   left: 0;
   z-index: 9999;
   padding: 8px 16px;
-  background: var(--tr-panel);
+  background: var(--tr-plate);
   color: var(--tr-focus);
-  font-family: var(--tr-font);
+  font-family: var(--tr-font-ui);
   font-size: var(--tr-font-size);
   text-decoration: none;
   outline: 2px solid var(--tr-focus);

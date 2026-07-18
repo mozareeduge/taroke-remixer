@@ -1,18 +1,30 @@
 import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
-import { toggleSidebar, toggleInspector } from "../store/editorSlice.js";
+import { toggleSidebar, toggleInspector, setActivePanel } from "../store/editorSlice.js";
 import { popForUndo, popForRedo } from "../store/historySlice.js";
 import { Transport } from "./Transport.js";
 import { Navigator } from "./Navigator.js";
 import { Workspace } from "./Workspace.js";
 import { Inspector } from "./Inspector.js";
-import { ImportReceiptBanner } from "../panels/ImportReceiptBanner.js";
-import { DraftRecoveryBanner } from "../panels/DraftRecoveryBanner.js";
+import type { EditorPanel } from "../store/types.js";
+
+const MOBILE_NAV_ITEMS: Array<{ id: EditorPanel; label: string; icon: string }> = [
+  { id: "materials",   label: "Material",  icon: "◈" },
+  { id: "instruments", label: "Devices",   icon: "⊡" },
+  { id: "composition", label: "Compose",   icon: "≡" },
+  { id: "automation",  label: "Automate",  icon: "⚡" },
+  { id: "performance", label: "Perform",   icon: "▶" },
+  { id: "archive",     label: "Archive",   icon: "⊞" },
+];
+
+function isMobileNavActive(itemId: EditorPanel, current: EditorPanel): boolean {
+  if (itemId === "materials") return current === "materials" || current === "forms";
+  return current === itemId;
+}
 
 export function AppShell() {
   const dispatch = useAppDispatch();
-  const sidebarOpen = useAppSelector((s) => s.editor.sidebarOpen);
-  const inspectorOpen = useAppSelector((s) => s.editor.inspectorOpen);
+  const activePanel = useAppSelector((s) => s.editor.activePanel);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -32,38 +44,34 @@ export function AppShell() {
 
   return (
     <div className="tr-shell">
-      {/* Skip-nav: first focusable element; visually hidden until focused (a11y WCAG 2.4.1) */}
       <a href="#tr-main-content" className="tr-skip-nav">
         Skip to main content
       </a>
-      <DraftRecoveryBanner />
-      <ImportReceiptBanner />
+      <a href="#tr-navigator" className="tr-skip-nav">
+        Skip to navigation
+      </a>
+
       <Transport />
-      <div className="tr-shell__body">
-        <button
-          className="tr-shell__toggle tr-shell__toggle--nav"
-          aria-pressed={sidebarOpen}
-          aria-label={sidebarOpen ? "Close navigator" : "Open navigator"}
-          onClick={() => dispatch(toggleSidebar())}
-        >
-          {sidebarOpen ? "◀" : "▶"}
-        </button>
+      <Workspace />
+      <Navigator />
+      <Inspector />
 
-        {sidebarOpen && <Navigator />}
-
-        <Workspace />
-
-        <button
-          className="tr-shell__toggle tr-shell__toggle--inspector"
-          aria-pressed={inspectorOpen}
-          aria-label={inspectorOpen ? "Close inspector" : "Open inspector"}
-          onClick={() => dispatch(toggleInspector())}
-        >
-          {inspectorOpen ? "▶" : "◀"}
-        </button>
-
-        {inspectorOpen && <Inspector />}
-      </div>
+      <nav className="tr-mobile-nav" aria-label="Main navigation">
+        {MOBILE_NAV_ITEMS.map((item) => (
+          <button
+            key={item.id}
+            className={isMobileNavActive(item.id, activePanel)
+              ? "tr-mobile-nav__btn tr-mobile-nav__btn--active"
+              : "tr-mobile-nav__btn"
+            }
+            onClick={() => dispatch(setActivePanel(item.id))}
+            aria-current={isMobileNavActive(item.id, activePanel) ? "page" : undefined}
+          >
+            <span className="tr-mobile-nav__icon" aria-hidden="true">{item.icon}</span>
+            <span className="tr-mobile-nav__label">{item.label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }

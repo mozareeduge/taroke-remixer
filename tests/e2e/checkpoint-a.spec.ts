@@ -26,9 +26,33 @@ const NAV_LABELS: Record<string, string> = {
   "Archive": "Import & Export",
 };
 
+// Mobile bottom nav maps desktop panel names to { top-level tab, optional sub-item }
+const MOBILE_NAV: Record<string, { top: string; sub?: string }> = {
+  "Banks & Samples": { top: "Material", sub: "Banks & Samples" },
+  "Forms":           { top: "Material", sub: "Forms" },
+  "Devices":         { top: "Devices" },
+  "Patterns":        { top: "Compose" },
+  "Triggers":        { top: "Automate" },
+  "Cue & Surface":   { top: "Perform" },
+  "Import & Export": { top: "Archive" },
+};
+
 async function clickNav(page: Page, label: string) {
-  const actual = NAV_LABELS[label] ?? label;
-  await page.getByRole("button", { name: actual }).click();
+  const desktopName = NAV_LABELS[label] ?? label;
+
+  // Use the desktop sidebar navigator when it is visible (≥960 px viewport)
+  if (await page.locator(".tr-navigator").isVisible()) {
+    await page.getByRole("button", { name: desktopName }).click();
+    return;
+  }
+
+  // Mobile: use the bottom nav, then the material sub-nav if needed
+  const route = MOBILE_NAV[desktopName];
+  if (!route) throw new Error(`No mobile nav route for "${desktopName}"`);
+  await page.getByRole("button", { name: route.top }).click();
+  if (route.sub) {
+    await page.getByRole("button", { name: route.sub }).click();
+  }
 }
 
 // ── 1. Shell loads ─────────────────────────────────────────────────────────────

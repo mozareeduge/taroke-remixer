@@ -55,8 +55,8 @@ WP06–WP12 screen-area scopes are unified into one cumulative Draft PR. Tasks T
 | Task | Description                                  | Status   |
 |------|----------------------------------------------|----------|
 | T00  | Audit + WP05 post-merge closure              | COMPLETE |
-| T01  | Experience branch + visual baseline          | ACTIVE   |
-| T02  | Global visual system, shell, mobile          | PENDING  |
+| T01  | Experience branch + visual baseline          | COMPLETE |
+| T02  | Global visual system, shell, mobile          | ACTIVE   |
 | T03  | Materials and Forms refinement               | PENDING  |
 | T04  | Devices and Routes refinement                | PENDING  |
 | T05  | Composition refinement                       | PENDING  |
@@ -103,4 +103,4 @@ Ordinary defects, layout issues, and test failures: diagnose and fix; do not sto
 
 ---
 
-*Last updated: 2026-07-17 — T00 complete (WP05 closure); T01 active (experience visual baseline)*
+*Last updated: 2026-07-17 — T01 complete (CSS bundle, shell grid, 208 tests); T02 active (shell/mobile refinements)*

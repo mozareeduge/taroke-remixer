@@ -52,7 +52,7 @@ export function Navigator() {
   const activePanel = useAppSelector((s) => s.editor.activePanel);
 
   return (
-    <nav className="tr-navigator" aria-label="Editor sections">
+    <nav id="tr-navigator" className="tr-navigator" aria-label="Editor sections">
       {NAV_GROUPS.map(({ group, items }) => (
         <section key={group} className="tr-navigator__group">
           <h2 className="tr-navigator__group-label">{group}</h2>

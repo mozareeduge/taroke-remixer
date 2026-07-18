@@ -1,5 +1,6 @@
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { start, stop, pause } from "../store/runtimeSlice.js";
+import { toggleInspector } from "../store/editorSlice.js";
 import { StatusLamp } from "@taroke/ui";
 
 export function Transport() {
@@ -7,6 +8,7 @@ export function Transport() {
   const status = useAppSelector((s) => s.runtime.status);
   const title = useAppSelector((s) => s.project.present.project.title);
   const isDirty = useAppSelector((s) => s.project.isDirty);
+  const inspectorOpen = useAppSelector((s) => s.editor.inspectorOpen);
 
   return (
     <header className="tr-transport" role="banner">
@@ -37,6 +39,15 @@ export function Transport() {
 
       <div className="tr-transport__status">
         <span className="tr-transport__status-label">{status.toUpperCase()}</span>
+        <button
+          className="tr-transport__toggle"
+          onClick={() => dispatch(toggleInspector())}
+          aria-label={inspectorOpen ? "Hide inspector" : "Show inspector"}
+          aria-pressed={inspectorOpen}
+          title="Inspector"
+        >
+          ⊞
+        </button>
       </div>
     </header>
   );
