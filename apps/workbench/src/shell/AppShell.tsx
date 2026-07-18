@@ -17,6 +17,11 @@ const MOBILE_NAV_ITEMS: Array<{ id: EditorPanel; label: string; icon: string }> 
   { id: "archive",     label: "Archive",   icon: "⊞" },
 ];
 
+function isMobileNavActive(itemId: EditorPanel, current: EditorPanel): boolean {
+  if (itemId === "materials") return current === "materials" || current === "forms";
+  return current === itemId;
+}
+
 export function AppShell() {
   const dispatch = useAppDispatch();
   const activePanel = useAppSelector((s) => s.editor.activePanel);
@@ -55,12 +60,12 @@ export function AppShell() {
         {MOBILE_NAV_ITEMS.map((item) => (
           <button
             key={item.id}
-            className={activePanel === item.id
+            className={isMobileNavActive(item.id, activePanel)
               ? "tr-mobile-nav__btn tr-mobile-nav__btn--active"
               : "tr-mobile-nav__btn"
             }
             onClick={() => dispatch(setActivePanel(item.id))}
-            aria-current={activePanel === item.id ? "page" : undefined}
+            aria-current={isMobileNavActive(item.id, activePanel) ? "page" : undefined}
           >
             <span className="tr-mobile-nav__icon" aria-hidden="true">{item.icon}</span>
             <span className="tr-mobile-nav__label">{item.label}</span>
