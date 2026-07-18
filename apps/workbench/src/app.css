@@ -2774,7 +2774,6 @@ details[open] > .tr-forms__bank-label::before {
 
 .tr-panel__section-head--subordinate {
   font-size: var(--tr-font-size-sm);
-  opacity: 0.75;
 }
 
 .tr-archive__info-table {
