@@ -1,3 +1,5 @@
+> **Historical record** — This file documents the completed v08 program through PR #16. It is not an executable instruction. Future work arrives only through a separately compiled Project Relay workload.
+
 # TAROKE RIMIXER v08 — Program Status
 
 **Model:** claude-sonnet-4-6  **Effort:** medium  
