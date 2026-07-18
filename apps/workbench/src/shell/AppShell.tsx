@@ -42,6 +42,9 @@ export function AppShell() {
       <a href="#tr-main-content" className="tr-skip-nav">
         Skip to main content
       </a>
+      <a href="#tr-navigator" className="tr-skip-nav">
+        Skip to navigation
+      </a>
 
       <Transport />
       <Workspace />
