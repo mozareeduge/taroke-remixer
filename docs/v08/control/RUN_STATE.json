@@ -21,21 +21,21 @@
     "closure_commit": "15fa3e4"
   },
 
-  "current_candidate": "f2cd1bd",
+  "current_candidate": "d00efba",
   "active_task": "T10",
   "completed_tasks": ["T00", "T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09"],
 
   "ci": {
-    "run_id": 29635899580,
-    "candidate": "f2cd1bd",
-    "conclusion": "pending",
+    "run_id": 29635929595,
+    "candidate": "d00efba",
+    "conclusion": "success",
     "failed_jobs": [],
     "prev_fixed": "P2 fix (f2cd1bd): hide skip-to-navigator link on mobile (false affordance; target display:none on <960px). Prior (7cc1cfe / f23cd4a): skip-nav CSS (transform hide/show on focus) + skip-to-navigator link + id=tr-navigator on Navigator root. Prior (81ab9eb): Workspace before Navigator in AppShell DOM + useIsMobile subnav mobile-only.",
     "note": "Deploy Preview always fails on feature branch — Pages env restricted to main; not a code issue"
   },
 
   "review": {
-    "candidate": "f2cd1bd",
+    "candidate": "d00efba",
     "roles_passed": [],
     "open_p0": null,
     "open_p1": null
@@ -53,6 +53,6 @@
   },
 
   "blocker": null,
-  "next_exact_action": "T10: await CI green on f2cd1bd (run 29635899580; P2 fix — suppress skip-to-nav on mobile). After green: run 3 fresh review subagents; after all pass — update terminal_status to ready_for_human_checkpoint and prepare Checkpoint B packet.",
-  "last_updated": "2026-07-18T07:34:00Z"
+  "next_exact_action": "T10: CI green on d00efba (run 29635929595). Running 3 fresh review subagents (independent-reviewer, compatibility-engineer, ux-domain-guardian). After all pass — update terminal_status to ready_for_human_checkpoint and prepare Checkpoint B packet.",
+  "last_updated": "2026-07-18T07:45:00Z"
 }
