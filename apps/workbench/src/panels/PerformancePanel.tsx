@@ -33,6 +33,8 @@ export function PerformancePanel() {
     );
   }
 
+  const retention = project.surface?.retention ?? 28;
+
   const doSurfaceGenerate = useCallback(() => {
     const state: Partial<RunState> = { ...runState, queue: safeQueue(surfaceQueueRef.current) };
     const ev = generateEvent(project, state);
@@ -61,9 +63,12 @@ export function PerformancePanel() {
         } : {}),
       };
       dispatch(appendSurfaceRecord(rec));
+      // Auto-select the newly generated record so UNMIX appears immediately
+      const nextIndex = records.length >= retention ? retention - 1 : records.length;
+      dispatch(selectLine(nextIndex));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project, runState, dispatch]);
+  }, [project, runState, dispatch, records.length, retention]);
 
   function doCueAudition() {
     const state: Partial<RunState> = { ...runState, queue: safeQueue(cueQueueRef.current) };

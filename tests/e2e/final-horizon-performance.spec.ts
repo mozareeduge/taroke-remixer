@@ -115,10 +115,23 @@ test("Performance: clicking a surface line shows UNMIX section", async ({ page }
     return;
   }
 
-  await lines.first().click();
-
   const main = page.locator(".tr-panel--performance");
-  await expect(main.locator(".tr-panel__section-head").filter({ hasText: "UNMIX" })).toBeVisible();
+  const unmixHead = main.locator(".tr-panel__section-head").filter({ hasText: "UNMIX" });
+
+  // Auto-select may have already shown UNMIX; if not, click a line to select it
+  if (!(await unmixHead.isVisible())) {
+    // Click an unselected line — if first is selected, click second or re-click first
+    const firstSelected = await lines.first().getAttribute("aria-selected") === "true";
+    if (firstSelected && lineCount > 1) {
+      await lines.nth(1).click();
+    } else if (!firstSelected) {
+      await lines.first().click();
+    } else {
+      // first is selected and there's only one line — UNMIX should already be visible
+    }
+  }
+
+  await expect(unmixHead).toBeVisible();
 });
 
 test("Performance: UNMIX has Capture Take button when line selected", async ({ page }) => {
@@ -134,8 +147,15 @@ test("Performance: UNMIX has Capture Take button when line selected", async ({ p
   const lines = page.locator(".tr-surface__line");
   if (await lines.count() === 0) return;
 
-  await lines.first().click();
-  await expect(page.getByRole("button", { name: /Capture.*Take/i })).toBeVisible();
+  // Ensure a line is selected — auto-select may have done it already
+  const captureBtn = page.getByRole("button", { name: /Capture.*Take/i });
+  if (!(await captureBtn.isVisible())) {
+    const firstSelected = await lines.first().getAttribute("aria-selected") === "true";
+    if (!firstSelected) {
+      await lines.first().click();
+    }
+  }
+  await expect(captureBtn).toBeVisible();
 });
 
 // ── Follow suspend/resume ───────────────────────────────────────────────────────
@@ -175,9 +195,14 @@ test("Performance: capturing a Take adds it to TAKES section", async ({ page }) 
   const lines = page.locator(".tr-surface__line");
   if (await lines.count() === 0) return;
 
-  // Select line and capture take
-  await lines.first().click();
-  await page.getByRole("button", { name: /Capture.*Take/i }).click();
+  // Ensure a line is selected (auto-select may already have done it)
+  const captureBtn0 = page.getByRole("button", { name: /Capture.*Take/i });
+  if (!(await captureBtn0.isVisible())) {
+    if (await lines.first().getAttribute("aria-selected") !== "true") {
+      await lines.first().click();
+    }
+  }
+  await captureBtn0.click();
 
   // TAKES section should appear
   const main = page.locator(".tr-panel--performance");
@@ -197,8 +222,13 @@ test("Performance: each Take has an annotation input", async ({ page }) => {
   const lines = page.locator(".tr-surface__line");
   if (await lines.count() === 0) return;
 
-  await lines.first().click();
-  await page.getByRole("button", { name: /Capture.*Take/i }).click();
+  const captureBtn1 = page.getByRole("button", { name: /Capture.*Take/i });
+  if (!(await captureBtn1.isVisible())) {
+    if (await lines.first().getAttribute("aria-selected") !== "true") {
+      await lines.first().click();
+    }
+  }
+  await captureBtn1.click();
 
   const annotationInput = page.locator("input.tr-take__annotation").first();
   await expect(annotationInput).toBeVisible();
@@ -217,8 +247,13 @@ test("Performance: Take Remove button shows text 'Remove'", async ({ page }) => 
   const lines = page.locator(".tr-surface__line");
   if (await lines.count() === 0) return;
 
-  await lines.first().click();
-  await page.getByRole("button", { name: /Capture.*Take/i }).click();
+  const captureBtn2 = page.getByRole("button", { name: /Capture.*Take/i });
+  if (!(await captureBtn2.isVisible())) {
+    if (await lines.first().getAttribute("aria-selected") !== "true") {
+      await lines.first().click();
+    }
+  }
+  await captureBtn2.click();
 
   const removeBtn = page.locator("button[aria-label^='Remove take']").first();
   await expect(removeBtn).toBeVisible();
