@@ -2,43 +2,69 @@
  * final-horizon.spec.ts
  * CHK-FINAL-E2E: canonical authored journey through T01–T04 features.
  * One contiguous user story: shell → authoring → performance.
+ * Works on both desktop (sidebar nav) and mobile (bottom nav).
  */
 
 import { test, expect, type Page } from "@playwright/test";
 
 const BASE = "/next/";
 
+const NAV_LABELS: Record<string, string> = {
+  "materials":   "Banks & Samples",
+  "forms":       "Forms",
+  "automation":  "Triggers",
+  "instruments": "Devices",
+  "performance": "Cue & Surface",
+};
+
+const MOBILE_TOP: Record<string, { top: string; sub?: string }> = {
+  "materials":   { top: "Material", sub: "Banks & Samples" },
+  "forms":       { top: "Material", sub: "Forms" },
+  "automation":  { top: "Automate" },
+  "instruments": { top: "Devices" },
+  "performance": { top: "Perform" },
+};
+
 async function goto(page: Page) {
   await page.goto(BASE);
   await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
 }
 
-async function goSidebar(page: Page, label: string) {
+async function goToPanel(page: Page, panel: string) {
   const sidebar = page.locator(".tr-navigator");
   if (await sidebar.isVisible()) {
-    await sidebar.getByRole("button", { name: label }).click();
+    await sidebar.getByRole("button", { name: NAV_LABELS[panel] ?? panel }).click();
+  } else {
+    const route = MOBILE_TOP[panel];
+    if (!route) throw new Error(`No mobile route for panel "${panel}"`);
+    const mobileNav = page.getByRole("navigation", { name: "Main navigation" });
+    await mobileNav.getByRole("button", { name: route.top }).click();
+    if (route.sub) {
+      await page.getByRole("button", { name: route.sub }).first().click();
+    }
   }
 }
 
 // ── T01: Shell spatial contract ─────────────────────────────────────────────
 
-test("FH-01: shell renders h1, navigator, transport controls", async ({ page }) => {
+test("FH-01: shell renders h1, nav landmark, and transport controls", async ({ page }) => {
   await goto(page);
   await expect(page.locator("h1")).toBeVisible();
-  await expect(page.locator(".tr-navigator")).toBeVisible();
+  // Either sidebar (desktop) or mobile nav is present
+  const hasNav = await page.locator(".tr-navigator").isVisible()
+    || await page.getByRole("navigation", { name: "Main navigation" }).isVisible();
+  expect(hasNav).toBeTruthy();
   await expect(page.locator("[role='group'][aria-label='Playback controls']")).toBeVisible();
 });
 
 test("FH-02: all six navigator destinations reachable from sidebar", async ({ page }) => {
   await goto(page);
   const sidebar = page.locator(".tr-navigator");
-  if (!(await sidebar.isVisible())) return;
+  if (!(await sidebar.isVisible())) return; // desktop-only test
 
   for (const label of ["Banks & Samples", "Forms", "Patterns", "Devices", "Triggers", "Cue & Surface"]) {
     await sidebar.getByRole("button", { name: label }).click();
-    // Panel changes without error
   }
-  // Final panel (Cue & Surface) should be active
   await expect(page.locator(".tr-panel--performance")).toBeVisible();
 });
 
@@ -46,7 +72,7 @@ test("FH-02: all six navigator destinations reachable from sidebar", async ({ pa
 
 test("FH-03: Materials bank search filters visible banks", async ({ page }) => {
   await goto(page);
-  await goSidebar(page, "Banks & Samples");
+  await goToPanel(page, "materials");
 
   const searchInput = page.getByLabel("Search banks");
   await expect(searchInput).toBeVisible();
@@ -62,7 +88,7 @@ test("FH-03: Materials bank search filters visible banks", async ({ page }) => {
 
 test("FH-04: Automation shows collapsed trigger causal summary", async ({ page }) => {
   await goto(page);
-  await goSidebar(page, "Triggers");
+  await goToPanel(page, "automation");
 
   const main = page.locator(".tr-panel__main");
   await expect(main.locator(".tr-panel__section-head").filter({ hasText: "TRIGGERS" })).toBeVisible();
@@ -73,7 +99,7 @@ test("FH-04: Automation shows collapsed trigger causal summary", async ({ page }
 
 test("FH-05: Automation ON/OFF toggle and Remove button are correctly labeled", async ({ page }) => {
   await goto(page);
-  await goSidebar(page, "Triggers");
+  await goToPanel(page, "automation");
 
   const toggle = page.locator("button[aria-pressed]").first();
   await expect(toggle).toBeVisible();
@@ -84,7 +110,7 @@ test("FH-05: Automation ON/OFF toggle and Remove button are correctly labeled", 
 
 test("FH-06: Forms shows role-aware column headers (Singular/Plural)", async ({ page }) => {
   await goto(page);
-  await goSidebar(page, "Forms");
+  await goToPanel(page, "forms");
 
   const main = page.locator(".tr-panel--forms .tr-panel__main");
   await expect(main.locator(".tr-panel__section-head").filter({ hasText: "FORMS" })).toBeVisible();
@@ -95,7 +121,7 @@ test("FH-06: Forms shows role-aware column headers (Singular/Plural)", async ({ 
 
 test("FH-07: Instruments shows PATH device and ROUTES section", async ({ page }) => {
   await goto(page);
-  await goSidebar(page, "Devices");
+  await goToPanel(page, "instruments");
 
   const panel = page.locator(".tr-panel--instruments");
   await expect(panel.locator(".tr-panel__section-head").filter({ hasText: "DEVICES" })).toBeVisible();
@@ -109,7 +135,7 @@ test("FH-07: Instruments shows PATH device and ROUTES section", async ({ page })
 
 test("FH-08: CUE audition does not write to Surface", async ({ page }) => {
   await goto(page);
-  await goSidebar(page, "Cue & Surface");
+  await goToPanel(page, "performance");
 
   await expect(page.getByText("Generate events to see surface output.")).toBeVisible();
   for (let i = 0; i < 5; i++) {
@@ -120,7 +146,7 @@ test("FH-08: CUE audition does not write to Surface", async ({ page }) => {
 
 test("FH-09: Surface Generate adds lines and Monitor toggle works", async ({ page }) => {
   await goto(page);
-  await goSidebar(page, "Cue & Surface");
+  await goToPanel(page, "performance");
 
   // Generate until at least one line appears
   for (let i = 0; i < 10; i++) {
@@ -137,7 +163,7 @@ test("FH-09: Surface Generate adds lines and Monitor toggle works", async ({ pag
 
 test("FH-10: UNMIX appears with provenance when a Surface line is selected", async ({ page }) => {
   await goto(page);
-  await goSidebar(page, "Cue & Surface");
+  await goToPanel(page, "performance");
 
   for (let i = 0; i < 10; i++) {
     await page.getByRole("button", { name: /Surface: generate/i }).click();
@@ -160,7 +186,7 @@ test("FH-10: UNMIX appears with provenance when a Surface line is selected", asy
 
 test("FH-11: Capture Take shows TAKES section with annotation and Remove", async ({ page }) => {
   await goto(page);
-  await goSidebar(page, "Cue & Surface");
+  await goToPanel(page, "performance");
 
   for (let i = 0; i < 10; i++) {
     await page.getByRole("button", { name: /Surface: generate/i }).click();
