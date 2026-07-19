@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { setActivePanel } from "../store/editorSlice.js";
+import { SourcePanel } from "../panels/SourcePanel.js";
 import { MaterialsPanel } from "../panels/MaterialsPanel.js";
 import { FormsPanel } from "../panels/FormsPanel.js";
 import { InstrumentsPanel } from "../panels/InstrumentsPanel.js";
@@ -28,7 +29,8 @@ function useIsMobile(): boolean {
   return isMobile;
 }
 
-const MATERIAL_SUB_ITEMS: Array<{ id: "materials" | "forms"; label: string }> = [
+const MATERIAL_SUB_ITEMS: Array<{ id: "source" | "materials" | "forms"; label: string }> = [
+  { id: "source", label: "Source" },
   { id: "materials", label: "Banks & Samples" },
   { id: "forms", label: "Forms" },
 ];
@@ -36,11 +38,12 @@ const MATERIAL_SUB_ITEMS: Array<{ id: "materials" | "forms"; label: string }> = 
 export function Workspace() {
   const dispatch = useAppDispatch();
   const activePanel = useAppSelector((s) => s.editor.activePanel);
-  const inMaterialGroup = activePanel === "materials" || activePanel === "forms";
+  const inMaterialGroup = activePanel === "source" || activePanel === "materials" || activePanel === "forms";
   const isMobile = useIsMobile();
 
   const panel = (() => {
     switch (activePanel) {
+      case "source": return <SourcePanel />;
       case "materials": return <MaterialsPanel />;
       case "forms": return <FormsPanel />;
       case "instruments": return <InstrumentsPanel />;

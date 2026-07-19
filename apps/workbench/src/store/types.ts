@@ -31,7 +31,7 @@ export interface SelectionState {
 
 // ── Editor state ───────────────────────────────────────────────────────────────
 
-export type EditorPanel = "materials" | "forms" | "instruments" | "composition" | "automation" | "performance" | "archive";
+export type EditorPanel = "source" | "materials" | "forms" | "instruments" | "composition" | "automation" | "performance" | "archive";
 
 export interface EditorState {
   activePanel: EditorPanel;

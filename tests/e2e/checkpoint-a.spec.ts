@@ -836,7 +836,7 @@ test("38 — DraftRecoveryBanner: Restore draft loads the saved project", async 
 
   // Project title in Archive must reflect the restored project ("draft-test")
   await clickNav(page, "Archive");
-  await expect(page.locator(".tr-table__row").filter({ hasText: "Title" }).locator(".tr-table__td")).toContainText("draft-test", { timeout: 3000 });
+  await expect(page.getByRole("row", { name: /^Title/ }).getByRole("cell")).toContainText("draft-test", { timeout: 3000 });
 });
 
 // ── 39. DraftRecoveryBanner: Dismiss button hides banner without restoring ────
@@ -861,9 +861,9 @@ test("39 — DraftRecoveryBanner: Dismiss hides banner and keeps current project
   // But the project title is NOT "draft-test" — the current (default) project remains
   await clickNav(page, "Archive");
   // The Title row in PROJECT INFO must not show the draft project's title
-  const titleRow = page.locator(".tr-table__row").filter({ hasText: "Title" });
+  const titleRow = page.getByRole("row", { name: /^Title/ });
   await expect(titleRow).toBeVisible();
-  const titleCell = await titleRow.locator(".tr-table__td").textContent();
+  const titleCell = await titleRow.getByRole("cell").textContent();
   expect(titleCell, "Dismiss must not restore draft project").not.toBe("draft-test");
 });
 
@@ -1065,15 +1065,15 @@ test("48 — Archive: Project Info table shows title, device count, and pattern 
   await expect(rows.first()).toBeVisible();
 
   // Devices row must show a number > 0 (classic project has 3 devices)
-  const deviceRow = page.locator(".tr-table__row").filter({ hasText: /Devices/i });
+  const deviceRow = page.getByRole("row", { name: /^Devices/i });
   await expect(deviceRow).toBeVisible();
-  const deviceCount = await deviceRow.locator(".tr-table__td").textContent();
+  const deviceCount = await deviceRow.getByRole("cell").textContent();
   expect(Number(deviceCount), "Expected Devices count > 0").toBeGreaterThan(0);
 
   // Patterns row must show a number > 0
-  const patternRow = page.locator(".tr-table__row").filter({ hasText: /Patterns/i });
+  const patternRow = page.getByRole("row", { name: /^Patterns/i });
   await expect(patternRow).toBeVisible();
-  const patternCount = await patternRow.locator(".tr-table__td").textContent();
+  const patternCount = await patternRow.getByRole("cell").textContent();
   expect(Number(patternCount), "Expected Patterns count > 0").toBeGreaterThan(0);
 });
 
