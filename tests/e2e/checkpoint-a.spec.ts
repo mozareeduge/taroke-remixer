@@ -426,12 +426,13 @@ test("21 — Materials: sample rows are selectable and show aria-selected", asyn
   await clickNav(page, "Materials");
   await expect(page.getByRole("columnheader", { name: "Sample" })).toBeVisible();
 
-  // Click the first row — it must become selected
-  const rows = page.locator(".tr-table tbody tr");
-  await expect(rows.first()).toBeVisible();
-  await rows.first().click();
+  // Click the literal span inside the first row (avoids table pointer-event interception on draggable rows)
+  const firstLiteral = page.locator(".tr-mat-table__literal").first();
+  await expect(firstLiteral).toBeVisible();
+  await firstLiteral.click();
   await page.waitForTimeout(200);
 
+  const rows = page.locator(".tr-table tbody tr");
   await expect(rows.first()).toHaveAttribute("aria-selected", "true");
 });
 
@@ -467,14 +468,15 @@ test("23 — Forms: case policy select is present and editable", async ({ page }
 
 test("24 — Forms: form override inputs appear after selecting a token from Materials", async ({ page }) => {
   await goto(page);
-  // Navigate to Materials, select a bank, then a token row
+  // Navigate to Materials, select a bank, then click the literal span in the first token row
+  // (clicking the literal span avoids table pointer-event interception on draggable rows)
   await clickNav(page, "Materials");
   const bankBtns = page.locator(".tr-list__btn");
   await bankBtns.first().click();
   await page.waitForTimeout(200);
-  const tokenRows = page.locator(".tr-table tbody tr");
-  if (await tokenRows.count() > 0) {
-    await tokenRows.first().click();
+  const firstLiteral = page.locator(".tr-mat-table__literal").first();
+  if (await firstLiteral.count() > 0) {
+    await firstLiteral.click();
     await page.waitForTimeout(200);
   }
   // Now open Forms — override inputs must be visible for the selected token
