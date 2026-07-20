@@ -9,8 +9,6 @@ import {
 } from "../store/commands.js";
 import { uid } from "@taroke/core";
 
-// Forms available per bank role — unknown roles degrade to ["literal"].
-// { key } matches the token form identifier; { label } is the user-visible name.
 const ROLE_FORMS: Record<string, { key: string; label: string }[]> = {
   noun:      [{ key: "literal", label: "Literal" }, { key: "singular", label: "Singular" }, { key: "plural", label: "Plural" }],
   verb:      [{ key: "literal", label: "Literal" }, { key: "thirdSingular", label: "3rd singular" }, { key: "imperative", label: "Imperative" }],
@@ -20,7 +18,6 @@ const ROLE_FORMS: Record<string, { key: string; label: string }[]> = {
 };
 const DEFAULT_FORMS: { key: string; label: string }[] = [{ key: "literal", label: "Literal" }];
 
-// Canonical bank role vocabulary — used to constrain the Role input to a <select>.
 const BANK_ROLES = ["noun", "verb", "adjective", "adverb", "mixed", "literal"] as const;
 
 interface PaletteEntry { variable: string; slot: string; form: string; available: boolean; }
@@ -34,12 +31,11 @@ interface VariablePaletteProps {
   onInsert: (text: string, routeId: string) => void;
 }
 
-function VariablePalette({ deviceId, routeId, routeTemplate, templateRef, onClose, onInsert }: VariablePaletteProps) {
+function VariablePalette({ deviceId, routeId, templateRef, onClose, onInsert }: VariablePaletteProps) {
   const project = useAppSelector((s) => s.project.present);
   const device = project.lineDevices.find((d) => d.id === deviceId);
   const [query, setQuery] = useState("");
   const [focusIdx, setFocusIdx] = useState(0);
-  const searchRef = useRef<HTMLInputElement>(null);
 
   const entries: PaletteEntry[] = [];
   if (device) {
@@ -81,7 +77,6 @@ function VariablePalette({ deviceId, routeId, routeTemplate, templateRef, onClos
     >
       <div className="tr-palette__header">
         <input
-          ref={searchRef}
           autoFocus
           className="tr-palette__search tr-input tr-input--sm"
           placeholder="Search variables…"
@@ -90,7 +85,7 @@ function VariablePalette({ deviceId, routeId, routeTemplate, templateRef, onClos
           aria-label="Search variables"
           aria-controls="tr-palette-list"
         />
-        <button className="tr-btn tr-btn--ghost tr-btn--sm" onClick={onClose} aria-label="Close variable palette">✕</button>
+        <button className="tr-btn tr-btn--ghost tr-btn--sm" onClick={onClose} aria-label="Close variable palette">Close</button>
       </div>
       <ul
         id="tr-palette-list"
@@ -219,7 +214,7 @@ export function InstrumentsPanel() {
                 onClick={() => dispatch(mutateProject(removeLineDevice(project, activeDevice.id)))}
                 aria-label="Remove device"
               >
-                Remove
+                Remove device
               </button>
             </div>
 
@@ -270,10 +265,10 @@ export function InstrumentsPanel() {
                     </td>
                     <td className="tr-table__td tr-table__td--action">
                       <button
-                        className="tr-btn tr-btn--icon"
+                        className="tr-btn tr-btn--ghost tr-btn--sm"
                         aria-label={`Remove input ${inp.slot}`}
                         onClick={() => dispatch(mutateProject(removeDeviceInput(project, activeDevice.id, inp.id)))}
-                      >✕</button>
+                      >Remove</button>
                     </td>
                   </tr>
                 ))}
@@ -305,6 +300,7 @@ export function InstrumentsPanel() {
                     >
                       <span className="tr-route__name">{rt.name}</span>
                     </button>
+                    <span className="tr-route__weight-label">wt</span>
                     <input
                       type="number"
                       className="tr-input tr-input--num"
@@ -315,10 +311,10 @@ export function InstrumentsPanel() {
                       aria-label={`Weight for route ${rt.name}`}
                     />
                     <button
-                      className="tr-btn tr-btn--icon"
+                      className="tr-btn tr-btn--ghost tr-btn--sm"
                       aria-label={`Remove route ${rt.name}`}
                       onClick={() => dispatch(mutateProject(removeRoute(project, activeDevice.id, rt.id)))}
-                    >✕</button>
+                    >Remove</button>
                   </div>
                   <div className="tr-route__editor">
                     <textarea
@@ -334,31 +330,9 @@ export function InstrumentsPanel() {
                     />
                     {activeDevice.inputs.length > 0 && (
                       <div className="tr-route__palette-row">
-                        {/* Quick chip palette — role-aware forms */}
-                        {activeDevice.inputs.map((inp) => {
-                          const bankMeta = project.materials.bankMeta[inp.tray];
-                          const role = bankMeta?.role ?? inp.role ?? "literal";
-                          const forms = ROLE_FORMS[role] ?? DEFAULT_FORMS;
-                          return forms.map(({ key, label }) => (
-                            <button
-                              key={`${inp.slot}:${key}`}
-                              className="tr-btn tr-btn--chip"
-                              aria-label={`Insert ${inp.slot}:${key} variable`}
-                              title={`${inp.slot} — ${label}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleInsert(`{${inp.slot}:${key}}`, rt.id);
-                              }}
-                            >
-                              <span className="tr-chip__var">{`{${inp.slot}:`}</span>
-                              <span className="tr-chip__label">{label}</span>
-                              <span className="tr-chip__var">{"}"}</span>
-                            </button>
-                          ));
-                        })}
                         <button
                           className="tr-btn tr-btn--ghost tr-btn--sm"
-                          aria-label="Open variable palette"
+                          aria-label="Insert variable…"
                           aria-haspopup="dialog"
                           onClick={(e) => { e.stopPropagation(); setOpenPaletteForRoute(openPaletteForRoute === rt.id ? null : rt.id); }}
                         >

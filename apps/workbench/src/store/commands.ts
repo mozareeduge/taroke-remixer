@@ -1,6 +1,6 @@
 import { produceWithPatches, type Patch } from "immer";
 import { uid } from "@taroke/core";
-import type { TarokeProject, Token, LineDevice, Route, StanzaPattern, StanzaSlot, FlowScene, Trigger, DeviceInput } from "@taroke/schema";
+import type { TarokeProject, Token, LineDevice, Route, StanzaPattern, StanzaSlot, FlowScene, Trigger, DeviceInput, ProjectNote } from "@taroke/schema";
 
 // ── Command result ─────────────────────────────────────────────────────────────
 
@@ -137,6 +137,18 @@ export function removeBank(project: TarokeProject, bankName: string): CommandRes
   return cmd(project, "Remove bank", (d) => {
     delete d.materials.trays[bankName];
     delete d.materials.bankMeta[bankName];
+  });
+}
+
+export function moveBetweenBanks(project: TarokeProject, fromBank: string, tokenId: string, toBank: string): CommandResult {
+  return cmd(project, "Move sample between banks", (d) => {
+    const src = d.materials.trays[fromBank];
+    const dst = d.materials.trays[toBank];
+    if (!src || !dst) return;
+    const idx = src.findIndex((t) => t.id === tokenId);
+    if (idx < 0) return;
+    const [token] = src.splice(idx, 1);
+    if (token) dst.push(token);
   });
 }
 
@@ -443,4 +455,17 @@ export function setCasePolicy(project: TarokeProject, casePolicy: string): Comma
 
 export function setCompoundPolicy(project: TarokeProject, compoundPolicy: string): CommandResult {
   return cmd(project, "Set compound policy", (d) => { d.forms.compoundPolicy = compoundPolicy; });
+}
+
+// ── Notes commands ─────────────────────────────────────────────────────────────
+
+export function addProjectNote(project: TarokeProject, note: ProjectNote): CommandResult {
+  return cmd(project, "Keep take", (d) => { d.notes.push(note); });
+}
+
+export function removeProjectNote(project: TarokeProject, noteId: string): CommandResult {
+  return cmd(project, "Remove note", (d) => {
+    const idx = d.notes.findIndex((n) => n.id === noteId);
+    if (idx >= 0) d.notes.splice(idx, 1);
+  });
 }

@@ -350,48 +350,12 @@ export function CompositionPanel() {
                       <option value="once">once</option>
                       <option value="loop">loop</option>
                     </select>
-                    <div className="tr-reorder" role="group" aria-label={`Reorder slot ${slot.label}`}>
-                      <button
-                        className="tr-btn tr-btn--icon"
-                        aria-label={`Move slot ${slot.label} to start`}
-                        disabled={realIdx === 0}
-                        onClick={() => {
-                          const ids = activeStanza!.slots.map((s) => s.id);
-                          ids.splice(realIdx, 1);
-                          ids.unshift(slot.id);
-                          dispatch(mutateProject(reorderStanzaSlots(project, activeStanza!.id, ids)));
-                        }}
-                      >⇈</button>
-                      <button
-                        className="tr-btn tr-btn--icon"
-                        aria-label={`Move slot ${slot.label} up`}
-                        disabled={realIdx === 0}
-                        onClick={() => moveSlot(-1)}
-                      >↑</button>
-                      <button
-                        className="tr-btn tr-btn--icon"
-                        aria-label={`Move slot ${slot.label} down`}
-                        disabled={realIdx === activeStanza!.slots.length - 1}
-                        onClick={() => moveSlot(1)}
-                      >↓</button>
-                      <button
-                        className="tr-btn tr-btn--icon"
-                        aria-label={`Move slot ${slot.label} to end`}
-                        disabled={realIdx === activeStanza!.slots.length - 1}
-                        onClick={() => {
-                          const ids = activeStanza!.slots.map((s) => s.id);
-                          ids.splice(realIdx, 1);
-                          ids.push(slot.id);
-                          dispatch(mutateProject(reorderStanzaSlots(project, activeStanza!.id, ids)));
-                        }}
-                      >⇊</button>
-                    </div>
                     <button
-                      className="tr-btn tr-btn--icon"
+                      className="tr-btn tr-btn--ghost tr-btn--sm"
                       aria-label={`Remove slot ${slot.label}`}
                       onClick={() => dispatch(mutateProject(removeStanzaSlot(project, activeStanza!.id, slot.id)))}
                     >
-                      ✕
+                      Remove slot
                     </button>
                   </div>
                 );
@@ -441,11 +405,11 @@ export function CompositionPanel() {
                     {sc.enabled ? "ON" : "OFF"}
                   </button>
                   <button
-                    className="tr-btn tr-btn--icon"
+                    className="tr-btn tr-btn--ghost tr-btn--sm"
                     aria-label={`Remove scene ${sc.name}`}
                     onClick={() => dispatch(mutateProject(removeFlowScene(project, sc.id)))}
                   >
-                    ✕
+                    Remove scene
                   </button>
                 </div>
               ))}

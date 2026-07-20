@@ -8,13 +8,13 @@ import { Workspace } from "./Workspace.js";
 import { Inspector } from "./Inspector.js";
 import type { EditorPanel } from "../store/types.js";
 
-const MOBILE_NAV_ITEMS: Array<{ id: EditorPanel; label: string; icon: string }> = [
-  { id: "materials",   label: "Material",  icon: "◈" },
-  { id: "instruments", label: "Devices",   icon: "⊡" },
-  { id: "composition", label: "Compose",   icon: "≡" },
-  { id: "automation",  label: "Automate",  icon: "⚡" },
-  { id: "performance", label: "Perform",   icon: "▶" },
-  { id: "archive",     label: "Archive",   icon: "⊞" },
+const MOBILE_NAV_ITEMS: Array<{ id: EditorPanel; label: string; abbr: string }> = [
+  { id: "materials",   label: "Material",   abbr: "MAT" },
+  { id: "instruments", label: "Instruments", abbr: "INST" },
+  { id: "composition", label: "Composition", abbr: "COMP" },
+  { id: "automation",  label: "Automation",  abbr: "AUTO" },
+  { id: "performance", label: "Performance", abbr: "PERF" },
+  { id: "archive",     label: "Archive",     abbr: "ARCH" },
 ];
 
 function isMobileNavActive(itemId: EditorPanel, current: EditorPanel): boolean {
@@ -66,9 +66,9 @@ export function AppShell() {
             }
             onClick={() => dispatch(setActivePanel(item.id))}
             aria-current={isMobileNavActive(item.id, activePanel) ? "page" : undefined}
+            aria-label={item.label}
           >
-            <span className="tr-mobile-nav__icon" aria-hidden="true">{item.icon}</span>
-            <span className="tr-mobile-nav__label">{item.label}</span>
+            <span className="tr-mobile-nav__abbr" aria-hidden="true">{item.abbr}</span>
           </button>
         ))}
       </nav>

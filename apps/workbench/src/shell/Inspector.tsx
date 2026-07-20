@@ -1,5 +1,6 @@
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
+import { selectBank } from "../store/selectionSlice.js";
 import type { SelectionTarget } from "../store/types.js";
 import type { TarokeProject } from "@taroke/schema";
 import type { AppDispatch } from "../store/store.js";
@@ -10,8 +11,18 @@ import {
   updateStanzaName, toggleStanzaEnabled,
   updateSceneName, toggleSceneEnabled, setSceneChance,
   updateTriggerName, setTriggerChance, setTriggerCondition, setTriggerAction,
-  setBankLabel,
+  setBankLabel, setTokenOverride, removeToken, moveBetweenBanks,
 } from "../store/commands.js";
+import { formToken, KEEP_UNCHANGED_SENTINEL } from "@taroke/core";
+
+const ROLE_FORMS: Record<string, { key: string; label: string }[]> = {
+  noun:      [{ key: "literal", label: "Literal" }, { key: "singular", label: "Singular" }, { key: "plural", label: "Plural" }],
+  verb:      [{ key: "literal", label: "Literal" }, { key: "thirdSingular", label: "3rd singular" }, { key: "imperative", label: "Imperative" }],
+  adjective: [{ key: "literal", label: "Literal" }],
+  adverb:    [{ key: "literal", label: "Literal" }],
+  mixed:     [{ key: "literal", label: "Literal" }],
+};
+const DEFAULT_FORMS = [{ key: "literal", label: "Literal" }];
 
 type NonNullTarget = Exclude<SelectionTarget, null>;
 
@@ -49,6 +60,24 @@ function InspectorBody({
   if (primary.type === "token") {
     const tok = project.materials.trays[primary.bankName]?.find((t) => t.id === primary.tokenId);
     if (!tok) return <div className="tr-inspector__value">Sample not found</div>;
+    const bankMeta = project.materials.bankMeta[primary.bankName];
+    const bankRole = bankMeta?.role ?? "literal";
+    const allTokens = project.materials.trays[primary.bankName] ?? [];
+    const totalWeight = allTokens.reduce((s, t) => s + (t.weight || 0), 0);
+    const sharePercent = totalWeight > 0 ? Math.round((tok.weight / totalWeight) * 100) : 0;
+    const forms = ROLE_FORMS[bankRole] ?? DEFAULT_FORMS;
+    const otherBanks = Object.keys(project.materials.trays).filter((b) => b !== primary.bankName);
+
+    function getOverride(form: string): string {
+      const ov = (project.forms?.overrides?.[tok!.id] as Record<string, string> | undefined) ?? {};
+      const v = ov[form];
+      return v === KEEP_UNCHANGED_SENTINEL ? "" : (v ?? "");
+    }
+    function isKept(form: string): boolean {
+      const ov = (project.forms?.overrides?.[tok!.id] as Record<string, string> | undefined) ?? {};
+      return ov[form] === KEEP_UNCHANGED_SENTINEL;
+    }
+
     return (
       <div className="tr-inspector__fields">
         <label className="tr-inspector__label">Literal</label>
@@ -59,26 +88,88 @@ function InspectorBody({
           onBlur={(e) => dispatch(mutateProject(updateTokenLiteral(project, primary.bankName, tok.id, e.target.value)))}
           aria-label="Sample literal"
         />
-        <label className="tr-inspector__label">Weight</label>
-        <input
-          className="tr-input tr-input--num"
-          type="number"
-          defaultValue={tok.weight}
-          key={tok.id + "-weight"}
-          min={0}
-          max={999}
-          onBlur={(e) => dispatch(mutateProject(setTokenWeight(project, primary.bankName, tok.id, Number(e.target.value))))}
-          aria-label="Sample weight"
-        />
+
         <label className="tr-inspector__label">Role</label>
-        <div className="tr-inspector__value">{tok.role}</div>
-        <label className="tr-inspector__label">Lock literal</label>
-        <input
-          type="checkbox"
-          checked={tok.lockedLiteral}
-          onChange={(e) => dispatch(mutateProject(setTokenLockedLiteral(project, primary.bankName, tok.id, e.target.checked)))}
-          aria-label="Lock literal"
-        />
+        <div className="tr-inspector__value">{bankRole}</div>
+
+        <label className="tr-inspector__label">Weight · Share</label>
+        <div className="tr-inspector__weight-row">
+          <input
+            className="tr-input tr-input--num"
+            type="number"
+            defaultValue={tok.weight}
+            key={tok.id + "-weight"}
+            min={0}
+            max={999}
+            onBlur={(e) => dispatch(mutateProject(setTokenWeight(project, primary.bankName, tok.id, Number(e.target.value))))}
+            aria-label="Sample weight"
+          />
+          <span className="tr-inspector__share" aria-label={`${sharePercent}% share`}>{sharePercent}%</span>
+        </div>
+        <div className="tr-inspector__share-bar" role="presentation">
+          <div className="tr-inspector__share-fill" style={{ width: `${sharePercent}%` }} />
+        </div>
+
+        <div className="tr-inspector__subsection">FORM EXCEPTIONS</div>
+        {forms.map(({ key, label }) => {
+          const kept = isKept(key);
+          const ov = getOverride(key);
+          const preview = formToken(project, tok, key);
+          return (
+            <div key={key} className="tr-inspector__form-row">
+              <span className="tr-inspector__form-label">{label}</span>
+              <span className="tr-inspector__form-preview" aria-label={`Preview: ${preview}`}>{preview}</span>
+              <input
+                className="tr-input tr-input--sm tr-inspector__form-input"
+                type="text"
+                disabled={kept}
+                value={ov}
+                placeholder={kept ? "(keeping literal)" : "(auto)"}
+                aria-label={`${label} override`}
+                onChange={(e) => dispatch(mutateProject(setTokenOverride(project, tok!.id, key, e.target.value)))}
+              />
+            </div>
+          );
+        })}
+
+        <div className="tr-inspector__actions">
+          {otherBanks.length > 0 && (
+            <div className="tr-inspector__action-group">
+              <span className="tr-inspector__action-label">Move to bank</span>
+              {otherBanks.map((b) => (
+                <button
+                  key={b}
+                  className="tr-btn tr-btn--ghost tr-btn--sm"
+                  onClick={() => {
+                    dispatch(mutateProject(moveBetweenBanks(project, primary.bankName, tok.id, b)));
+                    dispatch(selectBank(b));
+                  }}
+                  aria-label={`Move ${tok.literal} to ${project.materials.bankMeta[b]?.label ?? b}`}
+                >
+                  {project.materials.bankMeta[b]?.label ?? b}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            className="tr-btn tr-btn--ghost tr-btn--sm"
+            onClick={() => dispatch(mutateProject(setTokenLockedLiteral(project, primary.bankName, tok.id, !tok.lockedLiteral)))}
+            aria-label={tok.lockedLiteral ? "Unlock literal" : "Keep literal unchanged"}
+          >
+            {tok.lockedLiteral ? "Unlock literal" : "Keep unchanged"}
+          </button>
+          <button
+            className="tr-btn tr-btn--ghost tr-btn--sm tr-btn--danger"
+            onClick={() => {
+              if (confirm(`Remove "${tok.literal}" from ${bankMeta?.label ?? primary.bankName}?`)) {
+                dispatch(mutateProject(removeToken(project, primary.bankName, tok.id)));
+              }
+            }}
+            aria-label={`Remove sample ${tok.literal}`}
+          >
+            Remove sample
+          </button>
+        </div>
       </div>
     );
   }
