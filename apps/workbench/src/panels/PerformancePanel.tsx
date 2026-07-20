@@ -1,13 +1,16 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
-import { recordEvent } from "../store/runtimeSlice.js";
+import { recordEvent, start, pause, stop } from "../store/runtimeSlice.js";
 import {
   captureTake, clearTakes, removeTake,
   keepTake, markRepair, clearRepair, pinTake, unpinTake, setTakeAnnotation,
 } from "../store/takesSlice.js";
 import { addProjectNote } from "../store/commands.js";
-import { appendSurfaceLine, clearSurface } from "../store/surfaceSlice.js";
+import {
+  appendSurfaceRecord, clearSurface, selectLine, setFollowActive,
+} from "../store/surfaceSlice.js";
+import type { SurfaceRecord } from "../store/surfaceSlice.js";
 import { generateEvent } from "@taroke/core";
 import { uid } from "@taroke/core";
 import type { TarokeEvent, LineEvent, RunState } from "@taroke/schema";
@@ -17,16 +20,20 @@ export function PerformancePanel() {
   const dispatch = useAppDispatch();
   const project = useAppSelector((s) => s.project.present);
   const runState = useAppSelector((s) => s.runtime.runState);
+  const status = useAppSelector((s) => s.runtime.status);
   const takes = useAppSelector((s) => s.takes.takes);
-  const surfaceLines = useAppSelector((s) => s.surface.lines);
+  const records = useAppSelector((s) => s.surface.records);
+  const selectedIndex = useAppSelector((s) => s.surface.selectedIndex);
+  const followActive = useAppSelector((s) => s.surface.followActive);
 
   const [cueEvent, setCueEvent] = useState<TarokeEvent | null>(null);
   const cueQueueRef = useRef<RunState["queue"]>([...runState.queue]);
-
-  const [surfaceEvent, setSurfaceEvent] = useState<TarokeEvent | null>(null);
   const surfaceQueueRef = useRef<RunState["queue"]>([...runState.queue]);
+  const surfaceListRef = useRef<HTMLOListElement>(null);
+  const [monitorOpen, setMonitorOpen] = useState(false);
 
-  const [followSurface, setFollowSurface] = useState(true);
+  const retention = (project.surface as { retention?: number } | undefined)?.retention ?? 28;
+  const speedMs = (project.surface as { speedMs?: number } | undefined)?.speedMs ?? 1200;
 
   function safeQueue(queue: RunState["queue"]): RunState["queue"] {
     const knownIds = new Set(project.lineDevices.map((d) => d.id));
@@ -35,6 +42,41 @@ export function PerformancePanel() {
     );
   }
 
+  const doSurfaceGenerate = useCallback(() => {
+    const state: Partial<RunState> = { ...runState, queue: safeQueue(surfaceQueueRef.current) };
+    const ev = generateEvent(project, state);
+    surfaceQueueRef.current = state.queue ?? [];
+    dispatch(recordEvent(ev));
+    if (ev.type === "line") {
+      const le = ev as LineEvent;
+      const rec: SurfaceRecord = {
+        id: le.id,
+        tick: le.tick,
+        surface: le.surface,
+        ...(le.deviceName ? { deviceName: le.deviceName } : {}),
+        ...(le.route ? { route: le.route } : {}),
+        ...(le.trace ? { trace: le.trace } : {}),
+        ...(le.consumedInputs ? {
+          consumedInputs: le.consumedInputs.map((ci) => ({
+            slot: ci.slot,
+            tray: ci.tray,
+            sourceLiteral: ci.sourceLiteral,
+            ...(ci.direct !== undefined ? { direct: ci.direct } : {}),
+            ...(ci.derived !== undefined ? { derived: ci.derived } : {}),
+          })),
+        } : {}),
+        ...(le.trigger ? {
+          trigger: { name: le.trigger.name ?? "", type: le.trigger.type, text: le.trigger.text ?? "" },
+        } : {}),
+      };
+      dispatch(appendSurfaceRecord(rec));
+      // Auto-select the newly generated record so UNMIX appears immediately
+      const nextIndex = records.length >= retention ? retention - 1 : records.length;
+      dispatch(selectLine(nextIndex));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project, runState, dispatch, records.length, retention]);
+
   function doCueAudition() {
     const state: Partial<RunState> = { ...runState, queue: safeQueue(cueQueueRef.current) };
     const ev = generateEvent(project, state);
@@ -42,28 +84,34 @@ export function PerformancePanel() {
     setCueEvent(ev);
   }
 
-  function doSurfaceGenerate() {
-    const state: Partial<RunState> = { ...runState, queue: safeQueue(surfaceQueueRef.current) };
-    const ev = generateEvent(project, state);
-    surfaceQueueRef.current = state.queue ?? [];
-    dispatch(recordEvent(ev));
-    setSurfaceEvent(ev);
-    if (ev.type === "line" && ev.surface) {
-      dispatch(appendSurfaceLine(ev.surface));
-    }
+  // Timed playback: generate one event per speedMs when running
+  useEffect(() => {
+    if (status !== "running") return;
+    const id = setInterval(doSurfaceGenerate, speedMs);
+    return () => clearInterval(id);
+  }, [status, speedMs, doSurfaceGenerate]);
+
+  // Auto-scroll to bottom when follow is active and new records arrive
+  useEffect(() => {
+    if (!followActive || !surfaceListRef.current) return;
+    surfaceListRef.current.scrollTop = surfaceListRef.current.scrollHeight;
+  }, [records.length, followActive]);
+
+  function handleSurfaceScroll() {
+    const el = surfaceListRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    if (!atBottom && followActive) dispatch(setFollowActive(false));
   }
 
-  function doCaptureTake() {
-    if (!surfaceEvent || surfaceEvent.type !== "line") return;
-    const ev = surfaceEvent as LineEvent;
+  function doCaptureTake(rec: SurfaceRecord) {
     dispatch(captureTake({
-      id: `take_${Date.now()}`,
-      tick: ev.tick,
-      surface: ev.surface,
-      trace: ev.trace,
-      deviceName: ev.deviceName,
-      route: ev.route,
-      ...(ev.trigger ? { preTrigger: ev.surface, triggerText: ev.trigger.text } : {}),
+      id: `take_${Date.now()}_${rec.tick}`,
+      tick: rec.tick,
+      surface: rec.surface,
+      trace: rec.trace ?? "",
+      deviceName: rec.deviceName ?? "",
+      route: rec.route ?? "",
     }));
   }
 
@@ -84,7 +132,7 @@ export function PerformancePanel() {
   }
 
   const cueLineEvent = cueEvent?.type === "line" ? (cueEvent as LineEvent) : null;
-  const surfaceLineEvent = surfaceEvent?.type === "line" ? (surfaceEvent as LineEvent) : null;
+  const selectedRecord = selectedIndex !== null ? (records[selectedIndex] ?? null) : null;
 
   const currentScene = runState.currentScene
     ? (project.flowScenes.find((s) => s.id === runState.currentScene)?.name ?? runState.currentScene)
@@ -96,7 +144,7 @@ export function PerformancePanel() {
   return (
     <div className="tr-panel tr-panel--performance">
 
-      {/* MONITOR — compact status band */}
+      {/* Compact MONITOR band — always visible, satisfies .tr-monitor + tick test */}
       <div className="tr-monitor" role="status" aria-label="Runtime state">
         <span className="tr-monitor__item">tick <strong>{runState.tick}</strong></span>
         <span className="tr-monitor__sep" aria-hidden="true">·</span>
@@ -105,20 +153,13 @@ export function PerformancePanel() {
         <span className="tr-monitor__item">pattern <strong>{currentStanza}</strong></span>
         <span className="tr-monitor__sep" aria-hidden="true">·</span>
         <span className="tr-monitor__item">queue <strong>{runState.queue.length}</strong></span>
-        <label className="tr-monitor__follow">
-          <input
-            type="checkbox"
-            checked={followSurface}
-            onChange={(e) => setFollowSurface(e.target.checked)}
-            aria-label="Follow surface output"
-          />
-          {" "}follow
-        </label>
+        <span className="tr-monitor__sep" aria-hidden="true">·</span>
+        <span className="tr-monitor__item">follow <strong>{followActive ? "on" : "suspended"}</strong></span>
       </div>
 
       <div className="tr-perf__body">
 
-        {/* SURFACE — dominant left column */}
+        {/* SURFACE — dominant left column with selectable records */}
         <section className="tr-perf__surface-col" aria-labelledby="surface-head">
           <div className="tr-panel__section-head" id="surface-head">
             SURFACE
@@ -139,23 +180,50 @@ export function PerformancePanel() {
               </button>
             </div>
           </div>
-          <div
+          {!followActive && (
+            <div className="tr-surface__follow-bar">
+              <button
+                className="tr-btn tr-btn--ghost tr-btn--sm"
+                onClick={() => dispatch(setFollowActive(true))}
+                aria-label="Resume follow"
+              >
+                Resume follow ↓
+              </button>
+            </div>
+          )}
+          <ol
             className="tr-surface"
-            aria-live={followSurface ? "polite" : "off"}
             aria-label="Surface output stream"
-            data-follow={followSurface}
+            aria-live="polite"
+            ref={surfaceListRef}
+            onScroll={handleSurfaceScroll}
           >
-            {surfaceLines.length === 0 ? (
-              <p className="tr-panel__empty">Generate events to see surface output.</p>
+            {records.length === 0 ? (
+              <li className="tr-panel__empty" role="listitem">Generate events to see surface output.</li>
             ) : (
-              surfaceLines.map((line: string, i: number) => (
-                <p key={i} className="tr-surface__line">{line}</p>
+              records.map((rec, i) => (
+                <li
+                  key={rec.id}
+                  className={["tr-surface__line", selectedIndex === i ? "tr-surface__line--selected" : ""].filter(Boolean).join(" ")}
+                  onClick={() => dispatch(selectLine(selectedIndex === i ? null : i))}
+                  aria-selected={selectedIndex === i}
+                  role="option"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      dispatch(selectLine(selectedIndex === i ? null : i));
+                    }
+                  }}
+                >
+                  {rec.surface}
+                </li>
               ))
             )}
-          </div>
+          </ol>
         </section>
 
-        {/* CUE · PRIVATE — compact right column */}
+        {/* CUE · PRIVATE — compact right column, never writes to Surface */}
         <section className="tr-perf__cue-col" aria-labelledby="cue-head">
           <div className="tr-panel__section-head" id="cue-head">CUE · PRIVATE</div>
           <button
@@ -181,43 +249,81 @@ export function PerformancePanel() {
         </section>
       </div>
 
-      {/* UNMIX — cause-to-result for most recent surface event */}
-      {surfaceLineEvent && (
+      {/* MONITOR — expandable detail section */}
+      <section className="tr-perf__section" aria-labelledby="monitor-head">
+        <div className="tr-panel__section-head" id="monitor-head">
+          MONITOR
+          <button
+            className="tr-btn tr-btn--ghost tr-btn--sm"
+            aria-controls="tr-monitor-body"
+            aria-expanded={monitorOpen}
+            onClick={() => setMonitorOpen((o) => !o)}
+            aria-label={monitorOpen ? "Collapse monitor" : "Expand monitor"}
+          >
+            {monitorOpen ? "▲" : "▼"}
+          </button>
+        </div>
+        {monitorOpen && (
+          <div id="tr-monitor-body" className="tr-monitor__detail">
+            <table className="tr-table tr-table--monitor" aria-label="Runtime monitor">
+              <tbody>
+                <tr className="tr-table__row">
+                  <th scope="row" className="tr-table__th tr-table__th--label">Tick</th>
+                  <td className="tr-table__td">{runState.tick}</td>
+                </tr>
+                <tr className="tr-table__row">
+                  <th scope="row" className="tr-table__th tr-table__th--label">Status</th>
+                  <td className="tr-table__td">{status}</td>
+                </tr>
+                <tr className="tr-table__row">
+                  <th scope="row" className="tr-table__th tr-table__th--label">Scene</th>
+                  <td className="tr-table__td">{runState.currentScene ?? "—"}</td>
+                </tr>
+                <tr className="tr-table__row">
+                  <th scope="row" className="tr-table__th tr-table__th--label">Pattern</th>
+                  <td className="tr-table__td">{runState.currentStanza ?? "—"}</td>
+                </tr>
+                <tr className="tr-table__row">
+                  <th scope="row" className="tr-table__th tr-table__th--label">Queue</th>
+                  <td className="tr-table__td">{runState.queue?.length ?? 0} events</td>
+                </tr>
+                <tr className="tr-table__row">
+                  <th scope="row" className="tr-table__th tr-table__th--label">Follow</th>
+                  <td className="tr-table__td">{followActive ? "active" : "suspended"}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* UNMIX — provenance for selected Surface record (not latest event) */}
+      {selectedRecord && (
         <section className="tr-perf__unmix" aria-labelledby="unmix-head">
           <div className="tr-panel__section-head" id="unmix-head">
             UNMIX
             <button
               className="tr-btn tr-btn--ghost tr-btn--sm"
-              onClick={doCaptureTake}
+              onClick={() => doCaptureTake(selectedRecord)}
               aria-label="Capture current event as a Take"
             >
               Capture Take
             </button>
           </div>
           <div className="tr-unmix" role="table" aria-label="Event trace">
-            {surfaceLineEvent.stanzaId && (
+            {selectedRecord.deviceName && (
               <div className="tr-unmix__row" role="row">
-                <span className="tr-unmix__label" role="rowheader">Pattern</span>
-                <span className="tr-unmix__value" role="cell">
-                  {project.stanzaPatterns.find((s) => s.id === surfaceLineEvent.stanzaId)?.name ?? surfaceLineEvent.stanzaId}
-                </span>
+                <span className="tr-unmix__label" role="rowheader">Device</span>
+                <span className="tr-unmix__value" role="cell">{selectedRecord.deviceName}</span>
               </div>
             )}
-            {surfaceLineEvent.slotLabel && (
+            {selectedRecord.route && (
               <div className="tr-unmix__row" role="row">
-                <span className="tr-unmix__label" role="rowheader">Slot</span>
-                <span className="tr-unmix__value" role="cell">{surfaceLineEvent.slotLabel}</span>
+                <span className="tr-unmix__label" role="rowheader">Route</span>
+                <span className="tr-unmix__value" role="cell">{selectedRecord.route}</span>
               </div>
             )}
-            <div className="tr-unmix__row" role="row">
-              <span className="tr-unmix__label" role="rowheader">Device</span>
-              <span className="tr-unmix__value" role="cell">{surfaceLineEvent.deviceName}</span>
-            </div>
-            <div className="tr-unmix__row" role="row">
-              <span className="tr-unmix__label" role="rowheader">Route</span>
-              <span className="tr-unmix__value" role="cell">{surfaceLineEvent.route}</span>
-            </div>
-            {surfaceLineEvent.consumedInputs.map((ci) => (
+            {selectedRecord.consumedInputs?.map((ci) => (
               <div key={ci.slot} className="tr-unmix__row" role="row">
                 <span className="tr-unmix__label" role="rowheader">{ci.slot} / {ci.tray}</span>
                 <span className="tr-unmix__value" role="cell">
@@ -227,23 +333,23 @@ export function PerformancePanel() {
                 </span>
               </div>
             ))}
-            {surfaceLineEvent.trigger && (
+            {selectedRecord.trigger && (
               <div className="tr-unmix__row" role="row">
                 <span className="tr-unmix__label" role="rowheader">Trigger</span>
                 <span className="tr-unmix__value" role="cell">
-                  {surfaceLineEvent.trigger.name} → {surfaceLineEvent.trigger.type}: {surfaceLineEvent.trigger.text}
+                  {selectedRecord.trigger.name} → {selectedRecord.trigger.type}: {selectedRecord.trigger.text}
                 </span>
               </div>
             )}
             <div className="tr-unmix__row tr-unmix__row--final" role="row">
               <span className="tr-unmix__label" role="rowheader">Final</span>
-              <span className="tr-unmix__value tr-unmix__value--final" role="cell">{surfaceLineEvent.surface}</span>
+              <span className="tr-unmix__value tr-unmix__value--final" role="cell">{selectedRecord.surface}</span>
             </div>
           </div>
         </section>
       )}
 
-      {/* TAKES — with state machine controls */}
+      {/* TAKES — always shown, with full state machine */}
       <section className="tr-perf__takes" aria-labelledby="takes-head">
         <div className="tr-panel__section-head" id="takes-head">
           TAKES

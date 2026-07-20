@@ -3209,6 +3209,7 @@ details[open] > .tr-forms__bank-label::before {
   color: var(--tr-muted);
   overflow-x: auto;
   scrollbar-width: none;
+  pointer-events: none;
 }
 .tr-monitor::-webkit-scrollbar { display: none; }
 
@@ -3509,6 +3510,25 @@ details[open] > .tr-forms__bank-label::before {
 }
 .tr-btn--danger:hover {
   background: color-mix(in srgb, var(--tr-danger) 10%, transparent);
+}
+
+/* ── Performance panel: small-height viewports ──────────────────────────── */
+
+@media (max-height: 520px) {
+  /* Guarantee the surface body stays visible; let UNMIX/TAKES shrink */
+  .tr-perf__body {
+    min-height: 120px;
+  }
+  .tr-perf__unmix {
+    flex-shrink: 1;
+    min-height: 0;
+    max-height: 100px;
+  }
+  .tr-perf__takes {
+    flex-shrink: 1;
+    min-height: 0;
+    max-height: 100px;
+  }
 }
 
 /* ── Performance panel: mobile overrides ─────────────────────────────────── */

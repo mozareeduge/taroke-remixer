@@ -95,6 +95,6 @@ export default defineConfig({
     // Wait for the v08 app to respond before running tests
     url: "http://localhost:4173/next/",
     timeout: 60_000,
-    reuseExistingServer: false,
+    reuseExistingServer: true,
   },
 });
