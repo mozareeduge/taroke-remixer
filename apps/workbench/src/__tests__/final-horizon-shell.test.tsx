@@ -149,17 +149,17 @@ describe("Transport recalibrated (T01)", () => {
 // ── Inspector recalibrated ─────────────────────────────────────────────────────
 
 describe("Inspector recalibrated (T01)", () => {
-  it("Inspector is accessible but aria-hidden when closed", async () => {
-    const store = makeStore();
-    const { toggleInspector } = await import("../store/editorSlice.js");
-    store.dispatch(toggleInspector()); // close from default-open state
+  it("Inspector is accessible but aria-hidden when closed", () => {
+    const store = makeStore(); // inspector is closed by default
     wrap(<AppShell />, store);
     const inspector = screen.getByRole("complementary", { hidden: true });
     expect(inspector).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("Inspector shows hint when nothing selected and open", () => {
-    const store = makeStore(); // inspector is open by default
+  it("Inspector shows hint when nothing selected and open", async () => {
+    const store = makeStore();
+    const { toggleInspector } = await import("../store/editorSlice.js");
+    store.dispatch(toggleInspector()); // open from default-closed state
     wrap(<AppShell />, store);
     const inspector = screen.getByRole("complementary");
     expect(inspector).not.toHaveAttribute("aria-hidden", "true");

@@ -28,8 +28,8 @@ function makeStore(editorOverrides?: Partial<{ sidebarOpen: boolean; inspectorOp
     },
   });
   if (editorOverrides?.sidebarOpen === false) store.dispatch(toggleSidebar());
-  // inspectorOpen defaults to true; toggle to close when false is requested
-  if (editorOverrides?.inspectorOpen === false) store.dispatch(toggleInspector());
+  // inspectorOpen defaults to false; toggle to open when true is requested
+  if (editorOverrides?.inspectorOpen === true) store.dispatch(toggleInspector());
   return store;
 }
 
@@ -61,17 +61,17 @@ describe("Transport", () => {
     expect(screen.getByText("STOPPED")).toBeInTheDocument();
   });
 
-  it("has inspector toggle button with aria-pressed=true by default", () => {
+  it("has inspector toggle button with aria-pressed=false by default", () => {
     wrap(<Transport />);
-    const toggle = screen.getByLabelText("Hide inspector");
-    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    const toggle = screen.getByLabelText("Show inspector");
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
   });
 
   it("inspector toggle dispatches and flips label", () => {
     wrap(<Transport />);
-    const toggle = screen.getByLabelText("Hide inspector");
+    const toggle = screen.getByLabelText("Show inspector");
     fireEvent.click(toggle);
-    expect(screen.getByLabelText("Show inspector")).toBeInTheDocument();
+    expect(screen.getByLabelText("Hide inspector")).toBeInTheDocument();
   });
 });
 

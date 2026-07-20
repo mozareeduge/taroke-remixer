@@ -4,7 +4,7 @@ import type { EditorState, EditorPanel } from "./types.js";
 const initialState: EditorState = {
   activePanel: "materials",
   sidebarOpen: true,
-  inspectorOpen: true,
+  inspectorOpen: false,
   previewFresh: false,
   previewHtml: null,
 };
