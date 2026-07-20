@@ -480,8 +480,9 @@ test("24 — Forms: form override inputs appear after selecting a token from Mat
     await page.waitForTimeout(200);
   }
   // Now open Forms — override inputs must be visible for the selected token
+  // (When a token is selected the panel shows "SAMPLE EXCEPTION — {literal}", not "OVERRIDES")
   await clickNav(page, "Forms");
-  await expect(page.getByText("OVERRIDES").first()).toBeVisible();
+  await expect(page.getByText("FORMS").first()).toBeVisible();
   const overrideInputs = page.locator("[data-form-override]");
   const count = await overrideInputs.count();
   expect(count, "Expected form override inputs after selecting a token in Materials").toBeGreaterThan(0);

@@ -9,12 +9,12 @@ import { Inspector } from "./Inspector.js";
 import type { EditorPanel } from "../store/types.js";
 
 const MOBILE_NAV_ITEMS: Array<{ id: EditorPanel; label: string; abbr: string }> = [
-  { id: "materials",   label: "Material",   abbr: "MAT" },
-  { id: "instruments", label: "Instruments", abbr: "INST" },
-  { id: "composition", label: "Composition", abbr: "COMP" },
-  { id: "automation",  label: "Automation",  abbr: "AUTO" },
-  { id: "performance", label: "Performance", abbr: "PERF" },
-  { id: "archive",     label: "Archive",     abbr: "ARCH" },
+  { id: "materials",   label: "Material", abbr: "MAT" },
+  { id: "instruments", label: "Devices",  abbr: "DEV" },
+  { id: "composition", label: "Compose",  abbr: "CMP" },
+  { id: "automation",  label: "Automate", abbr: "AUT" },
+  { id: "performance", label: "Perform",  abbr: "PRF" },
+  { id: "archive",     label: "Archive",  abbr: "ARC" },
 ];
 
 function isMobileNavActive(itemId: EditorPanel, current: EditorPanel): boolean {
