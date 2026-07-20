@@ -152,7 +152,7 @@ export function PerformancePanel() {
         <span className="tr-monitor__sep" aria-hidden="true">·</span>
         <span className="tr-monitor__item">pattern <strong>{currentStanza}</strong></span>
         <span className="tr-monitor__sep" aria-hidden="true">·</span>
-        <span className="tr-monitor__item">queue <strong>{runState.queue.length}</strong></span>
+        <span className="tr-monitor__item">queue <strong>{surfaceQueueRef.current.length}</strong></span>
         <span className="tr-monitor__sep" aria-hidden="true">·</span>
         <span className="tr-monitor__item">follow <strong>{followActive ? "on" : "suspended"}</strong></span>
       </div>
@@ -260,7 +260,7 @@ export function PerformancePanel() {
             onClick={() => setMonitorOpen((o) => !o)}
             aria-label={monitorOpen ? "Collapse monitor" : "Expand monitor"}
           >
-            {monitorOpen ? "▲" : "▼"}
+            {monitorOpen ? "Hide details" : "Details"}
           </button>
         </div>
         {monitorOpen && (

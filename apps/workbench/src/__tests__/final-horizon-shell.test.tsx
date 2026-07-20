@@ -77,10 +77,10 @@ describe("Mobile navigation text-led (T01)", () => {
     const text = mobileNav.textContent ?? "";
     expect(text).toContain("MAT");
     expect(text).toContain("DEV");
-    expect(text).toContain("CMP");
+    expect(text).toContain("COMP");
     expect(text).toContain("AUT");
-    expect(text).toContain("PRF");
-    expect(text).toContain("ARC");
+    expect(text).toContain("PERF");
+    expect(text).toContain("ARCH");
   });
 
   it("mobile nav buttons have full accessible names", () => {
@@ -149,16 +149,17 @@ describe("Transport recalibrated (T01)", () => {
 // ── Inspector recalibrated ─────────────────────────────────────────────────────
 
 describe("Inspector recalibrated (T01)", () => {
-  it("Inspector is accessible but aria-hidden when closed", () => {
-    wrap(<AppShell />);
+  it("Inspector is accessible but aria-hidden when closed", async () => {
+    const store = makeStore();
+    const { toggleInspector } = await import("../store/editorSlice.js");
+    store.dispatch(toggleInspector()); // close from default-open state
+    wrap(<AppShell />, store);
     const inspector = screen.getByRole("complementary", { hidden: true });
     expect(inspector).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("Inspector shows hint when nothing selected and open", async () => {
-    const store = makeStore();
-    const { toggleInspector } = await import("../store/editorSlice.js");
-    store.dispatch(toggleInspector());
+  it("Inspector shows hint when nothing selected and open", () => {
+    const store = makeStore(); // inspector is open by default
     wrap(<AppShell />, store);
     const inspector = screen.getByRole("complementary");
     expect(inspector).not.toHaveAttribute("aria-hidden", "true");

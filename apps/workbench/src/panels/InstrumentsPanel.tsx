@@ -134,6 +134,11 @@ export function InstrumentsPanel() {
   const [openPaletteForRoute, setOpenPaletteForRoute] = useState<string | null>(null);
   const templateRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
+  const selectedRouteId =
+    primary?.type === "route" && primary.deviceId === activeDevice?.id
+      ? primary.routeId
+      : activeDevice?.routes[0]?.id ?? null;
+
   function doAddDevice() {
     const name = newDeviceName.trim().toUpperCase();
     if (!name) return;
@@ -287,72 +292,77 @@ export function InstrumentsPanel() {
 
             <div className="tr-panel__subsection-head">ROUTES</div>
             <div className="tr-routes">
-              {activeDevice.routes.map((rt) => (
-                <div
-                  key={rt.id}
-                  className={["tr-route", primary?.type === "route" && primary.routeId === rt.id ? "tr-route--selected" : ""].filter(Boolean).join(" ")}
-                >
-                  <div className="tr-route__header">
-                    <button
-                      className="tr-btn tr-btn--ghost tr-route__select-btn"
-                      aria-pressed={primary?.type === "route" && primary.routeId === rt.id}
-                      onClick={() => dispatch(selectRoute({ deviceId: activeDevice.id, routeId: rt.id }))}
-                    >
-                      <span className="tr-route__name">{rt.name}</span>
-                    </button>
-                    <span className="tr-route__weight-label">wt</span>
-                    <input
-                      type="number"
-                      className="tr-input tr-input--num"
-                      value={rt.weight}
-                      min={0}
-                      max={999}
-                      onChange={(e) => dispatch(mutateProject(setRouteWeight(project, activeDevice.id, rt.id, Number(e.target.value))))}
-                      aria-label={`Weight for route ${rt.name}`}
-                    />
-                    <button
-                      className="tr-btn tr-btn--ghost tr-btn--sm"
-                      aria-label={`Remove route ${rt.name}`}
-                      onClick={() => dispatch(mutateProject(removeRoute(project, activeDevice.id, rt.id)))}
-                    >Remove</button>
-                  </div>
-                  <div className="tr-route__editor">
-                    <textarea
-                      ref={(el) => { templateRefs.current[rt.id] = el; }}
-                      className="tr-route__template"
-                      value={rt.template}
-                      rows={2}
-                      onChange={(e) => dispatch(mutateProject(updateRouteTemplate(project, activeDevice.id, rt.id, e.target.value)))}
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label={`Template for route ${rt.name}`}
-                      spellCheck={false}
-                      data-route-template={rt.id}
-                    />
-                    {activeDevice.inputs.length > 0 && (
-                      <div className="tr-route__palette-row">
-                        <button
-                          className="tr-btn tr-btn--ghost tr-btn--sm"
-                          aria-label="Insert variable…"
-                          aria-haspopup="dialog"
-                          onClick={(e) => { e.stopPropagation(); setOpenPaletteForRoute(openPaletteForRoute === rt.id ? null : rt.id); }}
-                        >
-                          {openPaletteForRoute === rt.id ? "Close palette" : "Insert variable…"}
-                        </button>
+              {activeDevice.routes.map((rt) => {
+                const isSelected = rt.id === selectedRouteId;
+                return (
+                  <div
+                    key={rt.id}
+                    className={["tr-route", isSelected ? "tr-route--selected" : ""].filter(Boolean).join(" ")}
+                  >
+                    <div className="tr-route__header">
+                      <button
+                        className="tr-btn tr-btn--ghost tr-route__select-btn"
+                        aria-pressed={isSelected}
+                        onClick={() => dispatch(selectRoute({ deviceId: activeDevice.id, routeId: rt.id }))}
+                      >
+                        <span className="tr-route__name">{rt.name}</span>
+                      </button>
+                      <span className="tr-route__weight-label">wt</span>
+                      <input
+                        type="number"
+                        className="tr-input tr-input--num"
+                        value={rt.weight}
+                        min={0}
+                        max={999}
+                        onChange={(e) => dispatch(mutateProject(setRouteWeight(project, activeDevice.id, rt.id, Number(e.target.value))))}
+                        aria-label={`Weight for route ${rt.name}`}
+                      />
+                      <button
+                        className="tr-btn tr-btn--ghost tr-btn--sm"
+                        aria-label={`Remove route ${rt.name}`}
+                        onClick={() => dispatch(mutateProject(removeRoute(project, activeDevice.id, rt.id)))}
+                      >Remove</button>
+                    </div>
+                    {isSelected && (
+                      <div className="tr-route__editor">
+                        <textarea
+                          ref={(el) => { templateRefs.current[rt.id] = el; }}
+                          className="tr-route__template"
+                          value={rt.template}
+                          rows={2}
+                          onChange={(e) => dispatch(mutateProject(updateRouteTemplate(project, activeDevice.id, rt.id, e.target.value)))}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Template for route ${rt.name}`}
+                          spellCheck={false}
+                          data-route-template={rt.id}
+                        />
+                        {activeDevice.inputs.length > 0 && (
+                          <div className="tr-route__palette-row">
+                            <button
+                              className="tr-btn tr-btn--ghost tr-btn--sm"
+                              aria-label="Insert variable…"
+                              aria-haspopup="dialog"
+                              onClick={(e) => { e.stopPropagation(); setOpenPaletteForRoute(openPaletteForRoute === rt.id ? null : rt.id); }}
+                            >
+                              {openPaletteForRoute === rt.id ? "Close palette" : "Insert variable…"}
+                            </button>
+                          </div>
+                        )}
+                        {openPaletteForRoute === rt.id && (
+                          <VariablePalette
+                            deviceId={activeDevice.id}
+                            routeId={rt.id}
+                            routeTemplate={rt.template}
+                            templateRef={{ current: templateRefs.current[rt.id] ?? null }}
+                            onClose={() => setOpenPaletteForRoute(null)}
+                            onInsert={handleInsert}
+                          />
+                        )}
                       </div>
                     )}
-                    {openPaletteForRoute === rt.id && (
-                      <VariablePalette
-                        deviceId={activeDevice.id}
-                        routeId={rt.id}
-                        routeTemplate={rt.template}
-                        templateRef={{ current: templateRefs.current[rt.id] ?? null }}
-                        onClose={() => setOpenPaletteForRoute(null)}
-                        onInsert={handleInsert}
-                      />
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <button
                 className="tr-btn tr-btn--ghost"
                 onClick={() => dispatch(mutateProject(addRoute(project, activeDevice.id, { id: uid("rt"), name: "new route", weight: 10, template: "" })))}

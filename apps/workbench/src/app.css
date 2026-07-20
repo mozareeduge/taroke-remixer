@@ -1668,7 +1668,7 @@ input[type="checkbox"] {
 
   .tr-inspector {
     position: fixed;
-    inset: var(--tr-transport-h) 0 0 0;
+    inset: var(--tr-transport-h) 0 var(--tr-mobile-nav-h) 0;
     width: 100%;
     border-left: none;
     z-index: 30;
@@ -1858,6 +1858,14 @@ input[type="checkbox"] {
     font-size: 18px;
   }
 
+}
+
+/* ── Mobile: allow trigger summary text to wrap ──────────────────────────── */
+@media (max-width: 959px) {
+  .tr-trigger__summary-text {
+    white-space: normal;
+    text-overflow: unset;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2293,6 +2301,11 @@ details[open] > .tr-forms__bank-label::before {
 }
 .tr-surface__line:last-child { border-bottom: none; }
 
+.tr-surface__line--selected {
+  box-shadow: inset 3px 0 0 var(--tr-focus, #b6ff48);
+  background: color-mix(in srgb, var(--tr-focus, #b6ff48) 8%, transparent);
+}
+
 .tr-takes {
   display: flex;
   flex-direction: column;
@@ -2511,7 +2524,7 @@ details[open] > .tr-forms__bank-label::before {
   font-size: var(--tr-font-size-sm);
   color: var(--tr-muted);
   flex: 1;
-  min-width: 0;
+  min-width: 4rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3209,7 +3222,6 @@ details[open] > .tr-forms__bank-label::before {
   color: var(--tr-muted);
   overflow-x: auto;
   scrollbar-width: none;
-  pointer-events: none;
 }
 .tr-monitor::-webkit-scrollbar { display: none; }
 

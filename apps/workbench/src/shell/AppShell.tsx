@@ -11,10 +11,10 @@ import type { EditorPanel } from "../store/types.js";
 const MOBILE_NAV_ITEMS: Array<{ id: EditorPanel; label: string; abbr: string }> = [
   { id: "materials",   label: "Material", abbr: "MAT" },
   { id: "instruments", label: "Devices",  abbr: "DEV" },
-  { id: "composition", label: "Compose",  abbr: "CMP" },
+  { id: "composition", label: "Compose",  abbr: "COMP" },
   { id: "automation",  label: "Automate", abbr: "AUT" },
-  { id: "performance", label: "Perform",  abbr: "PRF" },
-  { id: "archive",     label: "Archive",  abbr: "ARC" },
+  { id: "performance", label: "Perform",  abbr: "PERF" },
+  { id: "archive",     label: "Archive",  abbr: "ARCH" },
 ];
 
 function isMobileNavActive(itemId: EditorPanel, current: EditorPanel): boolean {

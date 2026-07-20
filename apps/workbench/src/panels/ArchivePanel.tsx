@@ -103,12 +103,12 @@ export function ArchivePanel() {
       <div className="tr-panel__main">
         <div className="tr-panel__section-head">EXPORT</div>
         <div className="tr-archive__actions">
-          <button className="tr-btn tr-btn--primary" onClick={doExportJson}>
+          <button className="tr-btn tr-btn--ghost" onClick={doExportJson}>
             Export JSON (.taroke.json)
           </button>
           <p className="tr-archive__desc">Project data for editing in another session.</p>
 
-          <button className="tr-btn tr-btn--primary" onClick={doExportHtml}>
+          <button className="tr-btn tr-btn--ghost" onClick={doExportHtml}>
             Export HTML (.taroke.html)
           </button>
           <p className="tr-archive__desc">Standalone artifact — runs in any browser, no server needed.</p>
