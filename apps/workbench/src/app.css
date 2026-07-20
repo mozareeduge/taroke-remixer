@@ -3534,6 +3534,7 @@ details[open] > .tr-forms__bank-label::before {
 
   .tr-perf__unmix,
   .tr-perf__takes {
+    display: block; /* counteract legacy display:none from old grid layout */
     max-height: 160px;
   }
 }
