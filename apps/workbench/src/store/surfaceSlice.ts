@@ -5,17 +5,34 @@ export interface SurfaceRecord {
   id: string;
   tick: number;
   surface: string;
+  sceneId?: string | null;
+  stanzaId?: string | null;
+  slotLabel?: string;
+  deviceId?: string;
   deviceName?: string;
+  routeId?: string;
   route?: string;
   trace?: string;
+  selected?: Record<string, string>;
+  rendered?: Record<string, string>;
   consumedInputs?: Array<{
     slot: string;
     tray: string;
+    tokenId?: string;
     sourceLiteral: string;
     direct?: boolean;
     derived?: boolean;
   }>;
-  trigger?: { name: string; type: string; text: string };
+  trigger?: {
+    name: string;
+    type: string;
+    text: string;
+    conditionTray?: string;
+    conditionTerm?: string;
+    matchedSlot?: string;
+    matchedTokenId?: string;
+    matchedSourceLiteral?: string;
+  };
 }
 
 export interface SurfaceState {

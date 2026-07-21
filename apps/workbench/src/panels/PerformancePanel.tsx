@@ -53,20 +53,37 @@ export function PerformancePanel() {
         id: le.id,
         tick: le.tick,
         surface: le.surface,
+        ...(le.sceneId !== undefined ? { sceneId: le.sceneId } : {}),
+        ...(le.stanzaId !== undefined ? { stanzaId: le.stanzaId } : {}),
+        ...(le.slotLabel ? { slotLabel: le.slotLabel } : {}),
+        ...(le.deviceId ? { deviceId: le.deviceId } : {}),
         ...(le.deviceName ? { deviceName: le.deviceName } : {}),
+        ...(le.routeId ? { routeId: le.routeId } : {}),
         ...(le.route ? { route: le.route } : {}),
         ...(le.trace ? { trace: le.trace } : {}),
+        ...(le.selected ? { selected: le.selected } : {}),
+        ...(le.rendered ? { rendered: le.rendered } : {}),
         ...(le.consumedInputs ? {
           consumedInputs: le.consumedInputs.map((ci) => ({
             slot: ci.slot,
             tray: ci.tray,
+            ...(ci.tokenId ? { tokenId: ci.tokenId } : {}),
             sourceLiteral: ci.sourceLiteral,
             ...(ci.direct !== undefined ? { direct: ci.direct } : {}),
             ...(ci.derived !== undefined ? { derived: ci.derived } : {}),
           })),
         } : {}),
         ...(le.trigger ? {
-          trigger: { name: le.trigger.name ?? "", type: le.trigger.type, text: le.trigger.text ?? "" },
+          trigger: {
+            name: le.trigger.name ?? "",
+            type: le.trigger.type,
+            text: le.trigger.text ?? "",
+            ...(le.trigger.conditionTray ? { conditionTray: le.trigger.conditionTray } : {}),
+            ...(le.trigger.conditionTerm ? { conditionTerm: le.trigger.conditionTerm } : {}),
+            ...(le.trigger.matchedSlot ? { matchedSlot: le.trigger.matchedSlot } : {}),
+            ...(le.trigger.matchedTokenId ? { matchedTokenId: le.trigger.matchedTokenId } : {}),
+            ...(le.trigger.matchedSourceLiteral ? { matchedSourceLiteral: le.trigger.matchedSourceLiteral } : {}),
+          },
         } : {}),
       };
       dispatch(appendSurfaceRecord(rec));
@@ -117,18 +134,20 @@ export function PerformancePanel() {
 
   function doKeepTake(take: Take) {
     dispatch(keepTake(take.id));
-    dispatch(mutateProject(addProjectNote(project, {
-      id: uid("note"),
-      eventId: take.id,
-      status: "kept",
-      note: take.annotation,
-      surface: take.surface,
-      event: null,
-      linkedTokenIds: [],
-      linkedDeviceId: "",
-      linkedStanzaId: "",
-      updatedAt: new Date().toISOString(),
-    })));
+    if (!project.notes.some((n) => n.eventId === take.id)) {
+      dispatch(mutateProject(addProjectNote(project, {
+        id: uid("note"),
+        eventId: take.id,
+        status: "kept",
+        note: take.annotation,
+        surface: take.surface,
+        event: null,
+        linkedTokenIds: [],
+        linkedDeviceId: "",
+        linkedStanzaId: "",
+        updatedAt: new Date().toISOString(),
+      })));
+    }
   }
 
   const cueLineEvent = cueEvent?.type === "line" ? (cueEvent as LineEvent) : null;
@@ -144,17 +163,63 @@ export function PerformancePanel() {
   return (
     <div className="tr-panel tr-panel--performance">
 
-      {/* Compact MONITOR band — always visible, satisfies .tr-monitor + tick test */}
+      {/* Unified MONITOR — heading + compact state + expandable detail in one element */}
       <div className="tr-monitor" role="status" aria-label="Runtime state">
-        <span className="tr-monitor__item">tick <strong>{runState.tick}</strong></span>
-        <span className="tr-monitor__sep" aria-hidden="true">·</span>
-        <span className="tr-monitor__item">scene <strong>{currentScene}</strong></span>
-        <span className="tr-monitor__sep" aria-hidden="true">·</span>
-        <span className="tr-monitor__item">pattern <strong>{currentStanza}</strong></span>
-        <span className="tr-monitor__sep" aria-hidden="true">·</span>
-        <span className="tr-monitor__item">queue <strong>{surfaceQueueRef.current.length}</strong></span>
-        <span className="tr-monitor__sep" aria-hidden="true">·</span>
-        <span className="tr-monitor__item">follow <strong>{followActive ? "on" : "suspended"}</strong></span>
+        <div className="tr-monitor__header">
+          <span className="tr-monitor__title">MONITOR</span>
+          <button
+            className="tr-btn tr-btn--ghost tr-btn--sm"
+            aria-controls="tr-monitor-body"
+            aria-expanded={monitorOpen}
+            onClick={() => setMonitorOpen((o) => !o)}
+            aria-label={monitorOpen ? "Collapse monitor" : "Expand monitor"}
+          >
+            {monitorOpen ? "Hide details" : "Details"}
+          </button>
+        </div>
+        <div className="tr-monitor__compact">
+          <span className="tr-monitor__item">tick <strong>{runState.tick}</strong></span>
+          <span className="tr-monitor__sep" aria-hidden="true">·</span>
+          <span className="tr-monitor__item">scene <strong>{currentScene}</strong></span>
+          <span className="tr-monitor__sep" aria-hidden="true">·</span>
+          <span className="tr-monitor__item">pattern <strong>{currentStanza}</strong></span>
+          <span className="tr-monitor__sep" aria-hidden="true">·</span>
+          <span className="tr-monitor__item">queue <strong>{surfaceQueueRef.current.length}</strong></span>
+          <span className="tr-monitor__sep" aria-hidden="true">·</span>
+          <span className="tr-monitor__item">follow <strong>{followActive ? "on" : "suspended"}</strong></span>
+        </div>
+        {monitorOpen && (
+          <div id="tr-monitor-body" className="tr-monitor__detail">
+            <table className="tr-table tr-table--monitor" aria-label="Runtime monitor">
+              <tbody>
+                <tr className="tr-table__row">
+                  <th scope="row" className="tr-table__th tr-table__th--label">Tick</th>
+                  <td className="tr-table__td">{runState.tick}</td>
+                </tr>
+                <tr className="tr-table__row">
+                  <th scope="row" className="tr-table__th tr-table__th--label">Status</th>
+                  <td className="tr-table__td">{status}</td>
+                </tr>
+                <tr className="tr-table__row">
+                  <th scope="row" className="tr-table__th tr-table__th--label">Scene</th>
+                  <td className="tr-table__td">{runState.currentScene ?? "—"}</td>
+                </tr>
+                <tr className="tr-table__row">
+                  <th scope="row" className="tr-table__th tr-table__th--label">Pattern</th>
+                  <td className="tr-table__td">{runState.currentStanza ?? "—"}</td>
+                </tr>
+                <tr className="tr-table__row">
+                  <th scope="row" className="tr-table__th tr-table__th--label">Queue</th>
+                  <td className="tr-table__td">{runState.queue?.length ?? 0} events</td>
+                </tr>
+                <tr className="tr-table__row">
+                  <th scope="row" className="tr-table__th tr-table__th--label">Follow</th>
+                  <td className="tr-table__td">{followActive ? "active" : "suspended"}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="tr-perf__body">
@@ -248,54 +313,6 @@ export function PerformancePanel() {
           )}
         </section>
       </div>
-
-      {/* MONITOR — expandable detail section */}
-      <section className="tr-perf__section" aria-labelledby="monitor-head">
-        <div className="tr-panel__section-head" id="monitor-head">
-          MONITOR
-          <button
-            className="tr-btn tr-btn--ghost tr-btn--sm"
-            aria-controls="tr-monitor-body"
-            aria-expanded={monitorOpen}
-            onClick={() => setMonitorOpen((o) => !o)}
-            aria-label={monitorOpen ? "Collapse monitor" : "Expand monitor"}
-          >
-            {monitorOpen ? "Hide details" : "Details"}
-          </button>
-        </div>
-        {monitorOpen && (
-          <div id="tr-monitor-body" className="tr-monitor__detail">
-            <table className="tr-table tr-table--monitor" aria-label="Runtime monitor">
-              <tbody>
-                <tr className="tr-table__row">
-                  <th scope="row" className="tr-table__th tr-table__th--label">Tick</th>
-                  <td className="tr-table__td">{runState.tick}</td>
-                </tr>
-                <tr className="tr-table__row">
-                  <th scope="row" className="tr-table__th tr-table__th--label">Status</th>
-                  <td className="tr-table__td">{status}</td>
-                </tr>
-                <tr className="tr-table__row">
-                  <th scope="row" className="tr-table__th tr-table__th--label">Scene</th>
-                  <td className="tr-table__td">{runState.currentScene ?? "—"}</td>
-                </tr>
-                <tr className="tr-table__row">
-                  <th scope="row" className="tr-table__th tr-table__th--label">Pattern</th>
-                  <td className="tr-table__td">{runState.currentStanza ?? "—"}</td>
-                </tr>
-                <tr className="tr-table__row">
-                  <th scope="row" className="tr-table__th tr-table__th--label">Queue</th>
-                  <td className="tr-table__td">{runState.queue?.length ?? 0} events</td>
-                </tr>
-                <tr className="tr-table__row">
-                  <th scope="row" className="tr-table__th tr-table__th--label">Follow</th>
-                  <td className="tr-table__td">{followActive ? "active" : "suspended"}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
 
       {/* UNMIX — provenance for selected Surface record (not latest event) */}
       {selectedRecord && (

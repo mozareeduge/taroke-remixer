@@ -374,18 +374,34 @@ function InspectorBody({
   return null;
 }
 
-export function Inspector() {
+export function Inspector({ onClose }: { onClose?: () => void }) {
   const dispatch = useAppDispatch();
   const project = useAppSelector((s) => s.project.present);
   const primary = useAppSelector((s) => s.selection.primary);
   const inspectorOpen = useAppSelector((s) => s.editor.inspectorOpen);
+  const inspectorMode = useAppSelector((s) => s.editor.inspectorMode);
+
+  const modeClass = `tr-inspector--${inspectorMode}`;
 
   return (
     <aside
-      className={inspectorOpen ? "tr-inspector tr-inspector--open" : "tr-inspector"}
+      className={[
+        "tr-inspector",
+        modeClass,
+        inspectorOpen ? "tr-inspector--open" : "",
+      ].filter(Boolean).join(" ")}
       aria-label="Inspector"
       aria-hidden={!inspectorOpen}
     >
+      {(inspectorMode === "overlay" || inspectorMode === "sheet") && inspectorOpen && (
+        <button
+          className="tr-inspector__close"
+          aria-label="Close inspector"
+          onClick={onClose}
+        >
+          Close
+        </button>
+      )}
       {primary ? (
         <div className="tr-inspector__content">
           <div className="tr-inspector__type">{primary.type.toUpperCase()}</div>

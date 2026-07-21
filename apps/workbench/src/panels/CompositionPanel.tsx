@@ -3,9 +3,10 @@ import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectStanza, selectScene } from "../store/selectionSlice.js";
 import {
-  addStanzaPattern, removeStanzaPattern, toggleStanzaEnabled,
+  addStanzaPattern, toggleStanzaEnabled,
   addStanzaSlot, removeStanzaSlot, reorderStanzaSlots, setSlotChance, setSlotRepeat,
   addFlowScene, removeFlowScene, toggleSceneEnabled, setSceneChance,
+  safeRemoveStanzaPattern, isBlocked,
 } from "../store/commands.js";
 import { uid } from "@taroke/core";
 import type { StanzaSlot } from "@taroke/schema";
@@ -24,6 +25,8 @@ export function CompositionPanel() {
 
   const [newStanzaName, setNewStanzaName] = useState("");
   const [newSceneName, setNewSceneName] = useState("");
+  const [openMoveMenuId, setOpenMoveMenuId] = useState<string | null>(null);
+  const [removePatternError, setRemovePatternError] = useState<string | null>(null);
 
   // ── HTML5 pointer drag state ──────────────────────────────────────────────────
   const [dragFromIdx, setDragFromIdx] = useState<number | null>(null);
@@ -77,6 +80,19 @@ export function CompositionPanel() {
     };
     dispatch(mutateProject(addFlowScene(project, scene)));
     setNewSceneName("");
+  }
+
+  function moveSlotTo(slotId: string, toIndex: number) {
+    if (!activeStanza) return;
+    const ids = activeStanza.slots.map((s) => s.id);
+    const fromIdx = ids.indexOf(slotId);
+    if (fromIdx < 0) return;
+    const clamped = Math.max(0, Math.min(toIndex, ids.length - 1));
+    if (fromIdx === clamped) return;
+    ids.splice(fromIdx, 1);
+    ids.splice(clamped, 0, slotId);
+    dispatch(mutateProject(reorderStanzaSlots(project, activeStanza.id, ids)));
+    setOpenMoveMenuId(null);
   }
 
   function doAddBreathSlot() {
@@ -263,11 +279,22 @@ export function CompositionPanel() {
               </button>
               <button
                 className="tr-btn tr-btn--ghost tr-btn--sm"
-                onClick={() => dispatch(mutateProject(removeStanzaPattern(project, activeStanza.id)))}
+                onClick={() => {
+                  const result = safeRemoveStanzaPattern(project, activeStanza.id);
+                  if (isBlocked(result)) {
+                    setRemovePatternError(`Cannot remove: ${result.reason} (${result.dependents.join(", ")})`);
+                  } else {
+                    setRemovePatternError(null);
+                    dispatch(mutateProject(result));
+                  }
+                }}
                 aria-label={`Remove ${activeStanza.name}`}
               >
                 Remove
               </button>
+              {removePatternError && (
+                <span className="tr-error" role="alert">{removePatternError}</span>
+              )}
             </div>
 
             <div className="tr-panel__subsection-head">SLOTS</div>
@@ -350,6 +377,25 @@ export function CompositionPanel() {
                       <option value="once">once</option>
                       <option value="loop">loop</option>
                     </select>
+                    <div className="tr-slot__move-menu-wrap">
+                      <button
+                        className="tr-btn tr-btn--ghost tr-btn--sm"
+                        aria-label={`Move slot ${slot.label}`}
+                        aria-haspopup="menu"
+                        aria-expanded={openMoveMenuId === slot.id}
+                        onClick={() => setOpenMoveMenuId(openMoveMenuId === slot.id ? null : slot.id)}
+                      >
+                        Move
+                      </button>
+                      {openMoveMenuId === slot.id && (
+                        <div className="tr-slot__move-menu" role="menu" aria-label={`Move slot ${slot.label}`}>
+                          <button role="menuitem" className="tr-btn tr-btn--ghost tr-btn--sm" onClick={() => moveSlotTo(slot.id, 0)}>To start</button>
+                          <button role="menuitem" className="tr-btn tr-btn--ghost tr-btn--sm" onClick={() => moveSlotTo(slot.id, realIdx - 1)}>Earlier</button>
+                          <button role="menuitem" className="tr-btn tr-btn--ghost tr-btn--sm" onClick={() => moveSlotTo(slot.id, realIdx + 1)}>Later</button>
+                          <button role="menuitem" className="tr-btn tr-btn--ghost tr-btn--sm" onClick={() => moveSlotTo(slot.id, activeStanza!.slots.length - 1)}>To end</button>
+                        </div>
+                      )}
+                    </div>
                     <button
                       className="tr-btn tr-btn--ghost tr-btn--sm"
                       aria-label={`Remove slot ${slot.label}`}

@@ -3,11 +3,13 @@ import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectDevice, selectRoute } from "../store/selectionSlice.js";
 import {
-  addLineDevice, removeLineDevice, toggleDeviceEnabled,
+  addLineDevice, toggleDeviceEnabled,
   addRoute, removeRoute, updateRouteTemplate, setRouteWeight,
   addDeviceInput, removeDeviceInput, updateDeviceInput,
+  safeRemoveLineDevice, isBlocked,
 } from "../store/commands.js";
-import { uid } from "@taroke/core";
+import { uid, renderDeviceEvent } from "@taroke/core";
+import type { LineEvent } from "@taroke/schema";
 
 const ROLE_FORMS: Record<string, { key: string; label: string }[]> = {
   noun:      [{ key: "literal", label: "Literal" }, { key: "singular", label: "Singular" }, { key: "plural", label: "Plural" }],
@@ -121,6 +123,7 @@ function VariablePalette({ deviceId, routeId, templateRef, onClose, onInsert }: 
 export function InstrumentsPanel() {
   const dispatch = useAppDispatch();
   const project = useAppSelector((s) => s.project.present);
+  const runState = useAppSelector((s) => s.runtime.runState);
   const primary = useAppSelector((s) => s.selection.primary);
 
   const devices = project.lineDevices ?? [];
@@ -132,7 +135,23 @@ export function InstrumentsPanel() {
 
   const [newDeviceName, setNewDeviceName] = useState("");
   const [openPaletteForRoute, setOpenPaletteForRoute] = useState<string | null>(null);
+  const [cueResult, setCueResult] = useState<LineEvent | null>(null);
+  const [cueError, setCueError] = useState<string | null>(null);
+  const [removeDeviceError, setRemoveDeviceError] = useState<string | null>(null);
   const templateRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+
+  function doCue() {
+    if (!activeDevice) return;
+    const localRunState = { ...runState, queue: [...runState.queue] };
+    const ev = renderDeviceEvent(project, activeDevice.id, { type: "device", deviceId: activeDevice.id }, localRunState);
+    if (ev.type === "line") {
+      setCueResult(ev as LineEvent);
+      setCueError(null);
+    } else {
+      setCueResult(null);
+      setCueError((ev as { error?: string }).error ?? "error");
+    }
+  }
 
   const selectedRouteId =
     primary?.type === "route" && primary.deviceId === activeDevice?.id
@@ -216,11 +235,22 @@ export function InstrumentsPanel() {
               </button>
               <button
                 className="tr-btn tr-btn--ghost tr-btn--sm"
-                onClick={() => dispatch(mutateProject(removeLineDevice(project, activeDevice.id)))}
+                onClick={() => {
+                  const result = safeRemoveLineDevice(project, activeDevice.id);
+                  if (isBlocked(result)) {
+                    setRemoveDeviceError(`Cannot remove: ${result.reason} (${result.dependents.join(", ")})`);
+                  } else {
+                    setRemoveDeviceError(null);
+                    dispatch(mutateProject(result));
+                  }
+                }}
                 aria-label="Remove device"
               >
                 Remove device
               </button>
+              {removeDeviceError && (
+                <span className="tr-error" role="alert">{removeDeviceError}</span>
+              )}
             </div>
 
             <div className="tr-panel__subsection-head">INPUTS</div>
@@ -369,6 +399,24 @@ export function InstrumentsPanel() {
               >
                 + Route
               </button>
+            </div>
+            <div className="tr-panel__subsection-head">CUE</div>
+            <div className="tr-cue-device">
+              <button
+                className="tr-btn tr-btn--ghost tr-cue-device__btn"
+                onClick={doCue}
+                aria-label={`Audition device ${activeDevice.name} (private, not recorded)`}
+              >
+                Cue
+              </button>
+              {cueError && (
+                <p className="tr-cue-device__error" role="alert">{cueError}</p>
+              )}
+              {cueResult && (
+                <div className="tr-cue-device__output" aria-live="polite" aria-atomic="true">
+                  <p className="tr-cue-device__line">{cueResult.surface}</p>
+                </div>
+              )}
             </div>
           </>
         ) : (

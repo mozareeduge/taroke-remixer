@@ -4,7 +4,8 @@ import { mutateProject } from "../store/projectSlice.js";
 import { selectBank, selectToken } from "../store/selectionSlice.js";
 import {
   addToken, removeToken, setTokenWeight, updateTokenLiteral,
-  addBank, removeBank, reorderTokens, moveBetweenBanks,
+  addBank, reorderTokens, moveBetweenBanks,
+  safeRemoveBank, isBlocked,
 } from "../store/commands.js";
 
 export function MaterialsPanel() {
@@ -21,6 +22,7 @@ export function MaterialsPanel() {
   const [newSample, setNewSample] = useState("");
   const [newBankKey, setNewBankKey] = useState("");
   const [newBankLabel, setNewBankLabel] = useState("");
+  const [removeBankError, setRemoveBankError] = useState<string | null>(null);
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
   const [bulkText, setBulkText] = useState("");
@@ -164,6 +166,24 @@ export function MaterialsPanel() {
                 {bankMeta?.label ?? activeBank.toUpperCase()} · {bankRole}
               </span>
               <div className="tr-panel__section-actions">
+                <button
+                  className="tr-btn tr-btn--ghost tr-btn--sm"
+                  onClick={() => {
+                    const result = safeRemoveBank(project, activeBank);
+                    if (isBlocked(result)) {
+                      setRemoveBankError(`Cannot remove: ${result.reason} (${result.dependents.join(", ")})`);
+                    } else {
+                      setRemoveBankError(null);
+                      dispatch(mutateProject(result));
+                    }
+                  }}
+                  aria-label="Remove bank"
+                >
+                  Remove bank
+                </button>
+                {removeBankError && (
+                  <span className="tr-error" role="alert">{removeBankError}</span>
+                )}
                 <button
                   className="tr-btn tr-btn--ghost tr-btn--sm"
                   onClick={() => setBulkOpen(!bulkOpen)}
