@@ -30,9 +30,13 @@ const editorSlice = createSlice({
       state.inspectorOpen = false;
     },
     setInspectorMode(state, action: PayloadAction<InspectorMode>) {
+      const prev = state.inspectorMode;
       state.inspectorMode = action.payload;
       if (action.payload === "docked") {
         state.inspectorOpen = true;
+      } else if (prev === "docked") {
+        // Leaving docked mode — close so the inspector doesn't overlay content
+        state.inspectorOpen = false;
       }
     },
     setPreviewFresh(state, action: PayloadAction<boolean>) {

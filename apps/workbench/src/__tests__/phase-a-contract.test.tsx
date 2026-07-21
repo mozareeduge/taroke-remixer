@@ -106,12 +106,12 @@ describe("FormsPanel: form ownership (T02.B)", () => {
     expect(screen.getByText("OVERRIDES")).toBeInTheDocument();
   });
 
-  it("does not render a full form editor input in FormsPanel", () => {
+  it("does not render sample editor when no token selected", () => {
     wrap(<FormsPanel />);
     expect(document.querySelector(".tr-forms__sample-editor")).toBeNull();
   });
 
-  it("shows inspector hint when token is selected", () => {
+  it("shows data-form-override inputs when token is selected", () => {
     const store = makeStore();
     store.dispatch(mutateProject({
       present: PHASE_A_NEUTRAL_TEST_FIXTURE,
@@ -121,7 +121,7 @@ describe("FormsPanel: form ownership (T02.B)", () => {
     }));
     store.dispatch(selectToken({ bankName: "nouns", tokenId: "tok_n1" }));
     wrap(<FormsPanel />, store);
-    expect(screen.queryByText(/Inspector panel/i)).not.toBeNull();
+    expect(document.querySelector("[data-form-override]")).not.toBeNull();
   });
 });
 
