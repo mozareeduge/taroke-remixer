@@ -47,9 +47,10 @@ export function AppShell() {
     return () => window.removeEventListener("resize", update);
   }, [dispatch]);
 
-  // Auto-open inspector on selection in overlay/sheet modes
+  // Auto-open inspector on first selection in overlay mode only.
+  // Sheet (mobile) requires explicit open — auto-open would cover the workspace.
   useEffect(() => {
-    if (primary !== null && prevPrimaryRef.current === null && inspectorMode !== "docked") {
+    if (primary !== null && prevPrimaryRef.current === null && inspectorMode === "overlay") {
       dispatch(openInspector());
     }
     prevPrimaryRef.current = primary;
