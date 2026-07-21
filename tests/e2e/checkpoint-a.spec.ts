@@ -464,9 +464,9 @@ test("23 — Forms: case policy select is present and editable", async ({ page }
   await expect(caseSelect).toHaveValue("lower");
 });
 
-// ── 24. Forms: selecting a token shows inspector hint in FormsPanel ─────────────
+// ── 24. Forms: form override inputs appear after selecting a token from Materials ─
 
-test("24 — Forms: selecting a token shows inspector hint in FormsPanel", async ({ page }) => {
+test("24 — Forms: form override inputs appear after selecting a token from Materials", async ({ page }) => {
   await goto(page);
   // Navigate to Materials, select a bank, then click the literal span in the first token row
   // (clicking the literal span avoids table pointer-event interception on draggable rows)
@@ -479,18 +479,13 @@ test("24 — Forms: selecting a token shows inspector hint in FormsPanel", async
     await firstLiteral.click();
     await page.waitForTimeout(200);
   }
-  // Open Forms — when a token is selected, panel shows summary + inspector hint
+  // Open Forms — when a token is selected, the SAMPLE EXCEPTION editor appears
+  // with data-form-override inputs for each form key
   await clickNav(page, "Forms");
   await expect(page.getByText("FORMS").first()).toBeVisible();
-  await expect(page.getByText("OVERRIDES").first()).toBeVisible();
-  const summary = page.locator(".tr-forms__sample-summary");
-  if (await summary.count() > 0) {
-    await expect(summary.first()).toBeVisible();
-    await expect(page.getByText(/Inspector panel/i).first()).toBeVisible();
-  } else {
-    // No token selected: override section still renders with descriptive text
-    await expect(page.getByText("OVERRIDES").first()).toBeVisible();
-  }
+  const overrideInputs = page.locator("[data-form-override]");
+  const count = await overrideInputs.count();
+  expect(count, "Expected form override inputs after selecting a token in Materials").toBeGreaterThan(0);
 });
 
 // ── 25. Instruments: route variable chips insert at caret ─────────────────────
