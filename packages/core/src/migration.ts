@@ -82,36 +82,203 @@ export function classicStanzaPatterns(): StanzaPattern[] {
   ];
 }
 
+function combinationSubsets(n: number, k: number): number[][] {
+  const result: number[][] = [];
+  function helper(start: number, combo: number[]) {
+    if (combo.length === k) { result.push([...combo]); return; }
+    for (let i = start; i < n; i++) { combo.push(i); helper(i + 1, combo); combo.pop(); }
+  }
+  helper(0, []);
+  return result;
+}
+
+export function compileCavePhrases(): Token[] {
+  // positions[1] is the texture placeholder; texture variants expand it
+  const positions = ["encompassing", "<texture>", "sinuous", "straight", "objective", "arched", "cool", "clear", "dim", "driven"];
+  const TEXTURE_IDX = 1;
+  const textureVariants = ["rough", "fine"];
+  const n = 10;
+  const phrases: Token[] = [];
+  let seq = 0;
+
+  for (const k of [1, 2, 3, 4]) {
+    const subsets = combinationSubsets(n, k);
+    const ck = subsets.length;
+    const weightWithout = 20160 / (4 * ck);
+    const weightWith = 20160 / (8 * ck);
+    for (const subset of subsets) {
+      if (subset.includes(TEXTURE_IDX)) {
+        for (const tv of textureVariants) {
+          const text = subset.map((i) => (i === TEXTURE_IDX ? tv : positions[i]!)).join(" ");
+          phrases.push({ id: `cave_p${seq++}`, literal: text, role: "literal", weight: weightWith, lockedLiteral: false });
+        }
+      } else {
+        const text = subset.map((i) => positions[i]!).join(" ");
+        phrases.push({ id: `cave_p${seq++}`, literal: text, role: "literal", weight: weightWithout, lockedLiteral: false });
+      }
+    }
+  }
+  return phrases;
+}
+
+function tarokoLineDevices(): LineDevice[] {
+  return [
+    {
+      id: "ld_path",
+      name: "PATH",
+      enabled: true,
+      description: "Actor / action / object — Taroko Gorge path device.",
+      inputs: [
+        { id: "inp_path_subject", slot: "subject", tray: "path_subject", role: "noun" },
+        { id: "inp_path_verb",    slot: "verb",    tray: "trans",        role: "verb" },
+        { id: "inp_path_object",  slot: "object",  tray: "below",        role: "noun" },
+      ],
+      routes: [
+        { id: "rt_path_plural_plain",   name: "plural plain",   weight: 31, template: "{subject:plural} {verb:base} the {object:literal}." },
+        { id: "rt_path_plural_s",       name: "plural s",       weight: 31, template: "{subject:plural} {verb:base} the {object:literal+s}." },
+        { id: "rt_path_singular_plain", name: "singular plain", weight: 31, template: "{subject:singular} {verb:thirdSingular} the {object:literal}." },
+        { id: "rt_path_singular_s",     name: "singular s",     weight: 31, template: "{subject:singular} {verb:thirdSingular} the {object:literal+s}." },
+        { id: "rt_path_monkeys_plain",  name: "monkeys plain",  weight: 2,  template: "Monkeys {verb:base} the {object:literal}." },
+        { id: "rt_path_monkeys_s",      name: "monkeys s",      weight: 2,  template: "Monkeys {verb:base} the {object:literal+s}." },
+      ],
+    },
+    {
+      id: "ld_site",
+      name: "SITE",
+      enabled: true,
+      description: "Thing / state — Taroko Gorge site device.",
+      inputs: [
+        { id: "inp_site_thing", slot: "thing", tray: "site_subject", role: "noun" },
+        { id: "inp_site_state", slot: "state", tray: "intrans",      role: "verb" },
+      ],
+      routes: [
+        { id: "rt_site", name: "site", weight: 1, template: "{thing:literal+s} {state:base}." },
+      ],
+    },
+    {
+      id: "ld_cave",
+      name: "CAVE",
+      enabled: true,
+      description: "Command / phrase — Taroko Gorge cave device.",
+      inputs: [
+        { id: "inp_cave_command", slot: "command", tray: "imper",       role: "verb" },
+        { id: "inp_cave_phrase",  slot: "phrase",  tray: "cave_phrases", role: "literal" },
+      ],
+      routes: [
+        { id: "rt_cave", name: "cave", weight: 1, template: "{command:literal} the {phrase:literal} —" },
+      ],
+    },
+  ];
+}
+
+function tarokoStanzaPatterns(): StanzaPattern[] {
+  return [
+    {
+      id: "st_taroko_0",
+      name: "Taroko scene 0",
+      enabled: true,
+      description: "0 SITE slots: PATH, PATH, BREATH, CAVE, BREATH.",
+      slots: [
+        { id: "slot_t0_p1",  type: "device", deviceId: "ld_path", label: "PATH",  repeat: "once", chance: 100 },
+        { id: "slot_t0_p2",  type: "device", deviceId: "ld_path", label: "PATH",  repeat: "once", chance: 100 },
+        { id: "slot_t0_br1", type: "breath", label: "BREATH", repeat: "once", chance: 100 },
+        { id: "slot_t0_c1",  type: "device", deviceId: "ld_cave", label: "CAVE",  repeat: "once", chance: 100 },
+        { id: "slot_t0_br2", type: "breath", label: "BREATH", repeat: "once", chance: 100 },
+      ],
+    },
+    {
+      id: "st_taroko_1",
+      name: "Taroko scene 1",
+      enabled: true,
+      description: "1 SITE slot: PATH, SITE, PATH, BREATH, CAVE, BREATH.",
+      slots: [
+        { id: "slot_t1_p1",  type: "device", deviceId: "ld_path", label: "PATH",  repeat: "once", chance: 100 },
+        { id: "slot_t1_s1",  type: "device", deviceId: "ld_site", label: "SITE",  repeat: "once", chance: 100 },
+        { id: "slot_t1_p2",  type: "device", deviceId: "ld_path", label: "PATH",  repeat: "once", chance: 100 },
+        { id: "slot_t1_br1", type: "breath", label: "BREATH", repeat: "once", chance: 100 },
+        { id: "slot_t1_c1",  type: "device", deviceId: "ld_cave", label: "CAVE",  repeat: "once", chance: 100 },
+        { id: "slot_t1_br2", type: "breath", label: "BREATH", repeat: "once", chance: 100 },
+      ],
+    },
+    {
+      id: "st_taroko_2",
+      name: "Taroko scene 2",
+      enabled: true,
+      description: "2 SITE slots: PATH, SITE, SITE, PATH, BREATH, CAVE, BREATH.",
+      slots: [
+        { id: "slot_t2_p1",  type: "device", deviceId: "ld_path", label: "PATH",  repeat: "once", chance: 100 },
+        { id: "slot_t2_s1",  type: "device", deviceId: "ld_site", label: "SITE",  repeat: "once", chance: 100 },
+        { id: "slot_t2_s2",  type: "device", deviceId: "ld_site", label: "SITE",  repeat: "once", chance: 100 },
+        { id: "slot_t2_p2",  type: "device", deviceId: "ld_path", label: "PATH",  repeat: "once", chance: 100 },
+        { id: "slot_t2_br1", type: "breath", label: "BREATH", repeat: "once", chance: 100 },
+        { id: "slot_t2_c1",  type: "device", deviceId: "ld_cave", label: "CAVE",  repeat: "once", chance: 100 },
+        { id: "slot_t2_br2", type: "breath", label: "BREATH", repeat: "once", chance: 100 },
+      ],
+    },
+  ];
+}
+
 export function defaultProject(): TarokeProject {
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  const above = ["brow", "mist", "shape", "layer", "the crag", "stone", "forest", "height"];
+  const below = ["flow", "basin", "shape", "vein", "rippling", "stone", "cove", "rock"];
+  const pathSubjectWeights = [4, 4, 4, 4, 4, 4, 3, 4];
+
   const trays: TarokeProject["materials"]["trays"] = {
-    above:   ["grave", "paper-body", "unknown-box", "gateway", "baby", "office", "joint", "guardrail", "giant-hole"].map((s) => token(s, "noun")),
-    below:   ["floor", "wall", "basement", "baby", "rat", "drug", "document", "piece"].map((s) => token(s, "noun")),
-    trans:   ["carry", "push", "shake", "refuse", "flirt", "spank", "uplift", "expire"].map((s) => token(s, "verb")),
-    imper:   ["enter", "leave", "drink", "twist", "package", "mark"].map((s) => token(s, "verb")),
-    intrans: ["rush", "rise", "wait", "soak", "expire"].map((s) => token(s, "verb")),
-    texture: ["paper", "foil", "garbage", "shroud", "receipt", "sticky"].map((s) => token(s, "noun")),
-    adjs:    ["wet", "broken", "folded", "legal", "black", "exploded", "rainbow"].map((s) => token(s, "adjective")),
-    reserve: [],
+    above:        above.map((s) => token(s, "noun")),
+    below:        below.map((s) => token(s, "noun")),
+    trans:        ["command", "pace", "roam", "trail", "frame", "sweep", "exercise", "range"].map((s) => token(s, "verb")),
+    imper:        ["track", "shade", "translate", "stamp", "progress through", "direct", "run", "enter"].map((s) => token(s, "verb")),
+    intrans:      ["linger", "dwell", "rest", "relax", "hold", "dream", "hum"].map((s) => token(s, "verb")),
+    texture:      ["rough", "fine"].map((s) => token(s, "noun")),
+    cave_fixed:   ["encompassing", "sinuous", "straight", "objective", "arched", "cool", "clear", "dim", "driven"].map((s) => token(s, "adjective")),
+    path_subject: above.map((s, i) => ({ id: uid("tok"), literal: cap(s), role: "noun" as const, weight: pathSubjectWeights[i]!, lockedLiteral: false })),
+    site_subject: [
+      ...above.map((s) => ({ id: uid("tok"), literal: cap(s), role: "noun" as const, weight: 1, lockedLiteral: false })),
+      ...below.map((s) => ({ id: uid("tok"), literal: cap(s), role: "noun" as const, weight: 2, lockedLiteral: false })),
+    ],
+    cave_phrases: compileCavePhrases(),
+    reserve:      [],
   };
+
+  const bankMeta: Record<string, { label: string; role: string; desc: string }> = {
+    above:        { label: "ABOVE",        role: "noun",      desc: "Source: landscape features from above" },
+    below:        { label: "BELOW",        role: "noun",      desc: "Source: landscape features from below" },
+    trans:        { label: "TRANS",        role: "verb",      desc: "Source: transitive action verbs" },
+    imper:        { label: "IMPER",        role: "verb",      desc: "Source: imperative command verbs" },
+    intrans:      { label: "INTRANS",      role: "verb",      desc: "Source: intransitive state verbs" },
+    texture:      { label: "TEXTURE",      role: "noun",      desc: "Source: surface texture adjectives" },
+    cave_fixed:   { label: "CAVE ADJS",   role: "adjective", desc: "Source: fixed cave adjectives" },
+    path_subject: { label: "PATH SUBJECT", role: "noun",      desc: "Derived: capitalized above tokens with probability weights" },
+    site_subject: { label: "SITE SUBJECT", role: "noun",      desc: "Derived: above (weight 1) and below (weight 2) tokens capitalized" },
+    cave_phrases: { label: "CAVE PHRASES", role: "literal",   desc: "Derived: compiled adjective phrase combinations (515 entries, total weight 20160)" },
+    reserve:      { label: "RESERVE",      role: "mixed",     desc: "Reserve bank" },
+  };
+
   return {
     schemaVersion: SCHEMA_VERSION,
     project: {
-      title: "Grave sample",
-      author: "Mozare",
-      sourceTitle: "Taroko Gorge",
-      sourceUrl: "https://collection.eliterature.org/3/works/taroko-gorge/taroko-gorge.html",
-      statement: "A local-first remix machine for shaping source samples, form modulation, line devices, stanza patterns, flow scenes, triggers, output surface, and event tape.",
-      credits: "Made with TAROKE RIMIXER.",
+      title: "Taroko Gorge",
+      author: "Nick Montfort",
       language: "en",
+      sourceTitle: "Taroko Gorge — JavaScript version with links (2016)",
+      sourceUrl: "https://collection.eliterature.org/3/files/taroko-gorge/taroko-gorge.html",
+      statement: "Canonical initial example for TAROKE RIMIXER, mapped from Nick Montfort's Taroko Gorge into the existing v08 schema. Original lexical arrays are retained; operational derived banks are explicitly identified.",
+      credits: `Original Python program: 8 January 2009, Taroko Gorge National Park, Taiwan and Eva Air Flight 28. This JavaScript version, with links: 1 March 2016. Copyright (c) 2009-2016 Nick Montfort <nickm@nickm.com>\n\nPermission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.\n\nTHE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.\n\nMapped as TAROKE RIMIXER's canonical initial example by Mohammad Zare; known schema translations remain visible in the project.`,
     },
     workbench: { theme: "night", relief: "medium", density: "standard", texture: "source" },
-    materials: { trays, bankMeta: clone(TRAY_DEFS) },
+    materials: { trays, bankMeta },
     forms: { language: "en", casePolicy: "preserve", compoundPolicy: "head", overrides: {} },
-    lineDevices: classicLineDevices(),
-    stanzaPatterns: classicStanzaPatterns(),
-    flowScenes: [{ id: "sc_classic", name: "Classic scene", stanzaId: "st_classic", enabled: true, chance: 100, mode: "loop" }],
-    triggers: [{ id: "tr_box", name: "box intrusion", enabled: true, condition: { tray: "above", term: "unknown-box" }, chance: 35, action: { type: "append", text: "[BOX EVENT]" } }],
-    surface: { family: "taroko", traceMode: "hidden", theme: "night", speedMs: 1200, retention: 28, fontSize: 21, lineHeight: 1.48, showTitle: true, showSource: true, showTick: false },
+    lineDevices: tarokoLineDevices(),
+    stanzaPatterns: tarokoStanzaPatterns(),
+    flowScenes: [
+      { id: "sc_taroko_0", name: "Taroko 0 SITE", stanzaId: "st_taroko_0", enabled: true, chance: 100, mode: "loop" },
+      { id: "sc_taroko_1", name: "Taroko 1 SITE", stanzaId: "st_taroko_1", enabled: true, chance: 100, mode: "loop" },
+      { id: "sc_taroko_2", name: "Taroko 2 SITE", stanzaId: "st_taroko_2", enabled: true, chance: 100, mode: "loop" },
+    ],
+    triggers: [],
+    surface: { family: "taroko", traceMode: "hidden", theme: "night", speedMs: 1200, retention: 26, fontSize: 17, lineHeight: 1.23, showTitle: true, showSource: true, showTick: false },
     notes: [],
     meta: { createdWith: "TAROKE RIMIXER", updatedAt: new Date().toISOString() },
   };
@@ -147,7 +314,7 @@ export function migrateProject(input: unknown): TarokeProject {
     rawTrays = clone(base.materials.trays) as unknown as Record<string, unknown[]>;
   }
 
-  // D: bankMeta
+  // D: bankMeta — TRAY_DEFS > base bankMeta > k.toUpperCase() for unknown banks
   const rawBankMeta = (inp["materials"] as Record<string, unknown> | undefined)?.["bankMeta"];
   const importedBankMeta =
     rawBankMeta && typeof rawBankMeta === "object" ? clone(rawBankMeta as object) as Record<string, Record<string, string>> : {};
@@ -156,9 +323,9 @@ export function migrateProject(input: unknown): TarokeProject {
     const m = importedBankMeta[k] ?? {};
     bankMeta[k] = Object.assign(
       {
-        label: TRAY_DEFS[k]?.label ?? k.toUpperCase(),
-        role: TRAY_DEFS[k]?.role ?? "literal",
-        desc: TRAY_DEFS[k]?.desc ?? "custom sample bank",
+        label: TRAY_DEFS[k]?.label ?? base.materials.bankMeta[k]?.label ?? k.toUpperCase(),
+        role:  TRAY_DEFS[k]?.role  ?? base.materials.bankMeta[k]?.role  ?? "literal",
+        desc:  TRAY_DEFS[k]?.desc  ?? base.materials.bankMeta[k]?.desc  ?? "custom sample bank",
       },
       m,
     );

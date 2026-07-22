@@ -126,6 +126,7 @@ function InspectorBody({
                 value={ov}
                 placeholder={kept ? "(keeping literal)" : "(auto)"}
                 aria-label={`${label} override`}
+                data-form-override={`${tok!.id}:${key}`}
                 onChange={(e) => dispatch(mutateProject(setTokenOverride(project, tok!.id, key, e.target.value)))}
               />
             </div>

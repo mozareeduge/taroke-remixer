@@ -237,3 +237,63 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  # ── taroke-final-visual-evidence ──────────────────────────────
+  taroke-final-visual-evidence:
+    name: taroke-final-visual-evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: v08-build-next
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/workbench
+      - name: Download /next/ build
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: next/
+      - name: Serve build and capture screenshots at canonical viewports
+        run: |
+          mkdir -p visual-evidence
+          npx --yes serve next/ --listen 4173 &
+          sleep 4
+          node --input-type=module << 'EOF'
+          import { chromium } from '@playwright/test';
+          import { writeFileSync, mkdirSync } from 'fs';
+          const out = 'visual-evidence';
+          mkdirSync(out, { recursive: true });
+          const viewports = [
+            { name: 'desktop-1440x900', width: 1440, height: 900 },
+            { name: 'desktop-1024x768', width: 1024, height: 768 },
+            { name: 'mobile-390x844',   width: 390,  height: 844 },
+            { name: 'mobile-844x390',   width: 844,  height: 390 },
+          ];
+          const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+          for (const vp of viewports) {
+            const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
+            await page.goto('http://localhost:4173/next/', { timeout: 15000 });
+            await page.waitForTimeout(1500);
+            await page.screenshot({ path: `${out}/${vp.name}.png` });
+            await page.close();
+          }
+          await browser.close();
+          const sha = process.env.GITHUB_SHA ?? 'unknown';
+          writeFileSync(`${out}/manifest.json`, JSON.stringify({ sha, viewports: viewports.map(v => v.name), generated_at: new Date().toISOString() }, null, 2));
+          console.log('taroke-final-visual-evidence: captured', viewports.length, 'screenshots for SHA', sha);
+          EOF
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: /root/.cache/ms-playwright
+      - name: Upload visual evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: taroke-final-visual-evidence
+          path: visual-evidence/
+          retention-days: 14

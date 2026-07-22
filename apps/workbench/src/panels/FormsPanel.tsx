@@ -1,16 +1,7 @@
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
-import { setCasePolicy, setCompoundPolicy, setTokenOverride } from "../store/commands.js";
-import { formToken, KEEP_UNCHANGED_SENTINEL } from "@taroke/core";
-
-const ROLE_FORMS: Record<string, { key: string; label: string }[]> = {
-  noun:      [{ key: "literal", label: "Literal" }, { key: "singular", label: "Singular" }, { key: "plural", label: "Plural" }],
-  verb:      [{ key: "literal", label: "Literal" }, { key: "thirdSingular", label: "3rd singular" }, { key: "imperative", label: "Imperative" }],
-  adjective: [{ key: "literal", label: "Literal" }],
-  adverb:    [{ key: "literal", label: "Literal" }],
-  mixed:     [{ key: "literal", label: "Literal" }],
-};
-const DEFAULT_FORMS = [{ key: "literal", label: "Literal" }];
+import { setCasePolicy, setCompoundPolicy } from "../store/commands.js";
+import { openInspector } from "../store/editorSlice.js";
 
 export function FormsPanel() {
   const dispatch = useAppDispatch();
@@ -31,23 +22,6 @@ export function FormsPanel() {
     primary?.type === "token" && primary.bankName === activeBank
       ? (project.materials.trays[primary.bankName]?.find((t) => t.id === primary.tokenId) ?? null)
       : null;
-  const forms = ROLE_FORMS[bankRole] ?? DEFAULT_FORMS;
-
-  function getOverride(tokId: string, form: string): string {
-    const ov = (project.forms?.overrides?.[tokId] as Record<string, string> | undefined) ?? {};
-    const v = ov[form];
-    return v === KEEP_UNCHANGED_SENTINEL ? "" : (v ?? "");
-  }
-  function isKept(tokId: string, form: string): boolean {
-    const ov = (project.forms?.overrides?.[tokId] as Record<string, string> | undefined) ?? {};
-    return ov[form] === KEEP_UNCHANGED_SENTINEL;
-  }
-  function toggleKeep(tokId: string, form: string, currently: boolean) {
-    dispatch(mutateProject(setTokenOverride(project, tokId, form, currently ? "" : KEEP_UNCHANGED_SENTINEL)));
-  }
-  function setOverride(tokId: string, form: string, val: string) {
-    dispatch(mutateProject(setTokenOverride(project, tokId, form, val)));
-  }
 
   return (
     <div className="tr-panel tr-panel--forms">
@@ -98,63 +72,32 @@ export function FormsPanel() {
           </div>
         )}
 
-        {selectedToken ? (
-          <div className="tr-forms__sample-editor">
-            <div className="tr-panel__section-head">
-              SAMPLE EXCEPTION — {selectedToken.literal}
-            </div>
-            <p className="tr-forms__hint">
-              Override inflection for "{selectedToken.literal}" ({bankRole}). "Keep unchanged" preserves the literal for that form.
-            </p>
-            <div className="tr-forms" role="group" aria-label={`Form overrides for ${selectedToken.literal}`}>
-              {forms.map(({ key, label }) => {
-                const kept = isKept(selectedToken.id, key);
-                const ov = getOverride(selectedToken.id, key);
-                const preview = formToken(project, selectedToken, key);
-                return (
-                  <div key={key} className="tr-form-row" data-form={key}>
-                    <label className="tr-form-row__label" htmlFor={`form-${selectedToken.id}-${key}`}>{label}</label>
-                    <span className="tr-form-row__preview" aria-label={`Preview: ${preview}`}>{preview}</span>
-                    <label className="tr-form-row__keep" title="Keep text unchanged — preserves literal regardless of inflection">
-                      <input
-                        type="checkbox"
-                        checked={kept}
-                        onChange={() => toggleKeep(selectedToken.id, key, kept)}
-                        aria-label={`Keep ${label} unchanged for ${selectedToken.literal}`}
-                      />
-                      {" "}Keep unchanged
-                    </label>
-                    <input
-                      id={`form-${selectedToken.id}-${key}`}
-                      className="tr-form-row__input"
-                      type="text"
-                      disabled={kept}
-                      value={ov}
-                      placeholder={kept ? "(keeping literal)" : "(auto)"}
-                      aria-label={`${label} override for ${selectedToken.literal}`}
-                      data-form-override={`${selectedToken.id}:${key}`}
-                      onChange={(e) => setOverride(selectedToken.id, key, e.target.value)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : activeBank ? (
-          <div className="tr-forms__bank-context">
-            <div className="tr-panel__section-head">OVERRIDES</div>
+        <div className="tr-forms__bank-context">
+          <div className="tr-panel__section-head">OVERRIDES</div>
+          {selectedToken ? (
+            <>
+              <p className="tr-forms__desc">
+                Selected: <strong>{selectedToken.literal}</strong>
+              </p>
+              <button
+                className="tr-btn tr-btn--ghost tr-btn--sm"
+                onClick={() => dispatch(openInspector())}
+                aria-label={`Edit form exceptions for ${selectedToken.literal} in Details`}
+              >
+                Edit in Details
+              </button>
+            </>
+          ) : activeBank ? (
             <p className="tr-forms__desc">
               Select a sample in Banks &amp; Samples to edit its form exceptions here.
             </p>
-          </div>
-        ) : (
-          <div className="tr-forms__bank-context">
-            <div className="tr-panel__section-head">OVERRIDES</div>
+          ) : (
             <p className="tr-forms__desc">
               Select a bank or sample to see context-relevant form exceptions.
             </p>
-          </div>
-        )}
+          )}
+        </div>
+
       </div>
     </div>
   );
