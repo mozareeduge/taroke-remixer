@@ -4,7 +4,7 @@ enablePatches();
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
-import projectReducer from "../../store/projectSlice.js";
+import projectReducer, { mutateProject } from "../../store/projectSlice.js";
 import selectionReducer, { selectBank, selectDevice, selectTrigger } from "../../store/selectionSlice.js";
 import editorReducer from "../../store/editorSlice.js";
 import runtimeReducer from "../../store/runtimeSlice.js";
@@ -13,6 +13,7 @@ import importReceiptReducer, { showReceipt } from "../../store/importReceiptSlic
 import { ImportReceiptBanner } from "../../panels/ImportReceiptBanner.js";
 import takesReducer from "../../store/takesSlice.js";
 import surfaceReducer from "../../store/surfaceSlice.js";
+import { PHASE_A_NEUTRAL_TEST_FIXTURE } from "../neutral-test-fixture.js";
 import { MaterialsPanel } from "../../panels/MaterialsPanel.js";
 import { FormsPanel } from "../../panels/FormsPanel.js";
 import { InstrumentsPanel } from "../../panels/InstrumentsPanel.js";
@@ -38,6 +39,12 @@ function makeStore() {
 
 function wrap(ui: React.ReactElement, store = makeStore()) {
   return { ...render(<Provider store={store}>{ui}</Provider>), store };
+}
+
+function makeStoreWithFixture() {
+  const store = makeStore();
+  store.dispatch(mutateProject({ present: PHASE_A_NEUTRAL_TEST_FIXTURE, patches: [], inversePatches: [], label: "load fixture" }));
+  return store;
 }
 
 // ── MaterialsPanel ─────────────────────────────────────────────────────────────
@@ -189,7 +196,7 @@ describe("CompositionPanel", () => {
 
   it("lists default stanza pattern", () => {
     wrap(<CompositionPanel />);
-    expect(screen.getAllByText("Classic Taroko stanza").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Taroko scene/i).length).toBeGreaterThan(0);
   });
 
   it("shows slots for selected stanza", () => {
@@ -243,42 +250,41 @@ describe("AutomationPanel", () => {
   });
 
   it("shows default trigger in summary row", () => {
-    wrap(<AutomationPanel />);
-    // The summary text contains WHEN...THEN structure including trigger condition
+    // Load fixture which has trig_1
+    wrap(<AutomationPanel />, makeStoreWithFixture());
     const summaries = screen.queryAllByRole("button", { name: /WHEN .* THEN/i });
     expect(summaries.length).toBeGreaterThan(0);
   });
 
   // R3: collapsed trigger rows with readable summary
   it("R3: collapsed trigger row shows readable WHEN→Chance→THEN summary", () => {
-    wrap(<AutomationPanel />);
-    // Summary button has aria-label with the full summary text
+    wrap(<AutomationPanel />, makeStoreWithFixture());
     const summaryBtns = screen.queryAllByRole("button", { name: /WHEN .* → .* → THEN/i });
     expect(summaryBtns.length).toBeGreaterThan(0);
   });
 
   it("selected trigger shows WHEN and THEN labels in editor", () => {
-    const store = makeStore();
-    store.dispatch(selectTrigger("tr_box"));
+    const store = makeStoreWithFixture();
+    store.dispatch(selectTrigger("trig_1"));
     wrap(<AutomationPanel />, store);
     expect(screen.getAllByText("WHEN").length).toBeGreaterThan(0);
     expect(screen.getAllByText("THEN").length).toBeGreaterThan(0);
   });
 
   it("toggling trigger enabled dispatches command", () => {
-    const store = makeStore();
-    store.dispatch(selectTrigger("tr_box"));
+    const store = makeStoreWithFixture();
+    store.dispatch(selectTrigger("trig_1"));
     wrap(<AutomationPanel />, store);
-    // The pill shows ON; toggling changes it
+    // The pill shows Enabled; toggling changes it
     const toggleBtn = screen.getByText("Enabled");
     fireEvent.click(toggleBtn);
-    const trigger = store.getState().project.present.triggers.find((t) => t.id === "tr_box");
+    const trigger = store.getState().project.present.triggers.find((t) => t.id === "trig_1");
     expect(trigger?.enabled).toBe(false);
   });
 
   // R6: No bare ✕ in triggers
   it("R6: trigger remove uses written text not bare ✕", () => {
-    wrap(<AutomationPanel />);
+    wrap(<AutomationPanel />, makeStoreWithFixture());
     const xButtons = screen.queryAllByRole("button", { name: /^✕$/ });
     expect(xButtons.length).toBe(0);
     const removeBtns = screen.queryAllByRole("button", { name: /remove trigger/i });
@@ -386,7 +392,7 @@ describe("ArchivePanel", () => {
   it("shows project info table", () => {
     wrap(<ArchivePanel />);
     expect(screen.getByText("Title")).toBeInTheDocument();
-    expect(screen.getByText("Grave sample")).toBeInTheDocument();
+    expect(screen.getByText("Taroko Gorge")).toBeInTheDocument();
   });
 
   // R5: EXPORT first, IMPORT second, PREVIEW third

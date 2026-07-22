@@ -154,15 +154,15 @@ test("6 — Composition: slot drag-handle buttons exist for the active pattern",
   expect(count, "Expected drag-handle buttons for slot reorder").toBeGreaterThan(0);
 });
 
-// ── 7. Automation: WHEN→THEN trigger format ────────────────────────────────────
+// ── 7. Automation: TRIGGERS section and add affordance present ─────────────────
 
-test("7 — Automation: WHEN→THEN trigger readable format present", async ({ page }) => {
+test("7 — Automation: TRIGGERS section heading and add-trigger affordance present", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Automation");
   await expect(page.getByText("TRIGGERS").first()).toBeVisible();
-  // Default trigger uses WHEN / THEN labels
-  await expect(page.getByText("WHEN").first()).toBeVisible();
-  await expect(page.getByText("THEN").first()).toBeVisible();
+  // Add-trigger button must always be present (even with empty trigger list)
+  const addBtn = page.getByRole("button", { name: /\+ Trigger/i });
+  await expect(addBtn).toBeVisible();
 });
 
 // ── 8. Performance: Cue does NOT write to Surface ──────────────────────────────
@@ -464,9 +464,9 @@ test("23 — Forms: case policy select is present and editable", async ({ page }
   await expect(caseSelect).toHaveValue("lower");
 });
 
-// ── 24. Forms: form override inputs appear after selecting a token from Materials ─
+// ── 24. Inspector: form override inputs appear after selecting a token ─────────
 
-test("24 — Forms: form override inputs appear after selecting a token from Materials", async ({ page }) => {
+test("24 — Inspector: form override inputs appear after selecting a token from Materials", async ({ page }) => {
   await goto(page);
   // Navigate to Materials, select a bank, then click the literal span in the first token row
   // (clicking the literal span avoids table pointer-event interception on draggable rows)
@@ -479,13 +479,11 @@ test("24 — Forms: form override inputs appear after selecting a token from Mat
     await firstLiteral.click();
     await page.waitForTimeout(200);
   }
-  // Open Forms — when a token is selected, the SAMPLE EXCEPTION editor appears
-  // with data-form-override inputs for each form key
-  await clickNav(page, "Forms");
-  await expect(page.getByText("FORMS").first()).toBeVisible();
+  // data-form-override inputs are in the Inspector (the sole full editor for form exceptions).
+  // The Inspector DOM is present regardless of open/closed state; in docked mode it is always visible.
   const overrideInputs = page.locator("[data-form-override]");
   const count = await overrideInputs.count();
-  expect(count, "Expected form override inputs after selecting a token in Materials").toBeGreaterThan(0);
+  expect(count, "Expected data-form-override inputs in Inspector after selecting a token").toBeGreaterThan(0);
 });
 
 // ── 25. Instruments: route variable chips insert at caret ─────────────────────

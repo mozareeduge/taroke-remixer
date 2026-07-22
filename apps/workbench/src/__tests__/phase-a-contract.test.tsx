@@ -120,7 +120,8 @@ describe("FormsPanel: form ownership (T02.B)", () => {
       label: "load fixture",
     }));
     store.dispatch(selectToken({ bankName: "nouns", tokenId: "tok_n1" }));
-    wrap(<FormsPanel />, store);
+    // data-form-override is in Inspector (not FormsPanel); Inspector is the sole full editor
+    wrap(<Inspector />, store);
     expect(document.querySelector("[data-form-override]")).not.toBeNull();
   });
 });
