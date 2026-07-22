@@ -270,14 +270,21 @@ jobs:
           PREVIEW_PID=$!
 
           # Wait for http://127.0.0.1:4173/next/ to return HTTP 200 before opening a browser
+          PREVIEW_READY=0
           for i in $(seq 1 30); do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4173/next/ 2>/dev/null || echo "0")
             if [ "$STATUS" = "200" ]; then
               echo "Preview ready after ${i}s"
+              PREVIEW_READY=1
               break
             fi
             sleep 1
           done
+          if [ "$PREVIEW_READY" != "1" ]; then
+            echo "ERROR: http://127.0.0.1:4173/next/ did not return HTTP 200 after 30 attempts" >&2
+            kill $PREVIEW_PID 2>/dev/null || true
+            exit 1
+          fi
 
           # Capture canonical viewports and representative journeys
           node --input-type=module << 'JSEOF'
@@ -302,6 +309,7 @@ jobs:
 
           const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] });
           const captures = [];
+          let firstObservedTitle = null;
 
           for (const vp of viewports) {
             const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
@@ -309,6 +317,16 @@ jobs:
             // (a) Canonical Taroko default identity/state
             await page.goto('http://127.0.0.1:4173/next/', { waitUntil: 'networkidle', timeout: 20000 });
             await page.waitForTimeout(1000);
+
+            // Assert canonical identity before taking the screenshot
+            const nameEl = page.locator('.tr-transport__name');
+            await nameEl.waitFor({ timeout: 5000 });
+            const observedTitle = ((await nameEl.textContent()) ?? '').trim();
+            if (observedTitle !== 'Taroko Gorge') {
+              throw new Error(`Identity assertion failed for ${vp.name}: expected "Taroko Gorge" but got "${observedTitle}"`);
+            }
+            if (firstObservedTitle === null) firstObservedTitle = observedTitle;
+
             const identityFile = `${vp.name}-identity.png`;
             const identityPath = `${out}/${identityFile}`;
             await page.screenshot({ path: identityPath });
@@ -318,12 +336,13 @@ jobs:
               file: identityFile,
               viewport: { width: vp.width, height: vp.height },
               journey: 'canonical-taroko-default-identity',
+              observed_title: observedTitle,
               bytes: identityStats.size,
               sha256: identityHash,
             });
 
-            // (b) Performance surface after producing representative PATH/SITE/CAVE output
-            // Navigate to Performance and generate events
+            // (b) Performance surface — deterministically observe PATH, SITE, and CAVE devices
+            // Navigate to Performance
             const perfBtn = page.getByRole('button', { name: 'Perform' });
             if (await perfBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
               await perfBtn.click();
@@ -335,13 +354,50 @@ jobs:
               }
             }
             await page.waitForTimeout(300);
+
             const genBtn = page.getByRole('button', { name: /Surface: generate/i });
-            if (await genBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-              for (let i = 0; i < 12; i++) {
-                await genBtn.click();
-                await page.waitForTimeout(120);
+            if (!(await genBtn.isVisible({ timeout: 3000 }).catch(() => false))) {
+              throw new Error(`Generate button not found for viewport ${vp.name}`);
+            }
+
+            const requiredDevices = ['PATH', 'SITE', 'CAVE'];
+            const observedDevices = new Set();
+            const maxAttempts = 80;
+
+            for (let attempt = 0; attempt < maxAttempts && observedDevices.size < requiredDevices.length; attempt++) {
+              const prevSelectedText = await page.locator('.tr-surface__line--selected').textContent().catch(() => null);
+              const linesBefore = await page.locator('.tr-surface__line').count();
+
+              await genBtn.click();
+              await page.waitForTimeout(200);
+
+              const linesAfter = await page.locator('.tr-surface__line').count();
+              const newSelectedText = await page.locator('.tr-surface__line--selected').textContent().catch(() => null);
+
+              // A new line was created when count grew (below retention) or selection text changed (at retention limit)
+              const newLineCreated = linesAfter > linesBefore ||
+                (newSelectedText !== null && newSelectedText !== prevSelectedText);
+
+              if (newLineCreated) {
+                // Read Device value from UNMIX for the auto-selected record
+                const rows = page.locator('.tr-unmix__row');
+                const rowCount = await rows.count();
+                for (let r = 0; r < rowCount; r++) {
+                  const label = ((await rows.nth(r).locator('.tr-unmix__label').textContent().catch(() => '')) ?? '').trim();
+                  if (label === 'Device') {
+                    const device = ((await rows.nth(r).locator('.tr-unmix__value').textContent().catch(() => '')) ?? '').trim();
+                    if (device) observedDevices.add(device);
+                    break;
+                  }
+                }
               }
             }
+
+            const missingDevices = requiredDevices.filter(d => !observedDevices.has(d));
+            if (missingDevices.length > 0) {
+              throw new Error(`Performance evidence incomplete for ${vp.name}: missing devices ${missingDevices.join(', ')} (observed: ${[...observedDevices].join(', ')})`);
+            }
+
             await page.waitForTimeout(500);
             const perfFile = `${vp.name}-performance.png`;
             const perfPath = `${out}/${perfFile}`;
@@ -352,6 +408,7 @@ jobs:
               file: perfFile,
               viewport: { width: vp.width, height: vp.height },
               journey: 'performance-surface-path-site-cave-output',
+              observed_devices: [...observedDevices],
               bytes: perfStats.size,
               sha256: perfHash,
             });
@@ -392,16 +449,12 @@ jobs:
 
           await browser.close();
 
-          // Obtain canonical Taroko default identity from project metadata
-          // (read from a static page load; use the h1 + title text as identity string)
-          const defaultIdentity = 'Taroko Gorge / Nick Montfort';
-
           const manifest = {
             head_sha: headSha,
             ...(mergeSha ? { tested_merge_sha: mergeSha } : {}),
             repository,
             ...(prNumber ? { pr_number: parseInt(prNumber, 10) } : {}),
-            default_identity: defaultIdentity,
+            default_identity: firstObservedTitle,
             generated_at: new Date().toISOString(),
             captures,
           };
@@ -412,7 +465,6 @@ jobs:
 
           kill $PREVIEW_PID 2>/dev/null || true
         env:
-          PLAYWRIGHT_BROWSERS_PATH: /root/.cache/ms-playwright
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           MERGE_SHA: ${{ github.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
