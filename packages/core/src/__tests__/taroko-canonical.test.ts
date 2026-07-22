@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { defaultProject, compileCavePhrases } from "../migration.js";
+import { defaultProject, compileCavePhrases, migrateProject } from "../migration.js";
 
 describe("Taroko canonical default project", () => {
   it("title and author match manifest", () => {
@@ -123,5 +123,154 @@ describe("Taroko canonical default project", () => {
     const p = defaultProject();
     expect(p.project.title).not.toMatch(/grave/i);
     expect(p.project.author).not.toMatch(/mozare/i);
+  });
+});
+
+// ── Stable canonical IDs ───────────────────────────────────────────────────────
+
+describe("defaultProject stable canonical IDs", () => {
+  it("two independent calls produce identical token IDs for all source banks", () => {
+    const a = defaultProject();
+    const b = defaultProject();
+    for (const bank of ["above", "below", "trans", "imper", "intrans", "texture", "cave_fixed"]) {
+      const idsA = a.materials.trays[bank]!.map((t) => t.id);
+      const idsB = b.materials.trays[bank]!.map((t) => t.id);
+      expect(idsA, `${bank} IDs must be stable`).toEqual(idsB);
+    }
+  });
+
+  it("two independent calls produce identical token IDs for all derived banks", () => {
+    const a = defaultProject();
+    const b = defaultProject();
+    for (const bank of ["imper_cap", "path_subject", "site_subject"]) {
+      const idsA = a.materials.trays[bank]!.map((t) => t.id);
+      const idsB = b.materials.trays[bank]!.map((t) => t.id);
+      expect(idsA, `${bank} IDs must be stable`).toEqual(idsB);
+    }
+  });
+
+  it("two independent calls produce structurally identical projects (excluding updatedAt)", () => {
+    const a = defaultProject();
+    const b = defaultProject();
+    // Strip the timestamp field before comparing
+    const stripTs = (p: ReturnType<typeof defaultProject>) => ({ ...p, meta: { ...p.meta, updatedAt: "" } });
+    expect(stripTs(a)).toEqual(stripTs(b));
+  });
+
+  it("all token IDs across all banks in defaultProject are unique", () => {
+    const p = defaultProject();
+    const allIds: string[] = [];
+    for (const bank of Object.keys(p.materials.trays)) {
+      for (const tok of p.materials.trays[bank]!) {
+        allIds.push(tok.id);
+      }
+    }
+    expect(new Set(allIds).size, "All token IDs must be unique").toBe(allIds.length);
+  });
+
+  it("source token IDs follow expected prefix pattern", () => {
+    const p = defaultProject();
+    const above = p.materials.trays["above"]!;
+    expect(above[0]!.id).toBe("tok_above_0");
+    expect(above[7]!.id).toBe("tok_above_7");
+    const imper = p.materials.trays["imper"]!;
+    expect(imper[0]!.id).toBe("tok_imper_0");
+    expect(imper[4]!.id).toBe("tok_imper_4");
+    const imperCap = p.materials.trays["imper_cap"]!;
+    expect(imperCap[0]!.id).toBe("tok_imper_cap_0");
+    expect(imperCap[4]!.id).toBe("tok_imper_cap_4");
+  });
+
+  it("migrateProject(defaultProject()) preserves all stable token IDs", () => {
+    const original = defaultProject();
+    const migrated = migrateProject(original);
+    for (const bank of Object.keys(original.materials.trays)) {
+      const origIds = original.materials.trays[bank]!.map((t) => t.id);
+      const migrIds = migrated.materials.trays[bank]!.map((t) => t.id);
+      expect(migrIds, `${bank} IDs must survive round-trip migration`).toEqual(origIds);
+    }
+  });
+
+  it("double migration is idempotent on IDs (deterministic export/import)", () => {
+    const once = migrateProject(defaultProject());
+    const twice = migrateProject(once);
+    for (const bank of Object.keys(once.materials.trays)) {
+      const idsOnce = once.materials.trays[bank]!.map((t) => t.id);
+      const idsTwice = twice.materials.trays[bank]!.map((t) => t.id);
+      expect(idsTwice, `${bank} IDs must be idempotent after double migration`).toEqual(idsOnce);
+    }
+  });
+});
+
+// ── CAVE capitalization ────────────────────────────────────────────────────────
+
+describe("CAVE capitalization (imper source + imper_cap operational)", () => {
+  it("imper source bank preserves exact lowercase literals", () => {
+    const p = defaultProject();
+    const imper = p.materials.trays["imper"]!.map((t) => t.literal);
+    expect(imper).toEqual(
+      ["track", "shade", "translate", "stamp", "progress through", "direct", "run", "enter"],
+    );
+  });
+
+  it("imper_cap bank has 8 tokens with equal weights", () => {
+    const p = defaultProject();
+    const imperCap = p.materials.trays["imper_cap"]!;
+    expect(imperCap).toHaveLength(8);
+    for (const t of imperCap) expect(t.weight).toBe(1);
+  });
+
+  it("imper_cap literals are first-char-capitalized from imper (not title case)", () => {
+    const p = defaultProject();
+    const imper = p.materials.trays["imper"]!.map((t) => t.literal);
+    const imperCap = p.materials.trays["imper_cap"]!.map((t) => t.literal);
+    for (let i = 0; i < imper.length; i++) {
+      const src = imper[i]!;
+      const cap = imperCap[i]!;
+      expect(cap).toBe(src.charAt(0).toUpperCase() + src.slice(1));
+    }
+  });
+
+  it("progress through capitalizes only the first character (not title case)", () => {
+    const p = defaultProject();
+    const imperCap = p.materials.trays["imper_cap"]!;
+    const progressThrough = imperCap.find((t) => t.literal.startsWith("Progress"));
+    expect(progressThrough?.literal).toBe("Progress through");
+    expect(progressThrough?.literal).not.toBe("Progress Through");
+  });
+
+  it("CAVE device command input routes through imper_cap bank", () => {
+    const p = defaultProject();
+    const cave = p.lineDevices.find((d) => d.id === "ld_cave")!;
+    const commandInput = cave.inputs.find((i) => i.slot === "command")!;
+    expect(commandInput.tray).toBe("imper_cap");
+  });
+
+  it("imper_cap bank metadata labels it as IMPER CAP derived bank", () => {
+    const p = defaultProject();
+    const meta = p.materials.bankMeta["imper_cap"]!;
+    expect(meta.label).toBe("IMPER CAP");
+    expect(meta.role).toBe("verb");
+    expect(meta.desc).toMatch(/[Dd]erived/);
+  });
+
+  it("CAVE imper_cap token first chars match source imper first chars capitalized (deterministic)", () => {
+    const p = defaultProject();
+    const imper = p.materials.trays["imper"]!;
+    const imperCap = p.materials.trays["imper_cap"]!;
+    for (let i = 0; i < imper.length; i++) {
+      const expectedFirstChar = imper[i]!.literal.charAt(0).toUpperCase();
+      const actualFirstChar = imperCap[i]!.literal.charAt(0);
+      expect(actualFirstChar, `imper_cap[${i}] must start with uppercase char`).toBe(expectedFirstChar);
+    }
+  });
+
+  it("imper_cap and imper have different IDs to ensure token uniqueness", () => {
+    const p = defaultProject();
+    const imperIds = new Set(p.materials.trays["imper"]!.map((t) => t.id));
+    const imperCapIds = p.materials.trays["imper_cap"]!.map((t) => t.id);
+    for (const id of imperCapIds) {
+      expect(imperIds.has(id), `imper_cap ID ${id} must not collide with imper IDs`).toBe(false);
+    }
   });
 });

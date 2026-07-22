@@ -181,8 +181,21 @@ describe("commands — line devices", () => {
 });
 
 describe("commands — triggers", () => {
-  it("setTriggerCondition updates condition", () => {
+  function projectWithTrigger() {
     const p = defaultProject();
+    p.triggers.push({
+      id: "trig_test_0",
+      name: "box intrusion",
+      enabled: true,
+      condition: { tray: "above", term: "mist" },
+      chance: 100,
+      action: { type: "append", text: " ..." },
+    });
+    return p;
+  }
+
+  it("setTriggerCondition updates condition", () => {
+    const p = projectWithTrigger();
     const tr = p.triggers[0]!;
     const result = setTriggerCondition(p, tr.id, "below", "floor");
     const updated = result.present.triggers.find((t) => t.id === tr.id)!;
@@ -191,14 +204,14 @@ describe("commands — triggers", () => {
   });
 
   it("setTriggerChance updates chance", () => {
-    const p = defaultProject();
+    const p = projectWithTrigger();
     const tr = p.triggers[0]!;
     const result = setTriggerChance(p, tr.id, 75);
     expect(result.present.triggers.find((t) => t.id === tr.id)!.chance).toBe(75);
   });
 
   it("toggleTriggerEnabled flips trigger enabled state", () => {
-    const p = defaultProject();
+    const p = projectWithTrigger();
     const tr = p.triggers[0]!;
     expect(tr.enabled).toBe(true);
     const result = toggleTriggerEnabled(p, tr.id);

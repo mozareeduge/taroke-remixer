@@ -272,7 +272,7 @@ test("11 — Performance: Surface Generate → UNMIX appears → Capture Take �
   await page.waitForTimeout(200);
 
   // TAKES section must appear with the captured take
-  await expect(page.getByText("TAKES")).toBeVisible();
+  await expect(page.locator("#takes-head")).toBeVisible();
 });
 
 // ── 12. Archive: export buttons visible ────────────────────────────────────────
@@ -1023,11 +1023,12 @@ test("47 — Composition: undo after slot reorder restores previous slot order",
   await clickNav(page, "Composition");
   await expect(page.getByText("SLOTS").first()).toBeVisible();
 
-  const slotLabels = page.locator(".tr-slot__type");
-  const count = await slotLabels.count();
+  const slotRows = page.locator("[data-slot-id]");
+  const count = await slotRows.count();
   if (count < 2) return; // Can't test reorder with < 2 slots
 
-  const beforeFirst = await slotLabels.first().textContent();
+  // Record slot identity (id attribute) rather than label text — adjacent slots may share the same label
+  const beforeFirstId = await slotRows.first().getAttribute("data-slot-id");
 
   // Use keyboard drag: focus the first drag-handle, Space to pick up, ArrowDown to move, Space to drop
   const dragHandles = page.getByRole("button", { name: /Reorder slot/i });
@@ -1038,15 +1039,15 @@ test("47 — Composition: undo after slot reorder restores previous slot order",
   await page.keyboard.press("Space");
   await page.waitForTimeout(200);
 
-  const afterMove = await slotLabels.first().textContent();
-  expect(afterMove, "Slot must have moved").not.toBe(beforeFirst);
+  const afterMoveId = await slotRows.first().getAttribute("data-slot-id");
+  expect(afterMoveId, "Slot must have moved (first slot id must change)").not.toBe(beforeFirstId);
 
   // Undo via Ctrl+Z
   await page.keyboard.press("Control+z");
   await page.waitForTimeout(300);
 
-  const afterUndo = await slotLabels.first().textContent();
-  expect(afterUndo, "Undo must restore original slot order").toBe(beforeFirst);
+  const afterUndoId = await slotRows.first().getAttribute("data-slot-id");
+  expect(afterUndoId, "Undo must restore original slot order").toBe(beforeFirstId);
 });
 
 // ── 48. Archive: Project Info reflects the current project ────────────────────

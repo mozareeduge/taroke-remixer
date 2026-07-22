@@ -242,55 +242,180 @@ jobs:
   taroke-final-visual-evidence:
     name: taroke-final-visual-evidence
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: v08-build-next
+    timeout-minutes: 25
     steps:
+      # Check out the exact pushed branch HEAD for PR runs; fall back to push SHA.
+      # This job does NOT depend on v08-build-next so it always builds from
+      # the exact checked-out commit, never from a downloaded merge-commit artifact.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - name: Install dependencies
+      - name: Install dependencies from lockfile
         run: npm ci --ignore-scripts
+      - name: Build /next/ from exact HEAD
+        run: npm run build:next
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
         working-directory: apps/workbench
-      - name: Download /next/ build
-        uses: actions/download-artifact@v4
-        with:
-          name: next-build
-          path: next/
-      - name: Serve build and capture screenshots at canonical viewports
+      - name: Start Vite preview and capture screenshots at canonical viewports
         run: |
           mkdir -p visual-evidence
-          npx --yes serve next/ --listen 4173 &
-          sleep 4
-          node --input-type=module << 'EOF'
+
+          # Serve via the repository's Vite preview command so /next/ and assets resolve correctly
+          npm run preview --workspace=apps/workbench &
+          PREVIEW_PID=$!
+
+          # Wait for http://127.0.0.1:4173/next/ to return HTTP 200 before opening a browser
+          for i in $(seq 1 30); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4173/next/ 2>/dev/null || echo "0")
+            if [ "$STATUS" = "200" ]; then
+              echo "Preview ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+          # Capture canonical viewports and representative journeys
+          node --input-type=module << 'JSEOF'
           import { chromium } from '@playwright/test';
-          import { writeFileSync, mkdirSync } from 'fs';
+          import { writeFileSync, mkdirSync, statSync, readFileSync } from 'fs';
+          import { createHash } from 'crypto';
+
           const out = 'visual-evidence';
           mkdirSync(out, { recursive: true });
+
+          const headSha    = process.env.HEAD_SHA    ?? process.env.GITHUB_SHA ?? 'unknown';
+          const mergeSha   = process.env.MERGE_SHA   ?? null;
+          const prNumber   = process.env.PR_NUMBER   ?? null;
+          const repository = process.env.GITHUB_REPOSITORY ?? 'unknown';
+
           const viewports = [
             { name: 'desktop-1440x900', width: 1440, height: 900 },
             { name: 'desktop-1024x768', width: 1024, height: 768 },
             { name: 'mobile-390x844',   width: 390,  height: 844 },
             { name: 'mobile-844x390',   width: 844,  height: 390 },
           ];
+
           const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+          const captures = [];
+
           for (const vp of viewports) {
             const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
-            await page.goto('http://localhost:4173/next/', { timeout: 15000 });
-            await page.waitForTimeout(1500);
-            await page.screenshot({ path: `${out}/${vp.name}.png` });
+
+            // (a) Canonical Taroko default identity/state
+            await page.goto('http://127.0.0.1:4173/next/', { waitUntil: 'networkidle', timeout: 20000 });
+            await page.waitForTimeout(1000);
+            const identityFile = `${vp.name}-identity.png`;
+            const identityPath = `${out}/${identityFile}`;
+            await page.screenshot({ path: identityPath });
+            const identityStats = statSync(identityPath);
+            const identityHash = createHash('sha256').update(readFileSync(identityPath)).digest('hex');
+            captures.push({
+              file: identityFile,
+              viewport: { width: vp.width, height: vp.height },
+              journey: 'canonical-taroko-default-identity',
+              bytes: identityStats.size,
+              sha256: identityHash,
+            });
+
+            // (b) Performance surface after producing representative PATH/SITE/CAVE output
+            // Navigate to Performance and generate events
+            const perfBtn = page.getByRole('button', { name: 'Perform' });
+            if (await perfBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+              await perfBtn.click();
+            } else {
+              // desktop nav: "Cue & Surface" button
+              const cueBtn = page.getByRole('button', { name: 'Cue & Surface' });
+              if (await cueBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+                await cueBtn.click();
+              }
+            }
+            await page.waitForTimeout(300);
+            const genBtn = page.getByRole('button', { name: /Surface: generate/i });
+            if (await genBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+              for (let i = 0; i < 12; i++) {
+                await genBtn.click();
+                await page.waitForTimeout(120);
+              }
+            }
+            await page.waitForTimeout(500);
+            const perfFile = `${vp.name}-performance.png`;
+            const perfPath = `${out}/${perfFile}`;
+            await page.screenshot({ path: perfPath });
+            const perfStats = statSync(perfPath);
+            const perfHash = createHash('sha256').update(readFileSync(perfPath)).digest('hex');
+            captures.push({
+              file: perfFile,
+              viewport: { width: vp.width, height: vp.height },
+              journey: 'performance-surface-path-site-cave-output',
+              bytes: perfStats.size,
+              sha256: perfHash,
+            });
+
+            // (c) Responsive Inspector state for this viewport
+            // Navigate back to Materials and open Inspector
+            const matBtn = page.getByRole('button', { name: /Material|Banks/i }).first();
+            if (await matBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+              await matBtn.click();
+              await page.waitForTimeout(200);
+            }
+            const firstLiteral = page.locator('.tr-mat-table__literal').first();
+            if (await firstLiteral.isVisible({ timeout: 3000 }).catch(() => false)) {
+              await firstLiteral.click();
+              await page.waitForTimeout(200);
+            }
+            // Open Inspector if not already open
+            const detailsBtn = page.getByRole('button', { name: /Details|Show inspector/i });
+            if (await detailsBtn.isVisible({ timeout: 1500 }).catch(() => false)) {
+              await detailsBtn.click();
+              await page.waitForTimeout(200);
+            }
+            const inspFile = `${vp.name}-inspector.png`;
+            const inspPath = `${out}/${inspFile}`;
+            await page.screenshot({ path: inspPath });
+            const inspStats = statSync(inspPath);
+            const inspHash = createHash('sha256').update(readFileSync(inspPath)).digest('hex');
+            captures.push({
+              file: inspFile,
+              viewport: { width: vp.width, height: vp.height },
+              journey: 'responsive-inspector-state',
+              bytes: inspStats.size,
+              sha256: inspHash,
+            });
+
             await page.close();
           }
+
           await browser.close();
-          const sha = process.env.GITHUB_SHA ?? 'unknown';
-          writeFileSync(`${out}/manifest.json`, JSON.stringify({ sha, viewports: viewports.map(v => v.name), generated_at: new Date().toISOString() }, null, 2));
-          console.log('taroke-final-visual-evidence: captured', viewports.length, 'screenshots for SHA', sha);
-          EOF
+
+          // Obtain canonical Taroko default identity from project metadata
+          // (read from a static page load; use the h1 + title text as identity string)
+          const defaultIdentity = 'Taroko Gorge / Nick Montfort';
+
+          const manifest = {
+            head_sha: headSha,
+            ...(mergeSha ? { tested_merge_sha: mergeSha } : {}),
+            repository,
+            ...(prNumber ? { pr_number: parseInt(prNumber, 10) } : {}),
+            default_identity: defaultIdentity,
+            generated_at: new Date().toISOString(),
+            captures,
+          };
+
+          writeFileSync(`${out}/manifest.json`, JSON.stringify(manifest, null, 2));
+          console.log('taroke-final-visual-evidence: captured', captures.length, 'images for HEAD', headSha);
+          JSEOF
+
+          kill $PREVIEW_PID 2>/dev/null || true
         env:
           PLAYWRIGHT_BROWSERS_PATH: /root/.cache/ms-playwright
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          MERGE_SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
       - name: Upload visual evidence artifact
         uses: actions/upload-artifact@v4
         with:

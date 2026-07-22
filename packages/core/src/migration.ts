@@ -161,7 +161,8 @@ function tarokoLineDevices(): LineDevice[] {
       enabled: true,
       description: "Command / phrase — Taroko Gorge cave device.",
       inputs: [
-        { id: "inp_cave_command", slot: "command", tray: "imper",       role: "verb" },
+        // Route command through imper_cap: first-character-capitalized operational bank
+        { id: "inp_cave_command", slot: "command", tray: "imper_cap",   role: "verb" },
         { id: "inp_cave_phrase",  slot: "phrase",  tray: "cave_phrases", role: "literal" },
       ],
       routes: [
@@ -218,25 +219,38 @@ function tarokoStanzaPatterns(): StanzaPattern[] {
   ];
 }
 
+// Deterministic token builder for canonical defaultProject() IDs only.
+// General uid() / token() for user-authored content remain unchanged.
+function stoken(id: string, literal: string, role: string, weight = 1): Token {
+  return { id, literal, role: role as Token["role"], weight, lockedLiteral: false };
+}
+
 export function defaultProject(): TarokeProject {
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
   const above = ["brow", "mist", "shape", "layer", "the crag", "stone", "forest", "height"];
   const below = ["flow", "basin", "shape", "vein", "rippling", "stone", "cove", "rock"];
+  const imperLiterals = ["track", "shade", "translate", "stamp", "progress through", "direct", "run", "enter"];
   const pathSubjectWeights = [4, 4, 4, 4, 4, 4, 3, 4];
 
   const trays: TarokeProject["materials"]["trays"] = {
-    above:        above.map((s) => token(s, "noun")),
-    below:        below.map((s) => token(s, "noun")),
-    trans:        ["command", "pace", "roam", "trail", "frame", "sweep", "exercise", "range"].map((s) => token(s, "verb")),
-    imper:        ["track", "shade", "translate", "stamp", "progress through", "direct", "run", "enter"].map((s) => token(s, "verb")),
-    intrans:      ["linger", "dwell", "rest", "relax", "hold", "dream", "hum"].map((s) => token(s, "verb")),
-    texture:      ["rough", "fine"].map((s) => token(s, "noun")),
-    cave_fixed:   ["encompassing", "sinuous", "straight", "objective", "arched", "cool", "clear", "dim", "driven"].map((s) => token(s, "adjective")),
-    path_subject: above.map((s, i) => ({ id: uid("tok"), literal: cap(s), role: "noun" as const, weight: pathSubjectWeights[i]!, lockedLiteral: false })),
+    above:        above.map((s, i)         => stoken(`tok_above_${i}`, s, "noun")),
+    below:        below.map((s, i)         => stoken(`tok_below_${i}`, s, "noun")),
+    trans:        ["command", "pace", "roam", "trail", "frame", "sweep", "exercise", "range"]
+                    .map((s, i)            => stoken(`tok_trans_${i}`, s, "verb")),
+    // imper: preserved exact lowercase source bank
+    imper:        imperLiterals.map((s, i) => stoken(`tok_imper_${i}`, s, "verb")),
+    intrans:      ["linger", "dwell", "rest", "relax", "hold", "dream", "hum"]
+                    .map((s, i)            => stoken(`tok_intrans_${i}`, s, "verb")),
+    texture:      ["rough", "fine"].map((s, i) => stoken(`tok_texture_${i}`, s, "noun")),
+    cave_fixed:   ["encompassing", "sinuous", "straight", "objective", "arched", "cool", "clear", "dim", "driven"]
+                    .map((s, i)            => stoken(`tok_cave_fixed_${i}`, s, "adjective")),
+    // imper_cap: operational bank — first-character-capitalized imperative copies for CAVE command input
+    imper_cap:    imperLiterals.map((s, i) => stoken(`tok_imper_cap_${i}`, cap(s), "verb")),
+    path_subject: above.map((s, i) => stoken(`tok_path_subject_${i}`, cap(s), "noun", pathSubjectWeights[i]!)),
     site_subject: [
-      ...above.map((s) => ({ id: uid("tok"), literal: cap(s), role: "noun" as const, weight: 1, lockedLiteral: false })),
-      ...below.map((s) => ({ id: uid("tok"), literal: cap(s), role: "noun" as const, weight: 2, lockedLiteral: false })),
+      ...above.map((s, i) => stoken(`tok_site_subj_above_${i}`, cap(s), "noun", 1)),
+      ...below.map((s, i) => stoken(`tok_site_subj_below_${i}`, cap(s), "noun", 2)),
     ],
     cave_phrases: compileCavePhrases(),
     reserve:      [],
@@ -246,10 +260,11 @@ export function defaultProject(): TarokeProject {
     above:        { label: "ABOVE",        role: "noun",      desc: "Source: landscape features from above" },
     below:        { label: "BELOW",        role: "noun",      desc: "Source: landscape features from below" },
     trans:        { label: "TRANS",        role: "verb",      desc: "Source: transitive action verbs" },
-    imper:        { label: "IMPER",        role: "verb",      desc: "Source: imperative command verbs" },
+    imper:        { label: "IMPER",        role: "verb",      desc: "Source: imperative command verbs (lowercase)" },
     intrans:      { label: "INTRANS",      role: "verb",      desc: "Source: intransitive state verbs" },
     texture:      { label: "TEXTURE",      role: "noun",      desc: "Source: surface texture adjectives" },
     cave_fixed:   { label: "CAVE ADJS",   role: "adjective", desc: "Source: fixed cave adjectives" },
+    imper_cap:    { label: "IMPER CAP",   role: "verb",      desc: "Derived: first-character-capitalized imperative copies for CAVE command input" },
     path_subject: { label: "PATH SUBJECT", role: "noun",      desc: "Derived: capitalized above tokens with probability weights" },
     site_subject: { label: "SITE SUBJECT", role: "noun",      desc: "Derived: above (weight 1) and below (weight 2) tokens capitalized" },
     cave_phrases: { label: "CAVE PHRASES", role: "literal",   desc: "Derived: compiled adjective phrase combinations (515 entries, total weight 20160)" },

@@ -23,6 +23,9 @@ import { FormsPanel } from "../panels/FormsPanel.js";
 import { InstrumentsPanel } from "../panels/InstrumentsPanel.js";
 import { AutomationPanel } from "../panels/AutomationPanel.js";
 
+import { defaultProject } from "@taroke/core";
+import { setProject } from "../store/projectSlice.js";
+
 function makeStore() {
   return configureStore({
     reducer: {
@@ -36,6 +39,21 @@ function makeStore() {
       surface: surfaceReducer,
     },
   });
+}
+
+function makeStoreWithTrigger() {
+  const store = makeStore();
+  const project = defaultProject();
+  project.triggers.push({
+    id: "trig_test_0",
+    name: "box intrusion",
+    enabled: true,
+    condition: { tray: "above", term: "mist" },
+    chance: 100,
+    action: { type: "append", text: " ..." },
+  });
+  store.dispatch(setProject(project));
+  return store;
 }
 
 function wrap(ui: React.ReactElement, store = makeStore()) {
@@ -121,29 +139,29 @@ describe("Forms: role-relevant fields (T02)", () => {
 
 describe("Automation: collapsed causal summary (T02)", () => {
   it("renders TRIGGERS heading", () => {
-    wrap(<AutomationPanel />);
+    wrap(<AutomationPanel />, makeStoreWithTrigger());
     expect(screen.getByText("TRIGGERS")).toBeInTheDocument();
   });
 
   it("shows trigger name in collapsed summary", () => {
-    wrap(<AutomationPanel />);
+    wrap(<AutomationPanel />, makeStoreWithTrigger());
     expect(screen.getByText("box intrusion")).toBeInTheDocument();
   });
 
   it("collapsed summary contains WHEN keyword in causal sentence", () => {
-    wrap(<AutomationPanel />);
+    wrap(<AutomationPanel />, makeStoreWithTrigger());
     // WHEN appears in the trigger summary sentence
     expect(screen.getByText(/WHEN/)).toBeInTheDocument();
   });
 
   it("collapsed summary contains THEN keyword in causal sentence", () => {
-    wrap(<AutomationPanel />);
+    wrap(<AutomationPanel />, makeStoreWithTrigger());
     // THEN appears in the trigger summary sentence
     expect(screen.getByText(/THEN/)).toBeInTheDocument();
   });
 
   it("trigger select button has aria-pressed attribute", () => {
-    wrap(<AutomationPanel />);
+    wrap(<AutomationPanel />, makeStoreWithTrigger());
     // The collapsed trigger button has aria-pressed (false when not selected)
     const btn = screen.getAllByRole("button").find(
       (b) => b.hasAttribute("aria-pressed")
@@ -152,7 +170,7 @@ describe("Automation: collapsed causal summary (T02)", () => {
   });
 
   it("trigger select button shows enabled state", () => {
-    wrap(<AutomationPanel />);
+    wrap(<AutomationPanel />, makeStoreWithTrigger());
     // The trigger shows its enabled state (ON text visible)
     const triggerContainer = document.querySelector(".tr-trigger");
     expect(triggerContainer).not.toBeNull();
@@ -160,7 +178,7 @@ describe("Automation: collapsed causal summary (T02)", () => {
   });
 
   it("expanded editor appears when trigger select button is clicked", () => {
-    const store = makeStore();
+    const store = makeStoreWithTrigger();
     wrap(<AutomationPanel />, store);
     // Find the select button for the default trigger
     const selectBtn = screen.getAllByRole("button").find(
@@ -174,7 +192,7 @@ describe("Automation: collapsed causal summary (T02)", () => {
   });
 
   it("Remove trigger button is labeled with trigger name", () => {
-    wrap(<AutomationPanel />);
+    wrap(<AutomationPanel />, makeStoreWithTrigger());
     const removeBtn = screen.queryAllByRole("button").find(
       (b) => (b.getAttribute("aria-label") ?? "").startsWith("Remove trigger")
     );

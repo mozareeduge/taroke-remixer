@@ -12,7 +12,8 @@ describe("exportProjectJson / extractProjectFromText round-trip", () => {
     expect(extracted.project.title).toBe(project.project.title);
     expect(Object.keys(extracted.materials.trays)).toContain("above");
     expect(extracted.lineDevices.length).toBeGreaterThan(0);
-    expect(extracted.triggers.length).toBeGreaterThan(0);
+    // Taroko canonical project has no triggers — validate the field exists and is an array
+    expect(Array.isArray(extracted.triggers)).toBe(true);
   });
 });
 
@@ -86,12 +87,12 @@ describe("importProjectWithReceipt", () => {
 
   it("receipt.errors is not empty for missing device banks", () => {
     const project = defaultProject();
-    // Remove a bank that devices reference
-    delete (project.materials.trays as Record<string, unknown>)["above"];
-    delete (project.materials.bankMeta as Record<string, unknown>)["above"];
+    // Remove a bank that devices reference — PATH inp_path_object uses tray "below"
+    delete (project.materials.trays as Record<string, unknown>)["below"];
+    delete (project.materials.bankMeta as Record<string, unknown>)["below"];
     const json = exportProjectJson(project);
     const { receipt } = importProjectWithReceipt(json, "broken.taroke.json");
-    // Should have errors because PATH device references missing "above" bank
+    // Should have errors because PATH device references missing "below" bank (inp_path_object)
     expect(receipt.errors.length).toBeGreaterThan(0);
   });
 
