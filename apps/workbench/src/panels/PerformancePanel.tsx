@@ -8,7 +8,7 @@ import {
 } from "../store/takesSlice.js";
 import { addProjectNote } from "../store/commands.js";
 import {
-  appendSurfaceRecord, clearSurface, selectLine, setFollowActive,
+  appendSurfaceRecord, clearSurface, selectLine, setFollowActive, setRetention,
 } from "../store/surfaceSlice.js";
 import type { SurfaceRecord } from "../store/surfaceSlice.js";
 import { generateEvent } from "@taroke/core";
@@ -32,7 +32,7 @@ export function PerformancePanel() {
   const surfaceListRef = useRef<HTMLOListElement>(null);
   const [monitorOpen, setMonitorOpen] = useState(false);
 
-  const retention = (project.surface as { retention?: number } | undefined)?.retention ?? 28;
+  const retention = (project.surface as { retention?: number } | undefined)?.retention ?? 26;
   const speedMs = (project.surface as { speedMs?: number } | undefined)?.speedMs ?? 1200;
 
   function safeQueue(queue: RunState["queue"]): RunState["queue"] {
@@ -100,6 +100,11 @@ export function PerformancePanel() {
     cueQueueRef.current = state.queue ?? [];
     setCueEvent(ev);
   }
+
+  // Sync slice retention from project so appendSurfaceRecord trims to the right length
+  useEffect(() => {
+    dispatch(setRetention(retention));
+  }, [retention, dispatch]);
 
   // Timed playback: generate one event per speedMs when running
   useEffect(() => {
