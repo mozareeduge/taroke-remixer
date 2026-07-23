@@ -33,10 +33,13 @@ export interface SelectionState {
 
 export type EditorPanel = "source" | "materials" | "forms" | "instruments" | "composition" | "automation" | "performance" | "archive";
 
+export type InspectorMode = "docked" | "overlay" | "sheet";
+
 export interface EditorState {
   activePanel: EditorPanel;
   sidebarOpen: boolean;
   inspectorOpen: boolean;
+  inspectorMode: InspectorMode;
   previewFresh: boolean;
   previewHtml: string | null;
 }

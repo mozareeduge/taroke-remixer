@@ -1,6 +1,6 @@
 import { produceWithPatches, type Patch } from "immer";
 import { uid } from "@taroke/core";
-import type { TarokeProject, Token, LineDevice, Route, StanzaPattern, StanzaSlot, FlowScene, Trigger, DeviceInput } from "@taroke/schema";
+import type { TarokeProject, Token, LineDevice, Route, StanzaPattern, StanzaSlot, FlowScene, Trigger, DeviceInput, ProjectNote } from "@taroke/schema";
 
 // ── Command result ─────────────────────────────────────────────────────────────
 
@@ -9,6 +9,59 @@ export interface CommandResult {
   patches: Patch[];
   inversePatches: Patch[];
   label: string;
+}
+
+// ── Blocked result (destructive safety) ───────────────────────────────────────
+
+export interface BlockedResult {
+  blocked: true;
+  reason: string;
+  dependents: string[];
+}
+
+export function isBlocked(r: CommandResult | BlockedResult): r is BlockedResult {
+  return "blocked" in r && r.blocked === true;
+}
+
+export function safeRemoveLineDevice(project: TarokeProject, deviceId: string): CommandResult | BlockedResult {
+  const dependents: string[] = [];
+  for (const stanza of project.stanzaPatterns) {
+    for (const slot of stanza.slots) {
+      if (slot.type === "device" && slot.deviceId === deviceId) {
+        dependents.push(`${stanza.name} → ${slot.label}`);
+      }
+    }
+  }
+  if (dependents.length > 0) {
+    return { blocked: true, reason: "Device is referenced by composition slots", dependents };
+  }
+  return removeLineDevice(project, deviceId);
+}
+
+export function safeRemoveBank(project: TarokeProject, bankName: string): CommandResult | BlockedResult {
+  const dependents: string[] = [];
+  for (const device of project.lineDevices) {
+    for (const inp of device.inputs) {
+      if (inp.tray === bankName) {
+        dependents.push(`${device.name} → ${inp.slot}`);
+      }
+    }
+  }
+  if (dependents.length > 0) {
+    return { blocked: true, reason: "Bank is used by device inputs", dependents };
+  }
+  return removeBank(project, bankName);
+}
+
+export function safeRemoveStanzaPattern(project: TarokeProject, stanzaId: string): CommandResult | BlockedResult {
+  const stanza = project.stanzaPatterns.find((s) => s.id === stanzaId);
+  const dependents = project.flowScenes
+    .filter((sc) => sc.stanzaId === stanzaId)
+    .map((sc) => sc.name);
+  if (dependents.length > 0) {
+    return { blocked: true, reason: `Pattern "${stanza?.name ?? stanzaId}" is referenced by scenes`, dependents };
+  }
+  return removeStanzaPattern(project, stanzaId);
 }
 
 function cmd(
@@ -137,6 +190,18 @@ export function removeBank(project: TarokeProject, bankName: string): CommandRes
   return cmd(project, "Remove bank", (d) => {
     delete d.materials.trays[bankName];
     delete d.materials.bankMeta[bankName];
+  });
+}
+
+export function moveBetweenBanks(project: TarokeProject, fromBank: string, tokenId: string, toBank: string): CommandResult {
+  return cmd(project, "Move sample between banks", (d) => {
+    const src = d.materials.trays[fromBank];
+    const dst = d.materials.trays[toBank];
+    if (!src || !dst) return;
+    const idx = src.findIndex((t) => t.id === tokenId);
+    if (idx < 0) return;
+    const [token] = src.splice(idx, 1);
+    if (token) dst.push(token);
   });
 }
 
@@ -443,4 +508,17 @@ export function setCasePolicy(project: TarokeProject, casePolicy: string): Comma
 
 export function setCompoundPolicy(project: TarokeProject, compoundPolicy: string): CommandResult {
   return cmd(project, "Set compound policy", (d) => { d.forms.compoundPolicy = compoundPolicy; });
+}
+
+// ── Notes commands ─────────────────────────────────────────────────────────────
+
+export function addProjectNote(project: TarokeProject, note: ProjectNote): CommandResult {
+  return cmd(project, "Keep take", (d) => { d.notes.push(note); });
+}
+
+export function removeProjectNote(project: TarokeProject, noteId: string): CommandResult {
+  return cmd(project, "Remove note", (d) => {
+    const idx = d.notes.findIndex((n) => n.id === noteId);
+    if (idx >= 0) d.notes.splice(idx, 1);
+  });
 }

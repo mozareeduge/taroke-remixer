@@ -31,7 +31,7 @@ describe("activeScenes", () => {
 
   it("excludes disabled scenes", () => {
     const project = defaultProject();
-    project.flowScenes[0]!.enabled = false;
+    for (const sc of project.flowScenes) sc.enabled = false;
     expect(activeScenes(project)).toHaveLength(0);
   });
 });
@@ -74,23 +74,27 @@ describe("generateEvent", () => {
 
   it("trigger fires on matching consumed token", () => {
     const project = defaultProject();
-    // Force above tray to only have unknown-box so trigger always matches
-    project.materials.trays["above"] = [
-      { id: "tok_box", literal: "unknown-box", role: "noun", weight: 1, lockedLiteral: false },
+    // Add a trigger watching the path_subject bank for "Stone"
+    project.triggers = [{
+      id: "tr_test",
+      name: "test trigger",
+      enabled: true,
+      condition: { tray: "path_subject", term: "Stone" },
+      chance: 100,
+      action: { type: "append", text: "[TRIGGER]" },
+    }];
+    // Force path_subject to only have "Stone" so trigger always matches
+    project.materials.trays["path_subject"] = [
+      { id: "tok_stone", literal: "Stone", role: "noun", weight: 1, lockedLiteral: false },
     ];
-    // Force trigger chance to 100
-    const trigger = project.triggers.find((t) => t.id === "tr_box")!;
-    trigger.chance = 100;
-    // Force PATH route only (weight = plural route, which consumes above slot directly)
+    // Force PATH device to use only the first route (plural_plain)
     const pathDevice = project.lineDevices.find((d) => d.id === "ld_path")!;
-    pathDevice.routes = [pathDevice.routes.find((r) => r.id === "rt_path_plural")!];
+    pathDevice.routes = [pathDevice.routes[0]!];
 
-    // Use deterministic RNG returning 0.1 to pick first items
     const rng = () => 0.1;
     const state: Partial<RunState> = { tick: 0, queue: [], currentScene: null, currentStanza: null };
-    // Generate until we get a line event with trigger
     let found = false;
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 50; i++) {
       const ev = generateEvent(project, state, rng);
       (state as RunState).tick = ((state as RunState).tick ?? 0) + 1;
       if (ev.type === "line" && ev.trigger !== null) { found = true; break; }

@@ -25,7 +25,7 @@ export function Transport() {
           aria-label={status === "running" ? "Pause" : "Play"}
           aria-pressed={status === "running"}
         >
-          {status === "running" ? "■■" : "▶"}
+          {status === "running" ? "Pause" : "Play"}
         </button>
         <button
           className="tr-transport__btn"
@@ -33,7 +33,7 @@ export function Transport() {
           aria-label="Stop"
           disabled={status === "stopped"}
         >
-          ◼
+          Stop
         </button>
       </div>
 
@@ -46,7 +46,7 @@ export function Transport() {
           aria-pressed={inspectorOpen}
           title="Inspector"
         >
-          ⊞
+          {inspectorOpen ? "Hide details" : "Details"}
         </button>
       </div>
     </header>

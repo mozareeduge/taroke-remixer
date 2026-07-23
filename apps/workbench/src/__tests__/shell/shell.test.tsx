@@ -28,6 +28,7 @@ function makeStore(editorOverrides?: Partial<{ sidebarOpen: boolean; inspectorOp
     },
   });
   if (editorOverrides?.sidebarOpen === false) store.dispatch(toggleSidebar());
+  // inspectorOpen defaults to false; toggle to open when true is requested
   if (editorOverrides?.inspectorOpen === true) store.dispatch(toggleInspector());
   return store;
 }
