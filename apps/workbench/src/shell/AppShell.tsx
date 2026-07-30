@@ -1,27 +1,14 @@
 import { useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
-import { toggleSidebar, openInspector, closeInspector, setActivePanel, setInspectorMode } from "../store/editorSlice.js";
+import { openInspector, closeInspector, setInspectorMode } from "../store/editorSlice.js";
 import { popForUndo, popForRedo } from "../store/historySlice.js";
 import { Transport } from "./Transport.js";
 import { Navigator } from "./Navigator.js";
 import { Workspace } from "./Workspace.js";
 import { Inspector } from "./Inspector.js";
+import { ChamberSwitcher } from "./ChamberSwitcher.js";
 import { LiveRegion } from "./LiveRegion.js";
-import type { EditorPanel, InspectorMode } from "../store/types.js";
-
-const MOBILE_NAV_ITEMS: Array<{ id: EditorPanel; label: string; abbr: string }> = [
-  { id: "materials",   label: "Material", abbr: "MAT" },
-  { id: "instruments", label: "Devices",  abbr: "DEV" },
-  { id: "composition", label: "Compose",  abbr: "COMP" },
-  { id: "automation",  label: "Automate", abbr: "AUT" },
-  { id: "performance", label: "Perform",  abbr: "PERF" },
-  { id: "archive",     label: "Archive",  abbr: "ARCH" },
-];
-
-function isMobileNavActive(itemId: EditorPanel, current: EditorPanel): boolean {
-  if (itemId === "materials") return current === "materials" || current === "forms";
-  return current === itemId;
-}
+import type { InspectorMode } from "../store/types.js";
 
 function viewportMode(width: number): InspectorMode {
   if (width >= 1200) return "docked";
@@ -29,13 +16,26 @@ function viewportMode(width: number): InspectorMode {
   return "sheet";
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function AppShell() {
   const dispatch = useAppDispatch();
-  const activePanel = useAppSelector((s) => s.editor.activePanel);
   const inspectorMode = useAppSelector((s) => s.editor.inspectorMode);
+  const inspectorOpen = useAppSelector((s) => s.editor.inspectorOpen);
   const primary = useAppSelector((s) => s.selection.primary);
   const prevPrimaryRef = useRef(primary);
-  const lastFocusRef = useRef<HTMLElement | null>(null);
+  const inspectorRef = useRef<HTMLElement | null>(null);
+  const backgroundRef = useRef<HTMLDivElement | null>(null);
+
+  const sheetOpen = inspectorMode === "sheet" && inspectorOpen;
+
+  // `inert` isn't in this project's React DOM typings yet — set it
+  // imperatively so the whole background (Transport, chamber switcher,
+  // Workspace, Navigator) is genuinely unreachable while the sheet is open.
+  useEffect(() => {
+    backgroundRef.current?.toggleAttribute("inert", sheetOpen);
+  }, [sheetOpen]);
 
   // Viewport mode detection — sets inspector mode and opens inspector at docked breakpoint
   useEffect(() => {
@@ -74,6 +74,41 @@ export function AppShell() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [dispatch]);
 
+  // Modal sheet: move focus in on open, trap Tab within it, close on Escape
+  // (SHELL-04, A11Y-03). The background is made inert via tr-shell__body so
+  // it cannot be reached by pointer, click-through, or Tab while the sheet
+  // is open.
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const root = inspectorRef.current;
+    if (!root) return;
+    const focusables = () => Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+    const first = focusables()[0];
+    first?.focus();
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        handleInspectorClose();
+        return;
+      }
+      if (e.key !== "Tab" || !root) return;
+      const list = focusables();
+      if (list.length === 0) return;
+      const activeIdx = list.indexOf(document.activeElement as HTMLElement);
+      if (e.shiftKey && activeIdx <= 0) {
+        e.preventDefault();
+        list[list.length - 1]?.focus();
+      } else if (!e.shiftKey && activeIdx === list.length - 1) {
+        e.preventDefault();
+        list[0]?.focus();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheetOpen]);
+
   function handleInspectorClose() {
     dispatch(closeInspector());
     // Return focus to last interactive element or the inspector toggle in Transport
@@ -90,28 +125,24 @@ export function AppShell() {
         Skip to navigation
       </a>
 
-      <Transport />
-      <Workspace />
-      <Navigator />
-      <Inspector onClose={handleInspectorClose} />
-      <LiveRegion />
+      {/* display:contents — participates in the shell grid unchanged; inert
+          disables the entire background while the mobile sheet is open. */}
+      <div className="tr-shell__body" ref={backgroundRef}>
+        <Transport />
+        <ChamberSwitcher />
+        <Workspace />
+        <Navigator />
+      </div>
 
-      <nav className="tr-mobile-nav" aria-label="Main navigation">
-        {MOBILE_NAV_ITEMS.map((item) => (
-          <button
-            key={item.id}
-            className={isMobileNavActive(item.id, activePanel)
-              ? "tr-mobile-nav__btn tr-mobile-nav__btn--active"
-              : "tr-mobile-nav__btn"
-            }
-            onClick={() => dispatch(setActivePanel(item.id))}
-            aria-current={isMobileNavActive(item.id, activePanel) ? "page" : undefined}
-            aria-label={item.label}
-          >
-            <span className="tr-mobile-nav__abbr" aria-hidden="true">{item.abbr}</span>
-          </button>
-        ))}
-      </nav>
+      {sheetOpen && (
+        <div
+          className="tr-inspector-backdrop"
+          aria-hidden="true"
+          onClick={handleInspectorClose}
+        />
+      )}
+      <Inspector onClose={handleInspectorClose} panelRef={inspectorRef} />
+      <LiveRegion />
     </div>
   );
 }

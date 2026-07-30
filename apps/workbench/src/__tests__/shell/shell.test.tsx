@@ -166,11 +166,11 @@ describe("AppShell", () => {
     expect(screen.getByRole("complementary", { hidden: true })).toBeInTheDocument();
   });
 
-  it("renders mobile nav with 6 destinations", () => {
+  it("renders the chamber switcher with a trigger for the current chamber", () => {
     wrap(<AppShell />);
-    const mobileNav = screen.getByRole("navigation", { name: "Main navigation" });
-    expect(mobileNav).toBeInTheDocument();
-    expect(mobileNav.querySelectorAll("button")).toHaveLength(6);
+    const switcher = screen.getByRole("navigation", { name: "Chambers" });
+    expect(switcher).toBeInTheDocument();
+    expect(switcher.querySelectorAll("button")).toHaveLength(1);
   });
 
   it("inspector is aria-visible when open", () => {

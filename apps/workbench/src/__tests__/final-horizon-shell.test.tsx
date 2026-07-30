@@ -3,13 +3,13 @@
  * T01 shell topology, responsive shell, mobile text navigation.
  */
 
-import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, afterEach } from "vitest";
+import { render, screen, fireEvent, within, act } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import projectReducer from "../store/projectSlice.js";
-import selectionReducer from "../store/selectionSlice.js";
-import editorReducer from "../store/editorSlice.js";
+import selectionReducer, { selectBank } from "../store/selectionSlice.js";
+import editorReducer, { openInspector } from "../store/editorSlice.js";
 import runtimeReducer from "../store/runtimeSlice.js";
 import historyReducer from "../store/historySlice.js";
 import importReceiptReducer from "../store/importReceiptSlice.js";
@@ -40,6 +40,14 @@ function wrap(ui: React.ReactElement, store = makeStore()) {
   return render(<Provider store={store}>{ui}</Provider>);
 }
 
+function setViewportWidth(width: number) {
+  Object.defineProperty(window, "innerWidth", { value: width, configurable: true, writable: true });
+}
+
+afterEach(() => {
+  setViewportWidth(1024);
+});
+
 // ── Shell topology ─────────────────────────────────────────────────────────────
 
 describe("Shell topology (T01)", () => {
@@ -49,7 +57,7 @@ describe("Shell topology (T01)", () => {
     expect(screen.getByRole("navigation", { name: "Editor sections" })).toBeInTheDocument();
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(screen.getByRole("complementary", { hidden: true })).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Chambers" })).toBeInTheDocument();
   });
 
   it("main landmark has id tr-main-content for skip-nav", () => {
@@ -64,51 +72,41 @@ describe("Shell topology (T01)", () => {
   });
 });
 
-// ── Mobile navigation text-led ─────────────────────────────────────────────────
+// ── Mobile chamber switcher (replaces SHELL-01 fixed abbreviation nav) ────────
 
-describe("Mobile navigation text-led (T01)", () => {
-  it("mobile nav has exactly 6 destination buttons", () => {
+describe("Mobile chamber switcher (T02)", () => {
+  it("SHELL-01/02: shows the current chamber's full name and sequence, not an abbreviation", () => {
     wrap(<AppShell />);
-    const mobileNav = screen.getByRole("navigation", { name: "Main navigation" });
-    expect(mobileNav.querySelectorAll("button")).toHaveLength(6);
+    const switcher = screen.getByRole("navigation", { name: "Chambers" });
+    expect(switcher.textContent).not.toMatch(/\bMAT\b|\bDEV\b|\bAUT\b|\bPERF\b|\bARCH\b/);
+    expect(screen.getByRole("button", { name: /Materials/ })).toBeInTheDocument();
   });
 
-  it("mobile nav shows text abbreviations MAT, INST, COMP, AUTO, PERF, ARCH", () => {
+  it("SHELL-03: opening the switcher lists all eight chambers by full name with sequence and purpose", () => {
     wrap(<AppShell />);
-    const mobileNav = screen.getByRole("navigation", { name: "Main navigation" });
-    const text = mobileNav.textContent ?? "";
-    expect(text).toContain("MAT");
-    expect(text).toContain("DEV");
-    expect(text).toContain("COMP");
-    expect(text).toContain("AUT");
-    expect(text).toContain("PERF");
-    expect(text).toContain("ARCH");
+    fireEvent.click(screen.getByRole("button", { name: /Materials/ }));
+    const menu = screen.getByRole("listbox", { name: "Chambers" });
+    const options = within(menu).getAllByRole("option");
+    expect(options).toHaveLength(8);
+    ["Source", "Materials", "Forms", "Instruments", "Composition", "Automation", "Performance", "Archive"].forEach((label) => {
+      expect(within(menu).getByText(label)).toBeInTheDocument();
+    });
   });
 
-  it("mobile nav buttons have full accessible names", () => {
-    const { getByRole } = wrap(<AppShell />);
-    const mobileNav = getByRole("navigation", { name: "Main navigation" });
-    const buttons = Array.from(mobileNav.querySelectorAll("button"));
-    const names = buttons.map((b) => b.getAttribute("aria-label") ?? b.textContent ?? "");
-    expect(names).toContain("Material");
-    expect(names).toContain("Devices");
-    expect(names).toContain("Compose");
-    expect(names).toContain("Automate");
-    expect(names).toContain("Perform");
-    expect(names).toContain("Archive");
+  it("selecting a chamber from the switcher sets the active panel and closes the menu", () => {
+    wrap(<AppShell />);
+    fireEvent.click(screen.getByRole("button", { name: /Materials/ }));
+    fireEvent.click(screen.getByRole("option", { name: /Performance/ }));
+    expect(screen.queryByRole("listbox", { name: "Chambers" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Performance/ })).toBeInTheDocument();
   });
 
-  it("clicking mobile nav Material button sets active panel", () => {
+  it("SHELL-01: the switcher does not cover content — it renders alongside the workspace, not fixed over it", () => {
     wrap(<AppShell />);
-    const materialBtn = screen.getByRole("button", { name: "Material" });
-    fireEvent.click(materialBtn);
-    expect(materialBtn).toHaveAttribute("aria-current", "page");
-  });
-
-  it("clicking mobile nav Perform button switches panel", () => {
-    wrap(<AppShell />);
-    fireEvent.click(screen.getByRole("button", { name: "Perform" }));
-    expect(screen.getByRole("button", { name: "Perform" })).toHaveAttribute("aria-current", "page");
+    const switcher = screen.getByRole("navigation", { name: "Chambers" });
+    const main = screen.getByRole("main");
+    // Sibling landmarks in normal flow, not one positioned on top of the other.
+    expect(switcher.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
 
@@ -179,18 +177,71 @@ describe("Shell spatial contract (T01)", () => {
     expect(screen.getByRole("complementary", { hidden: true })).toBeInTheDocument();
   });
 
-  it("Navigator landmark is distinct from mobile nav landmark", () => {
+  it("Navigator landmark is distinct from the chamber switcher landmark", () => {
     wrap(<AppShell />);
     const navs = screen.getAllByRole("navigation");
     expect(navs.length).toBeGreaterThanOrEqual(2);
     const names = navs.map((n) => n.getAttribute("aria-label") ?? "");
     expect(names).toContain("Editor sections");
-    expect(names).toContain("Main navigation");
+    expect(names).toContain("Chambers");
   });
 
   it("Inspector is present in DOM even when hidden", () => {
     wrap(<AppShell />);
     const inspector = document.querySelector("aside");
     expect(inspector).not.toBeNull();
+  });
+});
+
+// ── Inspector modal sheet (T02: SHELL-04, A11Y-03) ────────────────────────────
+
+describe("Inspector modal sheet (T02)", () => {
+  function renderMobileWithSelection() {
+    setViewportWidth(375);
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    store.dispatch(openInspector());
+    wrap(<AppShell />, store);
+    return store;
+  }
+
+  it("renders dialog semantics and a backdrop when open as a sheet", () => {
+    renderMobileWithSelection();
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(screen.getByRole("button", { name: "Close inspector" })).toBeInTheDocument();
+  });
+
+  it("makes the background inert while the sheet is open", () => {
+    renderMobileWithSelection();
+    const background = document.querySelector(".tr-shell__body");
+    expect(background).not.toBeNull();
+    expect(background!.hasAttribute("inert")).toBe(true);
+  });
+
+  it("background is not inert when the sheet is closed", () => {
+    setViewportWidth(375);
+    wrap(<AppShell />);
+    const background = document.querySelector(".tr-shell__body");
+    expect(background!.hasAttribute("inert")).toBe(false);
+  });
+
+  it("clicking the backdrop closes the sheet", () => {
+    renderMobileWithSelection();
+    const backdrop = document.querySelector(".tr-inspector-backdrop") as HTMLElement;
+    expect(backdrop).not.toBeNull();
+    fireEvent.click(backdrop);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("Escape closes the sheet", () => {
+    renderMobileWithSelection();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("moves focus into the sheet when it opens", () => {
+    renderMobileWithSelection();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close inspector" }));
   });
 });

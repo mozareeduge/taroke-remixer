@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type MutableRefObject, type Ref } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectBank } from "../store/selectionSlice.js";
@@ -389,7 +389,13 @@ function InspectorBody({
   return null;
 }
 
-export function Inspector({ onClose }: { onClose?: () => void }) {
+export function Inspector({
+  onClose,
+  panelRef,
+}: {
+  onClose?: () => void;
+  panelRef?: MutableRefObject<HTMLElement | null>;
+}) {
   const dispatch = useAppDispatch();
   const project = useAppSelector((s) => s.project.present);
   const primary = useAppSelector((s) => s.selection.primary);
@@ -397,9 +403,11 @@ export function Inspector({ onClose }: { onClose?: () => void }) {
   const inspectorMode = useAppSelector((s) => s.editor.inspectorMode);
 
   const modeClass = `tr-inspector--${inspectorMode}`;
+  const isModalSheet = inspectorMode === "sheet" && inspectorOpen;
 
   return (
     <aside
+      ref={panelRef as Ref<HTMLElement>}
       className={[
         "tr-inspector",
         modeClass,
@@ -407,6 +415,8 @@ export function Inspector({ onClose }: { onClose?: () => void }) {
       ].filter(Boolean).join(" ")}
       aria-label="Inspector"
       aria-hidden={!inspectorOpen}
+      role={isModalSheet ? "dialog" : undefined}
+      aria-modal={isModalSheet ? true : undefined}
     >
       {(inspectorMode === "overlay" || inspectorMode === "sheet") && inspectorOpen && (
         <button
