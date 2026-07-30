@@ -12,7 +12,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import projectReducer, { mutateProject } from "../store/projectSlice.js";
-import selectionReducer, { selectBank, selectDevice, selectToken } from "../store/selectionSlice.js";
+import selectionReducer, { selectBank, selectDevice, selectToken, selectTrigger } from "../store/selectionSlice.js";
 import editorReducer, { setInspectorMode, openInspector } from "../store/editorSlice.js";
 import runtimeReducer from "../store/runtimeSlice.js";
 import historyReducer from "../store/historySlice.js";
@@ -98,20 +98,24 @@ describe("Inspector: responsive modes (T02.A)", () => {
   });
 });
 
-// ── Form ownership: FormsPanel does not duplicate full editor ─────────────────
+// ── Form ownership: FormsPanel is the primary before→after bench ──────────────
+// (Previously FormsPanel only linked to "Edit in Details"; per the chamber
+// reconstruction spec that redirect is redundant, so the chamber now owns its
+// own real bench and Inspector shows read-derived detail using the same
+// shared helpers — see shell/formRoles.ts.)
 
-describe("FormsPanel: form ownership (T02.B)", () => {
-  it("renders OVERRIDES section", () => {
+describe("FormsPanel: form ownership (T03)", () => {
+  it("renders BENCH section", () => {
     wrap(<FormsPanel />);
-    expect(screen.getByText("OVERRIDES")).toBeInTheDocument();
+    expect(screen.getByText("BENCH")).toBeInTheDocument();
   });
 
-  it("does not render sample editor when no token selected", () => {
+  it("does not render the bench when no token selected", () => {
     wrap(<FormsPanel />);
-    expect(document.querySelector(".tr-forms__sample-editor")).toBeNull();
+    expect(document.querySelector(".tr-forms__bench")).toBeNull();
   });
 
-  it("shows data-form-override inputs when token is selected", () => {
+  it("shows data-form-override inputs directly in FormsPanel when a token is selected", () => {
     const store = makeStore();
     store.dispatch(mutateProject({
       present: PHASE_A_NEUTRAL_TEST_FIXTURE,
@@ -120,9 +124,25 @@ describe("FormsPanel: form ownership (T02.B)", () => {
       label: "load fixture",
     }));
     store.dispatch(selectToken({ bankName: "nouns", tokenId: "tok_n1" }));
-    // data-form-override is in Inspector (not FormsPanel); Inspector is the sole full editor
-    wrap(<Inspector />, store);
+    wrap(<FormsPanel />, store);
     expect(document.querySelector("[data-form-override]")).not.toBeNull();
+  });
+
+  it("Inspector's trigger detail no longer duplicates the Automation WHEN/chance/THEN editor", () => {
+    const store = makeStore();
+    store.dispatch(mutateProject({
+      present: PHASE_A_NEUTRAL_TEST_FIXTURE,
+      patches: [],
+      inversePatches: [],
+      label: "load fixture",
+    }));
+    const triggerId = store.getState().project.present.triggers[0]?.id;
+    if (triggerId) {
+      store.dispatch(selectTrigger(triggerId));
+      store.dispatch(openInspector());
+      wrap(<Inspector />, store);
+      expect(screen.getByRole("button", { name: /edit .* in automation/i })).toBeInTheDocument();
+    }
   });
 });
 

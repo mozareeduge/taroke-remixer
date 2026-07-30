@@ -30,10 +30,33 @@ export function SourcePanel() {
   const urlInvalid = info.sourceUrl !== "" && !isValidHttpUrl(info.sourceUrl);
   const showUrlError = urlTouched && urlInvalid;
 
+  const hasSource = info.sourceTitle.trim().length > 0;
+  const lineageText = hasSource
+    ? `"${info.title || "Untitled"}"${info.author ? ` by ${info.author}` : ""} is a remix derived from "${info.sourceTitle}".`
+    : `"${info.title || "Untitled"}"${info.author ? ` by ${info.author}` : ""} has no recorded source text yet.`;
+
   return (
     <div className="tr-panel tr-panel--source">
       <div className="tr-panel__main">
-        <div className="tr-panel__section-head">WORK IDENTITY</div>
+        <div className="tr-panel__section-head">LINEAGE</div>
+        <div className="tr-source__lineage" role="note" aria-label="Source lineage">
+          <p className="tr-source__lineage-text">{lineageText}</p>
+          {hasSource && info.sourceUrl && (
+            <a
+              className="tr-source__lineage-link"
+              href={info.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View origin text ↗
+            </a>
+          )}
+        </div>
+
+        <div className="tr-panel__section-head">
+          WORK IDENTITY
+          <span className="tr-panel__section-meta">editable — this remix</span>
+        </div>
         <div className="tr-source__fields">
           <label className="tr-forms__label">
             Title
@@ -70,7 +93,10 @@ export function SourcePanel() {
           </label>
         </div>
 
-        <div className="tr-panel__section-head">SOURCE</div>
+        <div className="tr-panel__section-head">
+          SOURCE PROVENANCE
+          <span className="tr-panel__section-meta">stable — the origin text this remix draws from</span>
+        </div>
         <div className="tr-source__fields">
           <label className="tr-forms__label">
             Source title

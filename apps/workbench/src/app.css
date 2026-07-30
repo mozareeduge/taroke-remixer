@@ -2966,6 +2966,30 @@ details[open] > .tr-forms__bank-label::before {
   padding-bottom: var(--tr-sp-2);
 }
 
+.tr-source__lineage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-1);
+  padding: var(--tr-sp-3) var(--tr-sp-4);
+  margin-bottom: var(--tr-sp-4);
+  background: var(--tr-plate-2);
+  border: 1px solid var(--tr-line-soft);
+  border-radius: var(--tr-radius-sm);
+}
+
+.tr-source__lineage-text {
+  margin: 0;
+  font-size: var(--tr-font-size);
+  color: var(--tr-text);
+  line-height: 1.5;
+}
+
+.tr-source__lineage-link {
+  align-self: flex-start;
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-active);
+}
+
 .tr-source__optional {
   font-size: var(--tr-font-size-sm);
   color: var(--tr-muted-min);
@@ -3191,6 +3215,19 @@ details[open] > .tr-forms__bank-label::before {
   margin: var(--tr-sp-1) 0;
 }
 
+.tr-move-menu__move-to {
+  padding: 0 var(--tr-sp-4) var(--tr-sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-1);
+}
+.tr-move-menu__move-to .tr-inspector__action-label {
+  margin-bottom: 0;
+}
+.tr-move-menu__move-to .tr-inspector__move-row .tr-select {
+  min-width: 120px;
+}
+
 /* Bulk paste */
 .tr-bulk-paste {
   background: var(--tr-plate);
@@ -3287,6 +3324,12 @@ details[open] > .tr-forms__bank-label::before {
 }
 
 .tr-forms {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.tr-forms__bench {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -3796,6 +3839,16 @@ details[open] > .tr-forms__bank-label::before {
   color: var(--tr-muted-min);
   text-transform: uppercase;
   margin-bottom: var(--tr-sp-1);
+}
+
+.tr-inspector__move-row {
+  display: flex;
+  gap: var(--tr-sp-2);
+  align-items: center;
+}
+.tr-inspector__move-row .tr-select {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .tr-btn--danger {

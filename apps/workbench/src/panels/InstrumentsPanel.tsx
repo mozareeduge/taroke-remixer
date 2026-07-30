@@ -10,15 +10,7 @@ import {
 } from "../store/commands.js";
 import { uid, renderDeviceEvent } from "@taroke/core";
 import type { LineEvent } from "@taroke/schema";
-
-const ROLE_FORMS: Record<string, { key: string; label: string }[]> = {
-  noun:      [{ key: "literal", label: "Literal" }, { key: "singular", label: "Singular" }, { key: "plural", label: "Plural" }],
-  verb:      [{ key: "literal", label: "Literal" }, { key: "thirdSingular", label: "3rd singular" }, { key: "imperative", label: "Imperative" }],
-  adjective: [{ key: "literal", label: "Literal" }],
-  adverb:    [{ key: "literal", label: "Literal" }],
-  mixed:     [{ key: "literal", label: "Literal" }],
-};
-const DEFAULT_FORMS: { key: string; label: string }[] = [{ key: "literal", label: "Literal" }];
+import { formsForRole } from "../shell/formRoles.js";
 
 const BANK_ROLES = ["noun", "verb", "adjective", "adverb", "mixed", "literal"] as const;
 
@@ -44,7 +36,7 @@ function VariablePalette({ deviceId, routeId, templateRef, onClose, onInsert }: 
     for (const inp of device.inputs) {
       const bankMeta = project.materials.bankMeta[inp.tray];
       const role = bankMeta?.role ?? inp.role ?? "literal";
-      const forms = ROLE_FORMS[role] ?? DEFAULT_FORMS;
+      const forms = formsForRole(role);
       const available = Object.keys(project.materials.trays).includes(inp.tray);
       for (const { key, label } of forms) {
         entries.push({ variable: `{${inp.slot}:${key}}`, slot: inp.slot, form: label, available });
@@ -137,6 +129,7 @@ export function InstrumentsPanel() {
   const [openPaletteForRoute, setOpenPaletteForRoute] = useState<string | null>(null);
   const [cueResult, setCueResult] = useState<LineEvent | null>(null);
   const [cueError, setCueError] = useState<string | null>(null);
+  const [routeCue, setRouteCue] = useState<Record<string, { surface?: string; error?: string }>>({});
   const [removeDeviceError, setRemoveDeviceError] = useState<string | null>(null);
   const templateRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
@@ -151,6 +144,21 @@ export function InstrumentsPanel() {
       setCueResult(null);
       setCueError((ev as { error?: string }).error ?? "error");
     }
+  }
+
+  // Testing beside the specific route being edited (INST-04) — the device
+  // Cue above only exercises the device's normal weighted route pick, which
+  // may never land on the route a user is actively authoring.
+  function doCueRoute(routeId: string) {
+    if (!activeDevice) return;
+    const localRunState = { ...runState, queue: [...runState.queue] };
+    const ev = renderDeviceEvent(
+      project, activeDevice.id, { type: "device", deviceId: activeDevice.id }, localRunState, Math.random, routeId
+    );
+    setRouteCue((prev) => ({
+      ...prev,
+      [routeId]: ev.type === "line" ? { surface: (ev as LineEvent).surface } : { error: (ev as { error?: string }).error ?? "error" },
+    }));
   }
 
   const selectedRouteId =
@@ -366,8 +374,8 @@ export function InstrumentsPanel() {
                           spellCheck={false}
                           data-route-template={rt.id}
                         />
-                        {activeDevice.inputs.length > 0 && (
-                          <div className="tr-route__palette-row">
+                        <div className="tr-route__palette-row">
+                          {activeDevice.inputs.length > 0 && (
                             <button
                               className="tr-btn tr-btn--ghost tr-btn--sm"
                               aria-label="Insert variable…"
@@ -376,6 +384,21 @@ export function InstrumentsPanel() {
                             >
                               {openPaletteForRoute === rt.id ? "Close palette" : "Insert variable…"}
                             </button>
+                          )}
+                          <button
+                            className="tr-btn tr-btn--ghost tr-btn--sm"
+                            onClick={(e) => { e.stopPropagation(); doCueRoute(rt.id); }}
+                            aria-label={`Test route ${rt.name} (private, not recorded)`}
+                          >
+                            Test route
+                          </button>
+                        </div>
+                        {routeCue[rt.id]?.error && (
+                          <p className="tr-cue-device__error" role="alert">{routeCue[rt.id]!.error}</p>
+                        )}
+                        {routeCue[rt.id]?.surface && (
+                          <div className="tr-cue-device__output" aria-live="polite" aria-atomic="true">
+                            <p className="tr-cue-device__line">{routeCue[rt.id]!.surface}</p>
                           </div>
                         )}
                         {openPaletteForRoute === rt.id && (

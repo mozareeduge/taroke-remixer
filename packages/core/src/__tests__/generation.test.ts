@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cleanSurfaceText, generateEvent, activeScenes } from "../generation.js";
+import { cleanSurfaceText, generateEvent, activeScenes, renderDeviceEvent } from "../generation.js";
 import { defaultProject } from "../migration.js";
 import type { RunState } from "@taroke/schema";
 
@@ -100,5 +100,33 @@ describe("generateEvent", () => {
       if (ev.type === "line" && ev.trigger !== null) { found = true; break; }
     }
     expect(found).toBe(true);
+  });
+});
+
+describe("renderDeviceEvent — forceRouteId (INST-04)", () => {
+  it("renders the forced route's template even when rng would normally pick the first weighted route", () => {
+    const project = defaultProject();
+    const device = project.lineDevices.find((d) => d.id === "ld_path")!;
+    const monkeysRoute = device.routes.find((r) => r.id === "rt_path_monkeys_plain")!;
+    expect(monkeysRoute).toBeDefined();
+    // rng() = 0 always resolves the weighted pick to the first route, which is not monkeysRoute
+    const unforced = renderDeviceEvent(project, device.id, { type: "device", deviceId: device.id }, { tick: 0, queue: [] }, () => 0);
+    expect(unforced.type).toBe("line");
+    expect((unforced as { surface: string }).surface).not.toContain("Monkeys");
+
+    const forced = renderDeviceEvent(
+      project, device.id, { type: "device", deviceId: device.id }, { tick: 0, queue: [] }, () => 0, monkeysRoute.id
+    );
+    expect(forced.type).toBe("line");
+    expect((forced as { surface: string }).surface).toContain("Monkeys");
+  });
+
+  it("falls back to the weighted pick when forceRouteId does not match any route", () => {
+    const project = defaultProject();
+    const device = project.lineDevices.find((d) => d.id === "ld_path")!;
+    const ev = renderDeviceEvent(
+      project, device.id, { type: "device", deviceId: device.id }, { tick: 0, queue: [] }, () => 0.1, "not-a-real-route"
+    );
+    expect(["line", "error"]).toContain(ev.type);
   });
 });

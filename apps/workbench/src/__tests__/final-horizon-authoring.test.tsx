@@ -103,9 +103,9 @@ describe("Forms: role-relevant fields (T02)", () => {
     expect(screen.getByText("FORMS")).toBeInTheDocument();
   });
 
-  it("renders OVERRIDES heading", () => {
+  it("renders BENCH heading", () => {
     wrap(<FormsPanel />);
-    expect(screen.getByText("OVERRIDES")).toBeInTheDocument();
+    expect(screen.getByText("BENCH")).toBeInTheDocument();
   });
 
   it("case policy select is present", () => {
@@ -127,10 +127,10 @@ describe("Forms: role-relevant fields (T02)", () => {
     expect(screen.queryByText("Plural override")).not.toBeInTheDocument();
   });
 
-  it("OVERRIDES section provides guidance when no sample is selected", () => {
+  it("BENCH section provides guidance when no sample is selected", () => {
     wrap(<FormsPanel />);
-    // Without selection, OVERRIDES shows a guidance message
-    expect(screen.getByText("OVERRIDES")).toBeInTheDocument();
+    // Without selection, BENCH shows a guidance message instead of the editable bench
+    expect(screen.getByText("BENCH")).toBeInTheDocument();
     expect(screen.queryByText(/form exceptions|select a|context-relevant/i)).toBeInTheDocument();
   });
 });

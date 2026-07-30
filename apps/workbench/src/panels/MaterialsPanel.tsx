@@ -37,6 +37,7 @@ export function MaterialsPanel() {
   const [bulkText, setBulkText] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [moveMenuFor, setMoveMenuFor] = useState<string | null>(null);
+  const [moveToBankTarget, setMoveToBankTarget] = useState("");
   const [bankSearch, setBankSearch] = useState("");
   const [pendingRemoveTokenId, setPendingRemoveTokenId] = useState<string | null>(null);
   const addRef = useRef<HTMLInputElement>(null);
@@ -156,6 +157,7 @@ export function MaterialsPanel() {
           aria-expanded={moveMenuFor === tok.id}
           onClick={(e) => {
             e.stopPropagation();
+            setMoveToBankTarget("");
             setMoveMenuFor(moveMenuFor === tok.id ? null : tok.id);
           }}
         >
@@ -188,19 +190,40 @@ export function MaterialsPanel() {
               onClick={(e) => { e.stopPropagation(); moveToken(idx, tokens.length - 1); setMoveMenuFor(null); }}
             >Move to bottom</button>
             {banks.filter((b) => b !== activeBank).length > 0 && (
-              <>
+              <div className="tr-move-menu__move-to" onClick={(e) => e.stopPropagation()}>
                 <div className="tr-move-menu__sep" role="separator" />
-                {banks.filter((b) => b !== activeBank).map((targetBank) => (
-                  <button
-                    key={targetBank}
-                    role="menuitem"
-                    className="tr-move-menu__item"
-                    onClick={(e) => { e.stopPropagation(); doMoveToBank(tok.id, targetBank); }}
+                <label className="tr-inspector__action-label" htmlFor={`tr-mat-move-target-${tok.id}`}>Move to bank</label>
+                <div className="tr-inspector__move-row">
+                  <select
+                    id={`tr-mat-move-target-${tok.id}`}
+                    className="tr-select"
+                    value={moveToBankTarget}
+                    onChange={(e) => setMoveToBankTarget(e.target.value)}
+                    aria-label="Destination bank"
                   >
-                    Move to {project.materials.bankMeta[targetBank]?.label ?? targetBank}
+                    <option value="">Choose a bank…</option>
+                    {banks.filter((b) => b !== activeBank).map((targetBank) => (
+                      <option key={targetBank} value={targetBank}>
+                        {project.materials.bankMeta[targetBank]?.label ?? targetBank}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="tr-btn tr-btn--ghost tr-btn--sm"
+                    disabled={!moveToBankTarget}
+                    aria-disabled={!moveToBankTarget}
+                    onClick={() => {
+                      if (!moveToBankTarget) return;
+                      doMoveToBank(tok.id, moveToBankTarget);
+                      setMoveToBankTarget("");
+                    }}
+                    aria-label={`Move ${tok.literal} to selected bank`}
+                  >
+                    Move
                   </button>
-                ))}
-              </>
+                </div>
+              </div>
             )}
             <div className="tr-move-menu__sep" role="separator" />
             <button

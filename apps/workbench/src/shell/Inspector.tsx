@@ -2,6 +2,7 @@ import { useState, type MutableRefObject, type Ref } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectBank } from "../store/selectionSlice.js";
+import { setActivePanel } from "../store/editorSlice.js";
 import { announce } from "../store/feedbackSlice.js";
 import { ConfirmInline } from "./ConfirmInline.js";
 import type { SelectionTarget } from "../store/types.js";
@@ -13,19 +14,10 @@ import {
   updateRouteTemplate, setRouteWeight,
   updateStanzaName, toggleStanzaEnabled,
   updateSceneName, toggleSceneEnabled, setSceneChance,
-  updateTriggerName, setTriggerChance, setTriggerCondition, setTriggerAction,
   setBankLabel, setTokenOverride, removeToken, moveBetweenBanks,
 } from "../store/commands.js";
-import { formToken, KEEP_UNCHANGED_SENTINEL } from "@taroke/core";
-
-const ROLE_FORMS: Record<string, { key: string; label: string }[]> = {
-  noun:      [{ key: "literal", label: "Literal" }, { key: "singular", label: "Singular" }, { key: "plural", label: "Plural" }],
-  verb:      [{ key: "literal", label: "Literal" }, { key: "thirdSingular", label: "3rd singular" }, { key: "imperative", label: "Imperative" }],
-  adjective: [{ key: "literal", label: "Literal" }],
-  adverb:    [{ key: "literal", label: "Literal" }],
-  mixed:     [{ key: "literal", label: "Literal" }],
-};
-const DEFAULT_FORMS = [{ key: "literal", label: "Literal" }];
+import { formToken } from "@taroke/core";
+import { formsForRole, getFormOverride, isFormKept } from "./formRoles.js";
 
 type NonNullTarget = Exclude<SelectionTarget, null>;
 
@@ -39,6 +31,7 @@ function InspectorBody({
   dispatch: AppDispatch;
 }) {
   const [pendingRemoveTokenId, setPendingRemoveTokenId] = useState<string | null>(null);
+  const [moveTargetBank, setMoveTargetBank] = useState<string>("");
 
   if (primary.type === "bank") {
     const meta = project.materials.bankMeta[primary.bankName];
@@ -71,18 +64,8 @@ function InspectorBody({
     const allTokens = project.materials.trays[primary.bankName] ?? [];
     const totalWeight = allTokens.reduce((s, t) => s + (t.weight || 0), 0);
     const sharePercent = totalWeight > 0 ? Math.round((tok.weight / totalWeight) * 100) : 0;
-    const forms = ROLE_FORMS[bankRole] ?? DEFAULT_FORMS;
+    const forms = formsForRole(bankRole);
     const otherBanks = Object.keys(project.materials.trays).filter((b) => b !== primary.bankName);
-
-    function getOverride(form: string): string {
-      const ov = (project.forms?.overrides?.[tok!.id] as Record<string, string> | undefined) ?? {};
-      const v = ov[form];
-      return v === KEEP_UNCHANGED_SENTINEL ? "" : (v ?? "");
-    }
-    function isKept(form: string): boolean {
-      const ov = (project.forms?.overrides?.[tok!.id] as Record<string, string> | undefined) ?? {};
-      return ov[form] === KEEP_UNCHANGED_SENTINEL;
-    }
 
     return (
       <div className="tr-inspector__fields">
@@ -117,9 +100,10 @@ function InspectorBody({
         </div>
 
         <div className="tr-inspector__subsection">FORM EXCEPTIONS</div>
+        <p className="tr-inspector__hint">Full before→after bench is in the Forms chamber.</p>
         {forms.map(({ key, label }) => {
-          const kept = isKept(key);
-          const ov = getOverride(key);
+          const kept = isFormKept(project, tok!.id, key);
+          const ov = getFormOverride(project, tok!.id, key);
           const preview = formToken(project, tok, key);
           return (
             <div key={key} className="tr-inspector__form-row">
@@ -142,20 +126,38 @@ function InspectorBody({
         <div className="tr-inspector__actions">
           {otherBanks.length > 0 && (
             <div className="tr-inspector__action-group">
-              <span className="tr-inspector__action-label">Move to bank</span>
-              {otherBanks.map((b) => (
-                <button
-                  key={b}
-                  className="tr-btn tr-btn--ghost tr-btn--sm"
-                  onClick={() => {
-                    dispatch(mutateProject(moveBetweenBanks(project, primary.bankName, tok.id, b)));
-                    dispatch(selectBank(b));
-                  }}
-                  aria-label={`Move ${tok.literal} to ${project.materials.bankMeta[b]?.label ?? b}`}
+              <label className="tr-inspector__action-label" htmlFor="tr-inspector-move-target">Move to bank</label>
+              <div className="tr-inspector__move-row">
+                <select
+                  id="tr-inspector-move-target"
+                  className="tr-select"
+                  key={tok.id + "-move-target"}
+                  value={moveTargetBank}
+                  onChange={(e) => setMoveTargetBank(e.target.value)}
+                  aria-label="Destination bank"
                 >
-                  {project.materials.bankMeta[b]?.label ?? b}
+                  <option value="">Choose a bank…</option>
+                  {otherBanks.map((b) => (
+                    <option key={b} value={b}>{project.materials.bankMeta[b]?.label ?? b}</option>
+                  ))}
+                </select>
+                <button
+                  className="tr-btn tr-btn--ghost tr-btn--sm"
+                  disabled={!moveTargetBank}
+                  aria-disabled={!moveTargetBank}
+                  onClick={() => {
+                    if (!moveTargetBank) return;
+                    const targetLabel = project.materials.bankMeta[moveTargetBank]?.label ?? moveTargetBank;
+                    dispatch(mutateProject(moveBetweenBanks(project, primary.bankName, tok.id, moveTargetBank)));
+                    dispatch(selectBank(moveTargetBank));
+                    dispatch(announce(`Moved "${tok.literal}" to ${targetLabel}.`));
+                    setMoveTargetBank("");
+                  }}
+                  aria-label={`Move ${tok.literal} to selected bank`}
+                >
+                  Move
                 </button>
-              ))}
+              </div>
             </div>
           )}
           <button
@@ -323,65 +325,30 @@ function InspectorBody({
   if (primary.type === "trigger") {
     const tr = project.triggers.find((t) => t.id === primary.triggerId);
     if (!tr) return <div className="tr-inspector__value">Trigger not found</div>;
-    const banks = Object.keys(project.materials.trays);
+    const bankLabel = project.materials.bankMeta[tr.condition.tray]?.label ?? tr.condition.tray;
+    const termDisplay = tr.condition.term || "any (wildcard)";
+    const complete = tr.action.text.trim().length > 0;
+    const state = !complete ? "Draft (incomplete)" : tr.enabled ? "Enabled" : "Disabled";
+    // The WHEN/chance/THEN editor and its no-op validation live only in the
+    // Automation chamber (ACT-05) — a second, unvalidated copy here would let
+    // edits silently diverge from what Automation enforces.
     return (
       <div className="tr-inspector__fields">
         <label className="tr-inspector__label">Name</label>
-        <input
-          className="tr-input"
-          defaultValue={tr.name}
-          key={tr.id + "-name"}
-          onBlur={(e) => dispatch(mutateProject(updateTriggerName(project, tr.id, e.target.value)))}
-          aria-label="Trigger name"
-        />
-        <label className="tr-inspector__label">Chance</label>
-        <input
-          className="tr-input tr-input--num"
-          type="number"
-          defaultValue={tr.chance}
-          key={tr.id + "-chance"}
-          min={0}
-          max={100}
-          onBlur={(e) => dispatch(mutateProject(setTriggerChance(project, tr.id, Number(e.target.value))))}
-          aria-label="Trigger chance"
-        />
-        <label className="tr-inspector__label">WHEN bank</label>
-        <select
-          className="tr-select"
-          value={tr.condition.tray}
-          onChange={(e) => dispatch(mutateProject(setTriggerCondition(project, tr.id, e.target.value, tr.condition.term)))}
-          aria-label="Trigger condition bank"
+        <div className="tr-inspector__value">{tr.name}</div>
+        <label className="tr-inspector__label">State</label>
+        <div className="tr-inspector__value">{state}</div>
+        <label className="tr-inspector__label">Rule</label>
+        <div className="tr-inspector__value">
+          WHEN {bankLabel} {termDisplay} → {tr.chance}% → THEN {tr.action.type} {complete ? tr.action.text : "(no action text)"}
+        </div>
+        <button
+          className="tr-btn tr-btn--ghost tr-btn--sm"
+          onClick={() => dispatch(setActivePanel("automation"))}
+          aria-label={`Edit trigger ${tr.name} in Automation`}
         >
-          {banks.map((b) => <option key={b} value={b}>{b}</option>)}
-        </select>
-        <label className="tr-inspector__label">WHEN term</label>
-        <input
-          className="tr-input"
-          defaultValue={tr.condition.term}
-          key={tr.id + "-term"}
-          placeholder="blank = any"
-          onBlur={(e) => dispatch(mutateProject(setTriggerCondition(project, tr.id, tr.condition.tray, e.target.value)))}
-          aria-label="Trigger condition term"
-        />
-        <label className="tr-inspector__label">THEN action</label>
-        <select
-          className="tr-select"
-          value={tr.action.type}
-          onChange={(e) => dispatch(mutateProject(setTriggerAction(project, tr.id, e.target.value as "append" | "prepend" | "replace", tr.action.text)))}
-          aria-label="Trigger action type"
-        >
-          <option value="append">append</option>
-          <option value="prepend">prepend</option>
-          <option value="replace">replace</option>
-        </select>
-        <label className="tr-inspector__label">THEN text</label>
-        <input
-          className="tr-input"
-          defaultValue={tr.action.text}
-          key={tr.id + "-action-text"}
-          onBlur={(e) => dispatch(mutateProject(setTriggerAction(project, tr.id, tr.action.type, e.target.value)))}
-          aria-label="Trigger action text"
-        />
+          Edit in Automation
+        </button>
       </div>
     );
   }

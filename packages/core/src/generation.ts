@@ -88,6 +88,7 @@ export function renderDeviceEvent(
   slot: QueueEntry,
   runState: Partial<RunState> = {},
   rng: RNG = Math.random,
+  forceRouteId?: string,
 ): LineEvent | ErrorEvent {
   const device = getDevice(project, deviceId);
   if (!device || !device.enabled) {
@@ -102,7 +103,12 @@ export function renderDeviceEvent(
     };
   }
 
-  const route = weighted(device.routes, rng) ?? { id: "", name: "empty", weight: 0, template: "" };
+  // A route selected for editing can be tested directly (route testing
+  // beside the route, INST-04) instead of only via the device's weighted pick.
+  const route =
+    (forceRouteId ? device.routes.find((r) => r.id === forceRouteId) : undefined) ??
+    weighted(device.routes, rng) ??
+    { id: "", name: "empty", weight: 0, template: "" };
   const selectedTokens: Record<string, ReturnType<typeof getTrayTokens>[number] | null> = {};
   const selected: Record<string, string> = {};
   const rendered: Record<string, string> = {};

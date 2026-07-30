@@ -5,7 +5,7 @@ import { render, screen, fireEvent, waitFor, act, within } from "@testing-librar
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import projectReducer, { mutateProject } from "../../store/projectSlice.js";
-import selectionReducer, { selectBank, selectDevice, selectTrigger } from "../../store/selectionSlice.js";
+import selectionReducer, { selectBank, selectDevice, selectTrigger, selectToken } from "../../store/selectionSlice.js";
 import editorReducer from "../../store/editorSlice.js";
 import runtimeReducer from "../../store/runtimeSlice.js";
 import historyReducer from "../../store/historySlice.js";
@@ -16,6 +16,7 @@ import surfaceReducer from "../../store/surfaceSlice.js";
 import feedbackReducer from "../../store/feedbackSlice.js";
 import { selectionIntegrityMiddleware } from "../../store/selectionIntegrityMiddleware.js";
 import { PHASE_A_NEUTRAL_TEST_FIXTURE } from "../neutral-test-fixture.js";
+import { SourcePanel } from "../../panels/SourcePanel.js";
 import { MaterialsPanel } from "../../panels/MaterialsPanel.js";
 import { FormsPanel } from "../../panels/FormsPanel.js";
 import { InstrumentsPanel } from "../../panels/InstrumentsPanel.js";
@@ -50,6 +51,35 @@ function makeStoreWithFixture() {
   store.dispatch(mutateProject({ present: PHASE_A_NEUTRAL_TEST_FIXTURE, patches: [], inversePatches: [], label: "load fixture" }));
   return store;
 }
+
+// ── SourcePanel ──────────────────────────────────────────────────────────────
+
+describe("SourcePanel — lineage (T03)", () => {
+  it("renders a LINEAGE section describing the source→remix relationship", () => {
+    wrap(<SourcePanel />);
+    expect(screen.getByText("LINEAGE")).toBeInTheDocument();
+    expect(screen.getByText(/is a remix derived from/i)).toBeInTheDocument();
+  });
+
+  it("links to the recorded source URL", () => {
+    wrap(<SourcePanel />);
+    const link = screen.getByRole("link", { name: /view origin text/i });
+    expect(link).toHaveAttribute("href", expect.stringContaining("https://"));
+  });
+
+  it("distinguishes editable work identity from stable source provenance", () => {
+    wrap(<SourcePanel />);
+    expect(screen.getByText(/editable — this remix/i)).toBeInTheDocument();
+    expect(screen.getByText(/stable — the origin text/i)).toBeInTheDocument();
+  });
+
+  it("does not show a source link when no source URL is recorded", () => {
+    const store = makeStore();
+    wrap(<SourcePanel />, store);
+    fireEvent.change(screen.getByLabelText("Source URL"), { target: { value: "" } });
+    expect(screen.queryByRole("link", { name: /view origin text/i })).not.toBeInTheDocument();
+  });
+});
 
 // ── MaterialsPanel ─────────────────────────────────────────────────────────────
 
@@ -243,6 +273,25 @@ describe("InstrumentsPanel", () => {
     // Must find written Remove buttons
     const removeBtns = screen.queryAllByRole("button", { name: /remove/i });
     expect(removeBtns.length).toBeGreaterThan(0);
+  });
+
+  // INST-04: each route can be tested directly, beside its own editor,
+  // instead of only via the device-level Cue (which uses a weighted pick
+  // that may never land on the route being edited).
+  it("INST-04: a selected route has its own Test route button beside its editor", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    expect(screen.getAllByRole("button", { name: /test route/i }).length).toBeGreaterThan(0);
+  });
+
+  it("INST-04: testing a route shows its rendered output inline, without waiting for the device Cue", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    const testBtn = screen.getAllByRole("button", { name: /test route/i })[0]!;
+    fireEvent.click(testBtn);
+    expect(document.querySelector(".tr-cue-device__output")).not.toBeNull();
   });
 });
 
@@ -729,9 +778,36 @@ describe("FormsPanel", () => {
     expect(screen.getByRole("combobox", { name: /case policy/i })).toBeInTheDocument();
   });
 
-  it("renders OVERRIDES section heading", () => {
+  it("renders BENCH section heading", () => {
     wrap(<FormsPanel />);
-    expect(screen.getByText("OVERRIDES")).toBeInTheDocument();
+    expect(screen.getByText("BENCH")).toBeInTheDocument();
+  });
+
+  it("guides the user to select a sample when none is selected", () => {
+    wrap(<FormsPanel />);
+    expect(screen.getByText(/select a bank or sample/i)).toBeInTheDocument();
+  });
+
+  it("shows the before/after form bench inline for a selected sample, with no redundant Edit-in-Details indirection", () => {
+    const store = makeStore();
+    const bankName = Object.keys(store.getState().project.present.materials.trays)[0]!;
+    const tokenId = store.getState().project.present.materials.trays[bankName]![0]!.id;
+    store.dispatch(selectToken({ bankName, tokenId }));
+    wrap(<FormsPanel />, store);
+    expect(screen.getByRole("group", { name: /form bench/i })).toBeInTheDocument();
+    expect(screen.queryByText(/edit in details/i)).not.toBeInTheDocument();
+  });
+
+  it("editing a form override in the bench updates the project", () => {
+    const store = makeStore();
+    const bankName = Object.keys(store.getState().project.present.materials.trays)[0]!;
+    const tokenId = store.getState().project.present.materials.trays[bankName]![0]!.id;
+    store.dispatch(selectToken({ bankName, tokenId }));
+    wrap(<FormsPanel />, store);
+    const input = screen.getAllByLabelText(/override for/i)[0]!;
+    fireEvent.change(input, { target: { value: "custom form" } });
+    const overrides = store.getState().project.present.forms.overrides?.[tokenId] as Record<string, string> | undefined;
+    expect(Object.values(overrides ?? {})).toContain("custom form");
   });
 
   it("changing case policy updates the project", () => {
