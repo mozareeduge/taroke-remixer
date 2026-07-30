@@ -314,6 +314,26 @@ jobs:
           // so the evidence run is reproducible across CI reruns.
           const RNG_SEED = 123456;
 
+          // Mobile chamber navigation via the sticky ChamberSwitcher (replaces the
+          // removed fixed abbreviation bottom nav / Material sub-nav). Portrait/
+          // tablet widths show a collapsed trigger that expands to a listbox;
+          // short-landscape (e.g. 844x390) shows a scrollable rail instead.
+          async function gotoChamberMobile(page, chamberLabel) {
+            const trigger = page.locator('.tr-chamber-switcher__trigger');
+            if (await trigger.isVisible({ timeout: 1500 }).catch(() => false)) {
+              await trigger.click();
+              const option = page.getByRole('option', { name: new RegExp('\\b' + chamberLabel) });
+              if (await option.isVisible({ timeout: 1500 }).catch(() => false)) {
+                await option.click();
+              }
+              return;
+            }
+            const railBtn = page.locator('.tr-chamber-rail__btn', { hasText: chamberLabel });
+            if (await railBtn.isVisible({ timeout: 1500 }).catch(() => false)) {
+              await railBtn.click();
+            }
+          }
+
           const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] });
           const captures = [];
           let firstObservedTitle = null;
@@ -369,11 +389,8 @@ jobs:
                   await cueBtn.click();
                 }
               } else {
-                // Mobile nav: "Perform" abbreviated button
-                const perfBtn = page.locator('.tr-mobile-nav').getByRole('button', { name: 'Perform' });
-                if (await perfBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-                  await perfBtn.click();
-                }
+                // Mobile: chamber switcher → Performance
+                await gotoChamberMobile(page, 'Performance');
               }
               await page.waitForTimeout(300);
 
@@ -453,17 +470,9 @@ jobs:
                   await page.waitForTimeout(200);
                 }
               } else {
-                // Mobile: click "Material" in the bottom nav, then "Banks & Samples" in the subnav
-                const mobileMatBtn = page.locator('.tr-mobile-nav').getByRole('button', { name: 'Material' });
-                if (await mobileMatBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-                  await mobileMatBtn.click();
-                  await page.waitForTimeout(200);
-                }
-                const subnavBanks = page.locator('.tr-material-subnav').getByRole('button', { name: 'Banks & Samples' });
-                if (await subnavBanks.isVisible({ timeout: 2000 }).catch(() => false)) {
-                  await subnavBanks.click();
-                  await page.waitForTimeout(200);
-                }
+                // Mobile: chamber switcher → Materials
+                await gotoChamberMobile(page, 'Materials');
+                await page.waitForTimeout(200);
               }
 
               // Select the first sample literal to populate the Inspector

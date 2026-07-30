@@ -2,13 +2,14 @@
  * Mobile Inspector flow — sheet mode contract.
  *
  * Verifies the explicit mobile Details flow:
- *   a. select a sample in Banks & Samples;
+ *   a. select a sample in Materials;
  *   b. verify the Inspector sheet has NOT auto-opened;
  *   c. explicitly open Details via FormsPanel's "Edit in Details" action;
  *   d. verify [data-form-override] inputs are visible inside the Inspector;
  *   e. edit one override and verify its value;
  *   f. close the sheet;
- *   g. navigate to another chamber and prove bottom navigation remains usable.
+ *   g. navigate to another chamber via the chamber switcher and prove it
+ *      remains usable.
  *
  * Retains overlay auto-open at 960–1199 px and docked-open at ≥1200 px.
  * FormsPanel must have no .tr-forms__sample-editor or [data-form-override];
@@ -28,23 +29,20 @@ async function gotoMobile(page: Page) {
   await page.waitForTimeout(150); // allow matchMedia listeners to settle
 }
 
+/** Opens the mobile chamber switcher and selects a chamber by its full name. */
+async function gotoChamber(page: Page, chamberLabel: string) {
+  await page.locator(".tr-chamber-switcher__trigger").click();
+  await page.getByRole("option", { name: new RegExp(`\\b${chamberLabel}`) }).click();
+  await page.waitForTimeout(150);
+}
+
 // ── FormsPanel must never contain full form editor elements ───────────────────
 
 test("MI-0 — FormsPanel has no .tr-forms__sample-editor or [data-form-override]", async ({ page }) => {
   await gotoMobile(page);
 
-  // Navigate to Forms panel via mobile Material sub-nav
-  const materialTab = page.getByRole("button", { name: "Material" });
-  if (await materialTab.isVisible()) {
-    await materialTab.click();
-    await page.waitForTimeout(100);
-    const formsSubBtn = page.locator(".tr-material-subnav").getByRole("button", { name: "Forms" });
-    if (await formsSubBtn.isVisible()) {
-      await formsSubBtn.click();
-    }
-  } else {
-    await page.getByRole("button", { name: "Forms" }).click();
-  }
+  // Navigate to Forms via the chamber switcher
+  await gotoChamber(page, "Forms");
   await page.waitForTimeout(200);
 
   // FormsPanel must not contain a sample editor or data-form-override
@@ -62,18 +60,8 @@ test("MI-0 — FormsPanel has no .tr-forms__sample-editor or [data-form-override
 test("MI-1 — mobile: select sample → sheet not auto-opened → open Details → edit override → close → bottom nav usable", async ({ page }) => {
   await gotoMobile(page);
 
-  // Step a: navigate to Banks & Samples and select a sample
-  const materialTab = page.getByRole("button", { name: "Material" });
-  if (await materialTab.isVisible()) {
-    await materialTab.click();
-    await page.waitForTimeout(100);
-    const banksSubBtn = page.locator(".tr-material-subnav").getByRole("button", { name: "Banks & Samples" });
-    if (await banksSubBtn.isVisible()) {
-      await banksSubBtn.click();
-    }
-  } else {
-    await page.getByRole("button", { name: "Banks & Samples" }).click();
-  }
+  // Step a: navigate to Materials and select a sample
+  await gotoChamber(page, "Materials");
   await page.waitForTimeout(200);
 
   // Wait for sample table to appear and click first sample literal
@@ -91,19 +79,8 @@ test("MI-1 — mobile: select sample → sheet not auto-opened → open Details 
   );
   expect(isOpen, "Inspector sheet must NOT auto-open on selection in mobile sheet mode").toBe(false);
 
-  // Step c: navigate to Forms panel and click "Edit in Details"
-  if (await materialTab.isVisible()) {
-    const formsSubBtn = page.locator(".tr-material-subnav").getByRole("button", { name: "Forms" });
-    if (await formsSubBtn.isVisible()) {
-      await formsSubBtn.click();
-    } else {
-      await materialTab.click();
-      await page.waitForTimeout(100);
-      await page.locator(".tr-material-subnav").getByRole("button", { name: "Forms" }).click();
-    }
-  } else {
-    await page.getByRole("button", { name: "Forms" }).click();
-  }
+  // Step c: navigate to Forms and click "Edit in Details"
+  await gotoChamber(page, "Forms");
   await page.waitForTimeout(200);
 
   // "Edit in Details" button appears when a token is selected in FormsPanel
@@ -135,19 +112,15 @@ test("MI-1 — mobile: select sample → sheet not auto-opened → open Details 
   );
   expect(isStillOpen, "Inspector must close after clicking Close").toBe(false);
 
-  // Step g: navigate to another chamber via bottom nav — prove it is still usable
-  const performBtn = page.getByRole("button", { name: "Perform" });
-  await expect(performBtn).toBeVisible();
-  await performBtn.click();
+  // Step g: navigate to another chamber via the chamber switcher — prove it is still usable
+  await gotoChamber(page, "Performance");
   await page.waitForTimeout(300);
 
-  // Verify the Performance panel rendered (bottom nav worked)
+  // Verify the Performance panel rendered (chamber switcher worked)
   await expect(page.getByText("CUE").first()).toBeVisible({ timeout: 3_000 });
 
-  // Verify bottom nav buttons are still present and usable
-  const archiveBtn = page.getByRole("button", { name: "Archive" });
-  await expect(archiveBtn).toBeVisible();
-  await archiveBtn.click();
+  // Verify the switcher is still present and usable
+  await gotoChamber(page, "Archive");
   await page.waitForTimeout(200);
   await expect(page.getByText("EXPORT").first()).toBeVisible({ timeout: 3_000 });
 });

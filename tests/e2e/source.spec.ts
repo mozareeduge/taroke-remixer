@@ -65,29 +65,21 @@ test("S4 — Title edit in SourcePanel reflects in ArchivePanel PROJECT INFO", a
   await expect(page.getByRole("cell", { name: "Gorge Poem" })).toBeVisible();
 });
 
-// ── 5. Mobile: Source is reachable via Material grouped nav ───────────────────
+// ── 5. Mobile: Source is reachable via the chamber switcher ──────────────────
 
-test("S5 — Source is reachable via mobile Material grouped sub-nav", async ({ page }) => {
+test("S5 — Source is reachable via the mobile chamber switcher", async ({ page }) => {
   await goto(page);
   await page.setViewportSize({ width: 390, height: 844 });
   // Brief wait for React's matchMedia listener to update isMobile state
   await page.waitForTimeout(150);
-  // Click the Material top-level tab in mobile bottom nav
-  const materialTab = page.getByRole("button", { name: "Material" });
-  if (await materialTab.isVisible()) {
-    await materialTab.click();
-    // Brief wait for Workspace to re-render with isMobile=true
-    await page.waitForTimeout(150);
-    // Source sub-item must appear in the material sub-nav
-    const sourceSubBtn = page.locator(".tr-material-subnav").getByRole("button", { name: "Source" });
-    await expect(sourceSubBtn).toBeVisible();
-    await sourceSubBtn.click();
-    await expect(page.getByText("WORK IDENTITY", { exact: true })).toBeVisible();
-  } else {
-    // Desktop nav visible at this viewport — find Source in sidebar
-    await page.getByRole("button", { name: "Source" }).click();
-    await expect(page.getByText("WORK IDENTITY", { exact: true })).toBeVisible();
-  }
+  // Open the chamber switcher and select Source directly — it is a
+  // full top-level destination, not nested under a Material group.
+  await page.locator(".tr-chamber-switcher__trigger").click();
+  await page.waitForTimeout(150);
+  const sourceOption = page.getByRole("option", { name: /\bSource/ });
+  await expect(sourceOption).toBeVisible();
+  await sourceOption.click();
+  await expect(page.getByText("WORK IDENTITY", { exact: true })).toBeVisible();
 });
 
 // ── 6. Invalid URL shows accessible validation error ─────────────────────────

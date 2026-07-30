@@ -105,8 +105,11 @@ describe("Mobile chamber switcher (T02)", () => {
     wrap(<AppShell />);
     const switcher = screen.getByRole("navigation", { name: "Chambers" });
     const main = screen.getByRole("main");
-    // Sibling landmarks in normal flow, not one positioned on top of the other.
-    expect(switcher.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Sibling landmarks in normal document flow, not one nested inside the
+    // other — so the switcher is a distinct grid region, not an overlay
+    // wrapping (or wrapped by) the workspace.
+    expect(switcher.contains(main)).toBe(false);
+    expect(main.contains(switcher)).toBe(false);
   });
 });
 

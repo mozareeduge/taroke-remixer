@@ -59,16 +59,6 @@ const NAV_LABELS_A11Y: Record<string, string> = {
   "Archive": "Import & Export",
 };
 
-const MOBILE_NAV_A11Y: Record<string, { top: string; sub?: string }> = {
-  "Banks & Samples": { top: "Material", sub: "Banks & Samples" },
-  "Forms":           { top: "Material", sub: "Forms" },
-  "Devices":         { top: "Devices" },
-  "Patterns":        { top: "Compose" },
-  "Triggers":        { top: "Automate" },
-  "Cue & Surface":   { top: "Perform" },
-  "Import & Export": { top: "Archive" },
-};
-
 async function clickNav(page: Page, label: string) {
   const desktopName = NAV_LABELS_A11Y[label] ?? label;
 
@@ -77,12 +67,17 @@ async function clickNav(page: Page, label: string) {
     return;
   }
 
-  const route = MOBILE_NAV_A11Y[desktopName];
-  if (!route) throw new Error(`No mobile nav route for "${desktopName}"`);
-  await page.getByRole("button", { name: route.top }).click();
-  if (route.sub) {
-    await page.getByRole("button", { name: route.sub }).click();
+  // Mobile: the chamber switcher lists all eight chambers by their canonical
+  // name (the same `label` passed in, e.g. "Materials", "Performance").
+  const trigger = page.locator(".tr-chamber-switcher__trigger");
+  if (await trigger.isVisible()) {
+    await trigger.click();
+    await page.getByRole("option", { name: new RegExp(`\\b${label}`) }).click();
+    return;
   }
+
+  // Short landscape: compact scrollable rail instead of the collapsed switcher.
+  await page.locator(".tr-chamber-rail__btn", { hasText: label }).click();
 }
 
 test("a11y — shell (no panel active)", async ({ page }) => {

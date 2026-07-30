@@ -26,17 +26,6 @@ const NAV_LABELS: Record<string, string> = {
   "Archive": "Import & Export",
 };
 
-// Mobile bottom nav maps desktop panel names to { top-level tab, optional sub-item }
-const MOBILE_NAV: Record<string, { top: string; sub?: string }> = {
-  "Banks & Samples": { top: "Material", sub: "Banks & Samples" },
-  "Forms":           { top: "Material", sub: "Forms" },
-  "Devices":         { top: "Devices" },
-  "Patterns":        { top: "Compose" },
-  "Triggers":        { top: "Automate" },
-  "Cue & Surface":   { top: "Perform" },
-  "Import & Export": { top: "Archive" },
-};
-
 async function clickNav(page: Page, label: string) {
   const desktopName = NAV_LABELS[label] ?? label;
 
@@ -46,13 +35,17 @@ async function clickNav(page: Page, label: string) {
     return;
   }
 
-  // Mobile: use the bottom nav, then the material sub-nav if needed
-  const route = MOBILE_NAV[desktopName];
-  if (!route) throw new Error(`No mobile nav route for "${desktopName}"`);
-  await page.getByRole("button", { name: route.top }).click();
-  if (route.sub) {
-    await page.getByRole("button", { name: route.sub }).click();
+  // Mobile: the chamber switcher lists all eight chambers by their canonical
+  // name (the same `label` passed in, e.g. "Materials", "Performance").
+  const trigger = page.locator(".tr-chamber-switcher__trigger");
+  if (await trigger.isVisible()) {
+    await trigger.click();
+    await page.getByRole("option", { name: new RegExp(`\\b${label}`) }).click();
+    return;
   }
+
+  // Short landscape: compact scrollable rail instead of the collapsed switcher.
+  await page.locator(".tr-chamber-rail__btn", { hasText: label }).click();
 }
 
 // ── 1. Shell loads ─────────────────────────────────────────────────────────────
@@ -61,7 +54,7 @@ test("1 — v08 workbench shell loads at /next/", async ({ page }) => {
   await goto(page);
   await expect(page.locator("h1")).toBeVisible();
   // Navigation is present
-  await expect(page.locator("nav, [role='navigation']").first()).toBeVisible();
+  await expect(page.locator("nav:visible, [role='navigation']:visible").first()).toBeVisible();
 });
 
 // ── 2. Navigation panel switching ──────────────────────────────────────────────
@@ -369,7 +362,7 @@ test("18 — a11y: h1, nav landmark, and named buttons present", async ({ page }
   await goto(page);
 
   await expect(page.locator("h1")).toBeVisible();
-  await expect(page.locator("nav, [role='navigation']").first()).toBeVisible();
+  await expect(page.locator("nav:visible, [role='navigation']:visible").first()).toBeVisible();
 
   // All buttons in the first 20 must have an accessible name
   const buttons = await page.getByRole("button").all();
@@ -695,7 +688,7 @@ test("32 — Archive: preview badge becomes STALE after project mutation", async
   const addInput = page.getByRole("textbox", { name: /New sample literal/i });
   await expect(addInput).toBeVisible();
   await addInput.fill("stale-trigger-mutation");
-  await page.getByRole("button", { name: /^Add$/i }).click();
+  await page.getByRole("button", { name: "Add sample" }).click();
   await page.waitForTimeout(300);
 
   // Return to Archive — badge must now be STALE
@@ -1087,7 +1080,7 @@ test("49 — Materials: new sample literal input + Add button append a sample ro
   const addInput = page.getByRole("textbox", { name: /New sample literal/i });
   await expect(addInput).toBeVisible();
   await addInput.fill("freshly-added-sample");
-  await page.getByRole("button", { name: /^Add$/i }).click();
+  await page.getByRole("button", { name: "Add sample" }).click();
   await page.waitForTimeout(300);
 
   const after = await rows.count();

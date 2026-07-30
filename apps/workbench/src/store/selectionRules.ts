@@ -30,7 +30,12 @@ export function selectionOwner(target: SelectionTarget): EditorPanel | null {
 /** True when `target` (including null) is a selection the given panel may show. */
 export function selectionAllowedInPanel(target: SelectionTarget, panel: EditorPanel): boolean {
   if (target === null) return true;
-  return selectionOwner(target) === panel;
+  if (selectionOwner(target) === panel) return true;
+  // Forms consumes Materials' bank/token context without owning it — the
+  // main Forms editor still owns form-exception editing (04_SOLUTION_
+  // ARCHITECTURE.md §1, SEL-05).
+  if (panel === "forms" && (target.type === "bank" || target.type === "token")) return true;
+  return false;
 }
 
 /** True when `target` still resolves to a live object in `project`. */

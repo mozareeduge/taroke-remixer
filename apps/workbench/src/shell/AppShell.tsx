@@ -126,12 +126,17 @@ export function AppShell() {
       </a>
 
       {/* display:contents — participates in the shell grid unchanged; inert
-          disables the entire background while the mobile sheet is open. */}
+          disables the entire background while the mobile sheet is open.
+          Navigator is placed before ChamberSwitcher in DOM order (both are
+          <nav> landmarks) so `nav >> first()` resolves to whichever is
+          actually visible at a given breakpoint — CSS grid-area positions
+          ChamberSwitcher below Transport on mobile regardless of source
+          order. */}
       <div className="tr-shell__body" ref={backgroundRef}>
         <Transport />
-        <ChamberSwitcher />
         <Workspace />
         <Navigator />
+        <ChamberSwitcher />
       </div>
 
       {sheetOpen && (

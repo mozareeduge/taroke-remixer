@@ -64,6 +64,14 @@ describe("selectionRules (SEL-01)", () => {
     expect(validateSelection(project, { type: "bank", bankName: "does-not-exist" })).toBe(false);
     expect(validateSelection(project, { type: "trigger", triggerId: "trig_1" })).toBe(true);
   });
+
+  // SEL-05: Forms consumes Materials' bank/token context without owning it.
+  it("Forms may show a bank/token selection made in Materials", () => {
+    const tokenTarget = { type: "token" as const, bankName: "nouns", tokenId: "t1" };
+    expect(selectionAllowedInPanel(tokenTarget, "materials")).toBe(true);
+    expect(selectionAllowedInPanel(tokenTarget, "forms")).toBe(true);
+    expect(selectionAllowedInPanel(tokenTarget, "instruments")).toBe(false);
+  });
 });
 
 describe("selectionIntegrityMiddleware — chamber ownership (SEL-01, SEL-06)", () => {
@@ -76,6 +84,13 @@ describe("selectionIntegrityMiddleware — chamber ownership (SEL-01, SEL-06)", 
     const after = store.getState().selection.primary;
     expect(after === null || selectionAllowedInPanel(after, "automation")).toBe(true);
     expect(after).not.toEqual({ type: "bank", bankName: "nouns" });
+  });
+
+  it("SEL-05: switching to Forms keeps a token selected in Materials (Forms consumes Materials context)", () => {
+    const store = makeStore();
+    store.dispatch(selectToken({ bankName: "nouns", tokenId: "tok_n1" }));
+    store.dispatch(setActivePanel("forms"));
+    expect(store.getState().selection.primary).toEqual({ type: "token", bankName: "nouns", tokenId: "tok_n1" });
   });
 
   it("restores a chamber's own last valid selection when returning to it", () => {
