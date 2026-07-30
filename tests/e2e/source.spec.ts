@@ -29,21 +29,22 @@ test("S2 — Source panel renders WORK IDENTITY section on desktop", async ({ pa
   await goto(page);
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.getByRole("button", { name: "Source" }).click();
-  // Section heads use exact text in DOM (CSS text-transform: uppercase is visual only)
-  await expect(page.getByText("WORK IDENTITY", { exact: true })).toBeVisible();
+  // Section head now carries an "editable — this remix" meta label alongside
+  // the heading text, so match by substring rather than exact.
+  await expect(page.getByText("WORK IDENTITY")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Project title" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Author" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Language" })).toBeVisible();
 });
 
-// ── 3. Desktop: Source panel has SOURCE and TEXT sections ─────────────────────
+// ── 3. Desktop: Source panel has LINEAGE, SOURCE PROVENANCE and TEXT sections ─
 
-test("S3 — Source panel renders SOURCE and TEXT sections", async ({ page }) => {
+test("S3 — Source panel renders LINEAGE, SOURCE PROVENANCE and TEXT sections", async ({ page }) => {
   await goto(page);
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.getByRole("button", { name: "Source" }).click();
-  // Use exact: true to avoid case-insensitive substring ambiguity
-  await expect(page.getByText("SOURCE", { exact: true })).toBeVisible();
+  await expect(page.getByText("LINEAGE", { exact: true })).toBeVisible();
+  await expect(page.getByText("SOURCE PROVENANCE")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Source title" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Source URL" })).toBeVisible();
   await expect(page.getByText("TEXT", { exact: true })).toBeVisible();
@@ -79,7 +80,9 @@ test("S5 — Source is reachable via the mobile chamber switcher", async ({ page
   const sourceOption = page.getByRole("option", { name: /\bSource/ });
   await expect(sourceOption).toBeVisible();
   await sourceOption.click();
-  await expect(page.getByText("WORK IDENTITY", { exact: true })).toBeVisible();
+  // Section head now carries an "editable — this remix" meta label alongside
+  // the heading text, so match by substring rather than exact.
+  await expect(page.getByText("WORK IDENTITY")).toBeVisible();
 });
 
 // ── 6. Invalid URL shows accessible validation error ─────────────────────────

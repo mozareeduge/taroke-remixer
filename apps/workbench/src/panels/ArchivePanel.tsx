@@ -1,11 +1,16 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState, useEffect, type ReactNode } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { setProject } from "../store/projectSlice.js";
 import { setPreviewFresh, setPreviewHtml } from "../store/editorSlice.js";
 import { showReceipt } from "../store/importReceiptSlice.js";
-import { exportProjectJson, exportProjectHtml, importProjectWithReceipt, downloadName } from "@taroke/core";
+import { exportProjectJson, exportProjectHtml, importProjectWithReceipt, downloadName, checksumOf } from "@taroke/core";
 
-type PreviewLifecycle = "unbuilt" | "fresh" | "stale" | "error";
+type PreviewLifecycle = "unbuilt" | "building" | "ready" | "stale" | "error";
+
+/** How long to wait for the preview iframe's postMessage handshake before
+ * treating a silent artifact (one that hung or threw before wiring up) as an
+ * error instead of leaving the badge stuck on "building" forever. */
+const PREVIEW_HANDSHAKE_TIMEOUT_MS = 4000;
 
 function safeLink(url: string): string | null {
   if (!url) return null;
@@ -42,14 +47,18 @@ export function ArchivePanel() {
   const importRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [handshake, setHandshake] = useState<"pending" | "ready" | "error" | null>(null);
+  const [exportReceipt, setExportReceipt] = useState<{ filename: string; timestamp: string; checksum: string; byteSize: number } | null>(null);
 
   const lifecycle: PreviewLifecycle =
     previewError !== null
       ? "error"
       : previewHtml === null
       ? "unbuilt"
+      : handshake === "pending"
+      ? "building"
       : previewFresh
-      ? "fresh"
+      ? "ready"
       : "stale";
 
   function doPreview() {
@@ -65,12 +74,58 @@ export function ArchivePanel() {
     }
   }
 
+  // Iframe handshake: the exported artifact posts a "ready" or "error"
+  // message once it has actually run (see standaloneRuntime in core/export).
+  // Without this, srcDoc being set would be mistaken for a working preview
+  // even if the artifact hung or threw before rendering anything.
+  useEffect(() => {
+    if (previewHtml === null) { setHandshake(null); return; }
+    setHandshake("pending");
+    let settled = false;
+    function onMessage(e: MessageEvent) {
+      if (!e.data || e.data.source !== "taroke-artifact") return;
+      settled = true;
+      if (e.data.status === "ready") {
+        setHandshake("ready");
+      } else {
+        setHandshake("error");
+        setPreviewError(typeof e.data.message === "string" ? e.data.message : "Artifact reported an error while loading.");
+      }
+    }
+    window.addEventListener("message", onMessage);
+    const timeoutId = setTimeout(() => {
+      if (!settled) {
+        setHandshake("error");
+        setPreviewError(`Preview did not confirm it loaded within ${PREVIEW_HANDSHAKE_TIMEOUT_MS / 1000}s.`);
+      }
+    }, PREVIEW_HANDSHAKE_TIMEOUT_MS);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      clearTimeout(timeoutId);
+    };
+  }, [previewHtml]);
+
+  function recordExport(filename: string, content: string) {
+    setExportReceipt({
+      filename,
+      timestamp: new Date().toISOString(),
+      checksum: checksumOf(content),
+      byteSize: content.length,
+    });
+  }
+
   function doExportJson() {
-    download(downloadName(project, ".taroke.json"), exportProjectJson(project), "application/json");
+    const filename = downloadName(project, ".taroke.json");
+    const content = exportProjectJson(project);
+    download(filename, content, "application/json");
+    recordExport(filename, content);
   }
 
   function doExportHtml() {
-    download(downloadName(project, ".taroke.html"), exportProjectHtml(project), "text/html");
+    const filename = downloadName(project, ".taroke.html");
+    const content = exportProjectHtml(project);
+    download(filename, content, "text/html");
+    recordExport(filename, content);
   }
 
   function doImport(file: File) {
@@ -112,6 +167,15 @@ export function ArchivePanel() {
             Export HTML (.taroke.html)
           </button>
           <p className="tr-archive__desc">Standalone artifact — runs in any browser, no server needed.</p>
+
+          {exportReceipt && (
+            <p className="tr-archive__export-receipt" role="status">
+              Exported <strong>{exportReceipt.filename}</strong> at{" "}
+              {new Date(exportReceipt.timestamp).toLocaleString(undefined, { dateStyle: "short", timeStyle: "medium" })}
+              {" · "}{exportReceipt.byteSize.toLocaleString()} bytes{" · "}
+              <span className="tr-archive__export-receipt-checksum">#{exportReceipt.checksum}</span>
+            </p>
+          )}
         </div>
 
         <div className="tr-panel__section-head">IMPORT</div>
@@ -153,9 +217,11 @@ export function ArchivePanel() {
           <button
             className="tr-btn tr-btn--ghost"
             onClick={doPreview}
+            disabled={lifecycle === "building"}
+            aria-disabled={lifecycle === "building"}
             aria-label={lifecycle === "unbuilt" ? "Generate preview of exported artifact" : "Refresh artifact preview"}
           >
-            {lifecycle === "unbuilt" ? "Preview artifact" : "Refresh preview"}
+            {lifecycle === "building" ? "Building…" : lifecycle === "unbuilt" ? "Preview artifact" : "Refresh preview"}
           </button>
           {lifecycle === "stale" && (
             <p className="tr-archive__desc tr-archive__stale-hint">

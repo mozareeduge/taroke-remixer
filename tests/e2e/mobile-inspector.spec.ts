@@ -1,19 +1,19 @@
 /**
  * Mobile Inspector flow — sheet mode contract.
  *
- * Verifies the explicit mobile Details flow:
+ * Verifies the explicit mobile Forms flow (T03: FormsPanel owns its own
+ * before->after bench — see shell/formRoles.ts — instead of redirecting to
+ * "Edit in Details"):
  *   a. select a sample in Materials;
  *   b. verify the Inspector sheet has NOT auto-opened;
- *   c. explicitly open Details via FormsPanel's "Edit in Details" action;
- *   d. verify [data-form-override] inputs are visible inside the Inspector;
- *   e. edit one override and verify its value;
- *   f. close the sheet;
- *   g. navigate to another chamber via the chamber switcher and prove it
+ *   c. navigate to Forms via the chamber switcher;
+ *   d. verify [data-form-override] inputs are visible directly in
+ *      FormsPanel, with no extra "Edit in Details" step required;
+ *   e. edit one override inline and verify its value;
+ *   f. navigate to another chamber via the chamber switcher and prove it
  *      remains usable.
  *
  * Retains overlay auto-open at 960–1199 px and docked-open at ≥1200 px.
- * FormsPanel must have no .tr-forms__sample-editor or [data-form-override];
- * Inspector is the sole full form editor.
  */
 
 import { test, expect, type Page } from "@playwright/test";
@@ -36,28 +36,33 @@ async function gotoChamber(page: Page, chamberLabel: string) {
   await page.waitForTimeout(150);
 }
 
-// ── FormsPanel must never contain full form editor elements ───────────────────
+// ── FormsPanel owns the real bench directly ────────────────────────────────
 
-test("MI-0 — FormsPanel has no .tr-forms__sample-editor or [data-form-override]", async ({ page }) => {
+test("MI-0 — FormsPanel shows [data-form-override] inline once a sample is selected", async ({ page }) => {
   await gotoMobile(page);
+
+  await gotoChamber(page, "Materials");
+  await page.waitForTimeout(200);
+  await expect(page.locator(".tr-mat-cards")).toBeVisible({ timeout: 5_000 });
+  const firstLiteral = page.locator(".tr-mat-card__literal").first();
+  await expect(firstLiteral).toBeVisible();
+  await firstLiteral.click();
+  await page.waitForTimeout(200);
 
   // Navigate to Forms via the chamber switcher
   await gotoChamber(page, "Forms");
   await page.waitForTimeout(200);
 
-  // FormsPanel must not contain a sample editor or data-form-override
-  const sampleEditor = page.locator(".tr-forms__sample-editor");
-  expect(await sampleEditor.count(), "FormsPanel must not have .tr-forms__sample-editor").toBe(0);
-
-  // data-form-override lives only in Inspector, not in FormsPanel
+  // The bench (with data-form-override inputs) is directly in FormsPanel —
+  // no separate Details/Inspector step is required.
   const panel = page.locator(".tr-panel--forms");
   const overridesInPanel = panel.locator("[data-form-override]");
-  expect(await overridesInPanel.count(), "FormsPanel must not contain [data-form-override]").toBe(0);
+  await expect(overridesInPanel.first(), "FormsPanel must show [data-form-override] inline").toBeVisible({ timeout: 3_000 });
 });
 
-// ── Mobile Inspector sheet flow ───────────────────────────────────────────────
+// ── Mobile Forms bench flow ───────────────────────────────────────────────────
 
-test("MI-1 — mobile: select sample → sheet not auto-opened → open Details → edit override → close → bottom nav usable", async ({ page }) => {
+test("MI-1 — mobile: select sample → sheet not auto-opened → Forms bench editable inline → chamber switcher usable", async ({ page }) => {
   await gotoMobile(page);
 
   // Step a: navigate to Materials and select a sample
@@ -79,40 +84,21 @@ test("MI-1 — mobile: select sample → sheet not auto-opened → open Details 
   );
   expect(isOpen, "Inspector sheet must NOT auto-open on selection in mobile sheet mode").toBe(false);
 
-  // Step c: navigate to Forms and click "Edit in Details"
+  // Step c: navigate to Forms — the bench is immediately visible, no extra
+  // "Edit in Details" step required.
   await gotoChamber(page, "Forms");
   await page.waitForTimeout(200);
 
-  // "Edit in Details" button appears when a token is selected in FormsPanel
-  const editDetailsBtn = page.getByRole("button", { name: /Edit.*Details/i });
-  await expect(editDetailsBtn).toBeVisible({ timeout: 3_000 });
-  await editDetailsBtn.click();
-  await page.waitForTimeout(300);
-
-  // Step d: verify [data-form-override] inputs are visible inside the Inspector
-  const inspectorEl = page.locator(".tr-inspector");
-  await expect(inspectorEl).toBeVisible({ timeout: 2_000 });
-  const overrideInputs = inspectorEl.locator("[data-form-override]");
+  const panel = page.locator(".tr-panel--forms");
+  const overrideInputs = panel.locator("[data-form-override]");
   await expect(overrideInputs.first()).toBeVisible({ timeout: 3_000 });
 
-  // Step e: edit one override and verify its value
+  // Step d: edit one override inline and verify its value
   const firstOverride = overrideInputs.first();
   await firstOverride.fill("mobile-test-value");
   await expect(firstOverride).toHaveValue("mobile-test-value");
 
-  // Step f: close the sheet via the Close button
-  const closeBtn = inspectorEl.getByRole("button", { name: /Close inspector/i });
-  await expect(closeBtn).toBeVisible();
-  await closeBtn.click();
-  await page.waitForTimeout(200);
-
-  // Inspector must be closed/hidden
-  const isStillOpen = await inspector.evaluate((el) =>
-    el.classList.contains("tr-inspector--open")
-  );
-  expect(isStillOpen, "Inspector must close after clicking Close").toBe(false);
-
-  // Step g: navigate to another chamber via the chamber switcher — prove it is still usable
+  // Step e: navigate to another chamber via the chamber switcher — prove it is still usable
   await gotoChamber(page, "Performance");
   await page.waitForTimeout(300);
 

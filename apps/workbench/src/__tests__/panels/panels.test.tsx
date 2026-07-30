@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { enablePatches } from "immer";
 enablePatches();
 import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
@@ -592,6 +592,90 @@ describe("ArchivePanel", () => {
     }, { timeout: 2000 });
     expect(alert.textContent).toMatch(/could not|error|invalid|failed/i);
   });
+
+  // Preview lifecycle: unbuilt -> building -> ready|error -> stale, gated by
+  // an iframe postMessage handshake (not just srcDoc being set).
+  describe("preview lifecycle handshake", () => {
+    it("starts UNBUILT, then shows BUILDING immediately after clicking Preview", () => {
+      wrap(<ArchivePanel />);
+      expect(screen.getByLabelText(/preview status: unbuilt/i)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /generate preview of exported artifact/i }));
+      expect(screen.getByLabelText(/preview status: building/i)).toBeInTheDocument();
+    });
+
+    it("becomes READY once the artifact iframe posts a ready handshake", () => {
+      wrap(<ArchivePanel />);
+      fireEvent.click(screen.getByRole("button", { name: /generate preview of exported artifact/i }));
+      act(() => {
+        window.dispatchEvent(new MessageEvent("message", { data: { source: "taroke-artifact", status: "ready" } }));
+      });
+      expect(screen.getByLabelText(/preview status: ready/i)).toBeInTheDocument();
+    });
+
+    it("becomes ERROR if the artifact posts an error handshake, with the message shown", () => {
+      wrap(<ArchivePanel />);
+      fireEvent.click(screen.getByRole("button", { name: /generate preview of exported artifact/i }));
+      act(() => {
+        window.dispatchEvent(new MessageEvent("message", { data: { source: "taroke-artifact", status: "error", message: "boom" } }));
+      });
+      expect(screen.getByLabelText(/preview status: error/i)).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent(/boom/);
+    });
+
+    it("becomes ERROR if no handshake arrives before the timeout", () => {
+      vi.useFakeTimers();
+      try {
+        wrap(<ArchivePanel />);
+        fireEvent.click(screen.getByRole("button", { name: /generate preview of exported artifact/i }));
+        expect(screen.getByLabelText(/preview status: building/i)).toBeInTheDocument();
+        act(() => { vi.advanceTimersByTime(5000); });
+        expect(screen.getByLabelText(/preview status: error/i)).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("ignores unrelated postMessage events (a different source)", () => {
+      wrap(<ArchivePanel />);
+      fireEvent.click(screen.getByRole("button", { name: /generate preview of exported artifact/i }));
+      act(() => {
+        window.dispatchEvent(new MessageEvent("message", { data: { source: "some-other-widget", status: "ready" } }));
+      });
+      expect(screen.getByLabelText(/preview status: building/i)).toBeInTheDocument();
+    });
+  });
+
+  // Export/import receipts must carry filename/time/checksum (T04).
+  describe("export receipt", () => {
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+
+    beforeEach(() => {
+      URL.createObjectURL = vi.fn(() => "blob:mock-url");
+      URL.revokeObjectURL = vi.fn();
+    });
+
+    afterEach(() => {
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+    });
+
+    it("shows a receipt with filename, time, and checksum after exporting JSON", () => {
+      wrap(<ArchivePanel />);
+      fireEvent.click(screen.getByText(/Export JSON/));
+      const receipt = screen.getByText(/Exported/i);
+      expect(receipt.textContent).toMatch(/\.taroke\.json/);
+      expect(receipt.textContent).toMatch(/#[0-9a-f]{8}/);
+      expect(receipt.textContent).toMatch(/bytes/);
+    });
+
+    it("shows a fresh receipt after exporting HTML", () => {
+      wrap(<ArchivePanel />);
+      fireEvent.click(screen.getByText(/Export HTML/));
+      const receipt = screen.getByText(/Exported/i);
+      expect(receipt.textContent).toMatch(/\.taroke\.html/);
+    });
+  });
 });
 
 // ── Takes (store-backed) ───────────────────────────────────────────────────────
@@ -688,6 +772,44 @@ describe("ImportReceiptBanner", () => {
     const dismiss = screen.getByRole("button", { name: /dismiss import receipt/i });
     fireEvent.click(dismiss);
     expect(store.getState().importReceipt.visible).toBe(false);
+  });
+
+  // T04: import receipts must carry filename/time/checksum.
+  it("shows the import timestamp and checksum when the full receipt is provided", () => {
+    const store = makeStore();
+    store.dispatch(showReceipt({
+      filename: "my-poem.taroke.json",
+      issues: [],
+      repairCount: 0,
+      fullReceipt: {
+        filename: "my-poem.taroke.json",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        checksum: "deadbeef",
+        byteSize: 1234,
+        sourceFormat: "json",
+        sourceSchema: "0.7-reset",
+        resultingSchema: "0.7-reset",
+        editorVersion: "0.8.0",
+        migrationPath: "current-schema",
+        orderedBankIds: [],
+        bankCount: 0,
+        tokenCount: 0,
+        deviceCount: 0,
+        routeCount: 0,
+        patternCount: 0,
+        flowSceneCount: 0,
+        triggerCount: 0,
+        warnings: [],
+        errors: [],
+        duplicateIdFindings: [],
+        repairCount: 0,
+        repairDetails: [],
+        classicDefaultsApplied: { devices: false, patterns: false, scenes: false, triggers: false },
+        authoredBankOrderPreserved: true,
+      },
+    }));
+    wrap(<ImportReceiptBanner />, store);
+    expect(screen.getByText(/#deadbeef/)).toBeInTheDocument();
   });
 });
 

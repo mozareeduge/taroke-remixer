@@ -134,3 +134,40 @@ test("a11y — Archive panel", async ({ page }) => {
   await injectAxe(page);
   await runAxe(page, "Archive");
 });
+
+// ── T05: non-default states (selected, editing, in-progress) ────────────────
+// The checks above only exercise each panel's neutral default state; several
+// real violations (e.g. the SHELL-09 nested-interactive card bug) were only
+// found by auditing a panel mid-interaction.
+
+test("a11y — Materials panel with a sample selected (mobile card state)", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await goto(page);
+  await clickNav(page, "Materials");
+  await page.waitForTimeout(150);
+  const firstCard = page.locator(".tr-mat-card__select").first();
+  await expect(firstCard).toBeVisible({ timeout: 5_000 });
+  await firstCard.click();
+  await injectAxe(page);
+  await runAxe(page, "Materials (sample selected, mobile card)");
+});
+
+test("a11y — Forms panel with the before/after bench open", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Materials");
+  await page.locator(".tr-mat-table__literal, .tr-mat-card__literal").first().click();
+  await clickNav(page, "Forms");
+  await page.waitForTimeout(150);
+  await expect(page.locator("[data-form-override]").first()).toBeVisible({ timeout: 3_000 });
+  await injectAxe(page);
+  await runAxe(page, "Forms (bench open)");
+});
+
+test("a11y — Archive panel with preview built (READY badge, iframe present)", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Archive");
+  await page.getByRole("button", { name: /generate preview of exported artifact/i }).click();
+  await expect(page.locator("[data-preview-lifecycle]").first()).toHaveAttribute("data-preview-lifecycle", "ready", { timeout: 5_000 });
+  await injectAxe(page);
+  await runAxe(page, "Archive (preview ready)");
+});

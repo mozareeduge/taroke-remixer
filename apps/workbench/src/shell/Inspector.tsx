@@ -1,4 +1,4 @@
-import { useState, type MutableRefObject, type Ref } from "react";
+import { useState, useEffect, useRef, type MutableRefObject } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectBank } from "../store/selectionSlice.js";
@@ -372,9 +372,23 @@ export function Inspector({
   const modeClass = `tr-inspector--${inspectorMode}`;
   const isModalSheet = inspectorMode === "sheet" && inspectorOpen;
 
+  const asideRef = useRef<HTMLElement | null>(null);
+
+  // aria-hidden alone does not stop assistive tech or the browser from
+  // focusing descendants (axe: aria-hidden-focus) — when the Inspector is
+  // closed in overlay/sheet mode, its buttons and inputs stay in the DOM and
+  // stay tabbable unless the subtree is also made genuinely inert.
+  useEffect(() => {
+    const el = asideRef.current as (HTMLElement & { inert?: boolean }) | null;
+    if (el) el.inert = !inspectorOpen;
+  }, [inspectorOpen]);
+
   return (
     <aside
-      ref={panelRef as Ref<HTMLElement>}
+      ref={(node) => {
+        asideRef.current = node;
+        if (panelRef) panelRef.current = node;
+      }}
       className={[
         "tr-inspector",
         modeClass,

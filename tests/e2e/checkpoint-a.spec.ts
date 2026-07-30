@@ -679,9 +679,9 @@ test("30 — Archive: PREVIEW section renders with UNBUILT badge before first pr
   await expect(badge).toContainText("UNBUILT", { ignoreCase: true });
 });
 
-// ── 31. Archive: preview generates iframe and shows FRESH badge ───────────────
+// ── 31. Archive: preview generates iframe and shows READY badge ───────────────
 
-test("31 — Archive: clicking Preview artifact generates iframe with FRESH badge", async ({ page }) => {
+test("31 — Archive: clicking Preview artifact generates iframe with READY badge", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Archive");
 
@@ -689,12 +689,12 @@ test("31 — Archive: clicking Preview artifact generates iframe with FRESH badg
   const previewBtn = page.getByRole("button", { name: /Generate preview|Preview artifact/i });
   await expect(previewBtn).toBeVisible();
   await previewBtn.click();
-  await page.waitForTimeout(500);
 
-  // Badge must now be FRESH
+  // Badge transitions unbuilt -> building -> ready once the artifact iframe
+  // posts its postMessage handshake back (see standaloneRuntime in core).
   const badge = page.locator("[data-preview-lifecycle]").first();
-  await expect(badge).toHaveAttribute("data-preview-lifecycle", "fresh");
-  await expect(badge).toContainText("FRESH", { ignoreCase: true });
+  await expect(badge).toHaveAttribute("data-preview-lifecycle", "ready", { timeout: 5000 });
+  await expect(badge).toContainText("READY", { ignoreCase: true });
 
   // iframe must be in the DOM
   const iframe = page.locator("iframe[title='Artifact preview']");
@@ -708,11 +708,10 @@ test("32 — Archive: preview badge becomes STALE after project mutation", async
   await goto(page);
   await clickNav(page, "Archive");
 
-  // Generate preview → FRESH
+  // Generate preview → READY
   const previewBtn = page.getByRole("button", { name: /Preview artifact|Generate preview/i });
   await previewBtn.click();
-  await page.waitForTimeout(300);
-  await expect(page.locator("[data-preview-lifecycle]").first()).toHaveAttribute("data-preview-lifecycle", "fresh");
+  await expect(page.locator("[data-preview-lifecycle]").first()).toHaveAttribute("data-preview-lifecycle", "ready", { timeout: 5000 });
 
   // Navigate to Materials and add a sample to mutate the project
   await clickNav(page, "Materials");

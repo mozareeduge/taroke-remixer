@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { exportProjectJson, exportProjectHtml, extractProjectFromText, downloadName, safeJsonForHtml, importProjectWithReceipt } from "../export.js";
+import { exportProjectJson, exportProjectHtml, extractProjectFromText, downloadName, safeJsonForHtml, importProjectWithReceipt, checksumOf } from "../export.js";
 import { defaultProject } from "../migration.js";
 
 describe("exportProjectJson / extractProjectFromText round-trip", () => {
@@ -104,6 +104,34 @@ describe("importProjectWithReceipt", () => {
     const legacy = JSON.stringify({ dictionary: { test: [] }, schemaVersion: "0.6" });
     const { receipt } = importProjectWithReceipt(legacy, "legacy.json");
     expect(receipt.migrationPath).toContain("legacy-dictionary");
+  });
+
+  // Import/export receipts must carry filename/time/checksum (T04 Archive spec).
+  it("receipt includes a timestamp, byte size, and a stable checksum of the raw input", () => {
+    const project = defaultProject();
+    const json = exportProjectJson(project);
+    const { receipt } = importProjectWithReceipt(json, "test.taroke.json");
+    expect(() => new Date(receipt.timestamp).toISOString()).not.toThrow();
+    expect(receipt.byteSize).toBe(json.length);
+    expect(receipt.checksum).toMatch(/^[0-9a-f]{8}$/);
+    // Same content -> same checksum
+    const { receipt: receipt2 } = importProjectWithReceipt(json, "test2.taroke.json");
+    expect(receipt2.checksum).toBe(receipt.checksum);
+  });
+});
+
+describe("checksumOf", () => {
+  it("is deterministic for identical content", () => {
+    expect(checksumOf("hello world")).toBe(checksumOf("hello world"));
+  });
+
+  it("differs for different content", () => {
+    expect(checksumOf("hello world")).not.toBe(checksumOf("hello world!"));
+  });
+
+  it("returns an 8-character lowercase hex string", () => {
+    expect(checksumOf("")).toMatch(/^[0-9a-f]{8}$/);
+    expect(checksumOf("anything")).toMatch(/^[0-9a-f]{8}$/);
   });
 });
 

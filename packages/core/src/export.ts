@@ -5,8 +5,23 @@ import { normalizeIdLabel } from "./utils.js";
 import { migrateProject, validateProject } from "./migration.js";
 import { IRREGULAR_PLURALS, IRREGULAR_VERB3 } from "@taroke/schema";
 
+/** Deterministic, dependency-free content fingerprint (FNV-1a, 32-bit hex).
+ * Not cryptographic — only meant to let a receipt prove "this exact file
+ * content" for import/export confirmation, not to guard against tampering. */
+export function checksumOf(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
 export interface ImportReceipt {
   filename: string;
+  timestamp: string;
+  checksum: string;
+  byteSize: number;
   sourceFormat: "json" | "html" | "unknown";
   sourceSchema: string | null;
   resultingSchema: string;
@@ -118,6 +133,9 @@ export function importProjectWithReceipt(
 
   const receipt: ImportReceipt = {
     filename,
+    timestamp: new Date().toISOString(),
+    checksum: checksumOf(s),
+    byteSize: s.length,
     sourceFormat,
     sourceSchema,
     resultingSchema: SCHEMA_VERSION,
@@ -162,7 +180,10 @@ export function miniRuntime(): string {
 }
 
 export function standaloneRuntime(): string {
-  return `(()=>{const project=JSON.parse(document.getElementById('taroke-project').textContent);${miniRuntime()}let state={tick:0,queue:[]};const stage=document.getElementById('stage'),trace=document.getElementById('trace'),max=project.surface?.retention||28;function line(){const e=generateEvent(project,state);state.tick++;if(e.type!=='breath'){const p=document.createElement('p');p.className='line';p.innerHTML=esc(e.surface);stage.appendChild(p);}while(stage.children.length>max)stage.removeChild(stage.firstChild);stage.scrollTop=stage.scrollHeight;if(trace)trace.textContent=e.trace}line();setInterval(line,Math.max(250,project.surface?.speedMs||1200));})();`;
+  // The whole boot sequence runs inside try/catch so a hosting iframe (the
+  // Archive preview) can tell "rendered fine" apart from "threw before first
+  // line" via postMessage, instead of just trusting srcDoc set = success.
+  return `(()=>{try{const project=JSON.parse(document.getElementById('taroke-project').textContent);${miniRuntime()}let state={tick:0,queue:[]};const stage=document.getElementById('stage'),trace=document.getElementById('trace'),max=project.surface?.retention||28;function line(){const e=generateEvent(project,state);state.tick++;if(e.type!=='breath'){const p=document.createElement('p');p.className='line';p.innerHTML=esc(e.surface);stage.appendChild(p);}while(stage.children.length>max)stage.removeChild(stage.firstChild);stage.scrollTop=stage.scrollHeight;if(trace)trace.textContent=e.trace}line();setInterval(line,Math.max(250,project.surface?.speedMs||1200));if(window.parent!==window){try{window.parent.postMessage({source:'taroke-artifact',status:'ready'},'*')}catch(e){}}}catch(err){const msg=String(err&&err.message||err);if(window.parent!==window){try{window.parent.postMessage({source:'taroke-artifact',status:'error',message:msg},'*')}catch(e){}}const trace=document.getElementById('trace');if(trace)trace.textContent='Artifact error: '+msg}})();`;
 }
 
 function safeExportUrl(url: string): string | null {
