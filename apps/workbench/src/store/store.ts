@@ -12,8 +12,10 @@ import historyReducer from "./historySlice.js";
 import importReceiptReducer from "./importReceiptSlice.js";
 import takesReducer from "./takesSlice.js";
 import surfaceReducer from "./surfaceSlice.js";
+import feedbackReducer from "./feedbackSlice.js";
 import { autosaveMiddleware } from "./autosave.js";
 import { undoMiddleware } from "./undoMiddleware.js";
+import { selectionIntegrityMiddleware } from "./selectionIntegrityMiddleware.js";
 
 export const store = configureStore({
   reducer: {
@@ -25,6 +27,7 @@ export const store = configureStore({
     importReceipt: importReceiptReducer,
     takes: takesReducer,
     surface: surfaceReducer,
+    feedback: feedbackReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -34,7 +37,8 @@ export const store = configureStore({
       },
     })
       .prepend(undoMiddleware)
-      .concat(autosaveMiddleware),
+      .concat(autosaveMiddleware)
+      .concat(selectionIntegrityMiddleware),
 });
 
 export type AppStore = typeof store;

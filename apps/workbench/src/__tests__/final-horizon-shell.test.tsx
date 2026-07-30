@@ -15,6 +15,7 @@ import historyReducer from "../store/historySlice.js";
 import importReceiptReducer from "../store/importReceiptSlice.js";
 import takesReducer from "../store/takesSlice.js";
 import surfaceReducer from "../store/surfaceSlice.js";
+import feedbackReducer from "../store/feedbackSlice.js";
 import { AppShell } from "../shell/AppShell.js";
 import { Navigator } from "../shell/Navigator.js";
 import { Transport } from "../shell/Transport.js";
@@ -30,6 +31,7 @@ function makeStore() {
       importReceipt: importReceiptReducer,
       takes: takesReducer,
       surface: surfaceReducer,
+      feedback: feedbackReducer,
     },
   });
 }

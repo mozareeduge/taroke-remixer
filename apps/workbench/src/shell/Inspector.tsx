@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectBank } from "../store/selectionSlice.js";
+import { announce } from "../store/feedbackSlice.js";
+import { ConfirmInline } from "./ConfirmInline.js";
 import type { SelectionTarget } from "../store/types.js";
 import type { TarokeProject } from "@taroke/schema";
 import type { AppDispatch } from "../store/store.js";
@@ -35,6 +38,8 @@ function InspectorBody({
   project: TarokeProject;
   dispatch: AppDispatch;
 }) {
+  const [pendingRemoveTokenId, setPendingRemoveTokenId] = useState<string | null>(null);
+
   if (primary.type === "bank") {
     const meta = project.materials.bankMeta[primary.bankName];
     const count = project.materials.trays[primary.bankName]?.length ?? 0;
@@ -44,6 +49,7 @@ function InspectorBody({
         <input
           className="tr-input"
           defaultValue={meta?.label ?? primary.bankName}
+          key={primary.bankName + "-label"}
           onBlur={(e) => dispatch(mutateProject(setBankLabel(project, primary.bankName, e.target.value)))}
           aria-label="Bank label"
         />
@@ -159,17 +165,25 @@ function InspectorBody({
           >
             {tok.lockedLiteral ? "Unlock literal" : "Keep unchanged"}
           </button>
-          <button
-            className="tr-btn tr-btn--ghost tr-btn--sm tr-btn--danger"
-            onClick={() => {
-              if (confirm(`Remove "${tok.literal}" from ${bankMeta?.label ?? primary.bankName}?`)) {
+          {pendingRemoveTokenId === tok.id ? (
+            <ConfirmInline
+              message={`Remove "${tok.literal}" from ${bankMeta?.label ?? primary.bankName}? This may affect devices that reference this bank.`}
+              onCancel={() => setPendingRemoveTokenId(null)}
+              onConfirm={() => {
                 dispatch(mutateProject(removeToken(project, primary.bankName, tok.id)));
-              }
-            }}
-            aria-label={`Remove sample ${tok.literal}`}
-          >
-            Remove sample
-          </button>
+                dispatch(announce(`Removed "${tok.literal}" from ${bankMeta?.label ?? primary.bankName}.`));
+                setPendingRemoveTokenId(null);
+              }}
+            />
+          ) : (
+            <button
+              className="tr-btn tr-btn--ghost tr-btn--sm tr-btn--danger"
+              onClick={() => setPendingRemoveTokenId(tok.id)}
+              aria-label={`Remove sample ${tok.literal}`}
+            >
+              Remove sample
+            </button>
+          )}
         </div>
       </div>
     );

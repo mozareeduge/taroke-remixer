@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectBank, selectToken } from "../store/selectionSlice.js";
+import { announce } from "../store/feedbackSlice.js";
+import { ConfirmInline } from "../shell/ConfirmInline.js";
 import {
   addToken, removeToken, setTokenWeight, updateTokenLiteral,
   addBank, reorderTokens, moveBetweenBanks,
@@ -29,6 +31,7 @@ export function MaterialsPanel() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [moveMenuFor, setMoveMenuFor] = useState<string | null>(null);
   const [bankSearch, setBankSearch] = useState("");
+  const [pendingRemoveTokenId, setPendingRemoveTokenId] = useState<string | null>(null);
   const addRef = useRef<HTMLInputElement>(null);
 
   const tokens = activeBank ? (project.materials.trays[activeBank] ?? []) : [];
@@ -46,17 +49,34 @@ export function MaterialsPanel() {
       })
     : banks;
 
+  const trimmedSample = newSample.trim();
+  const canAddSample = Boolean(activeBank) && trimmedSample.length > 0;
+  const addSampleReason = !activeBank ? "Select a bank first" : trimmedSample.length === 0 ? "Enter a sample first" : "";
+
   function doAddSample() {
-    if (!activeBank || !newSample.trim()) return;
+    if (!canAddSample || !activeBank) return;
     dispatch(mutateProject(addToken(project, activeBank, newSample)));
+    dispatch(announce(`Added "${trimmedSample}" to ${bankMeta?.label ?? activeBank}.`));
     setNewSample("");
     addRef.current?.focus();
   }
 
+  const trimmedBankKey = newBankKey.trim().toLowerCase().replace(/\s+/g, "_");
+  const trimmedBankLabel = newBankLabel.trim();
+  const bankKeyTaken = trimmedBankKey.length > 0 && Boolean(project.materials.trays[trimmedBankKey]);
+  const canAddBank = trimmedBankKey.length > 0 && trimmedBankLabel.length > 0 && !bankKeyTaken;
+  const addBankReason = bankKeyTaken
+    ? `Bank key "${trimmedBankKey}" already exists`
+    : trimmedBankKey.length === 0
+    ? "Enter a bank key"
+    : trimmedBankLabel.length === 0
+    ? "Enter a bank label"
+    : "";
+
   function doAddBank() {
-    const key = newBankKey.trim().toLowerCase().replace(/\s+/g, "_");
-    if (!key || !newBankLabel.trim()) return;
-    dispatch(mutateProject(addBank(project, key, newBankLabel.trim())));
+    if (!canAddBank) return;
+    dispatch(mutateProject(addBank(project, trimmedBankKey, trimmedBankLabel)));
+    dispatch(announce(`Added bank "${trimmedBankLabel}".`));
     setNewBankKey("");
     setNewBankLabel("");
   }
@@ -87,14 +107,21 @@ export function MaterialsPanel() {
     if (!activeBank || targetBank === activeBank) return;
     if (moveBetweenBanks) {
       dispatch(mutateProject(moveBetweenBanks(project, activeBank, tokenId, targetBank)));
+      dispatch(announce(`Moved sample to ${project.materials.bankMeta[targetBank]?.label ?? targetBank}.`));
     }
     setMoveMenuFor(null);
   }
 
-  function doRemoveToken(tokenId: string, literal: string) {
+  function requestRemoveToken(tokenId: string) {
+    setMoveMenuFor(null);
+    setPendingRemoveTokenId(tokenId);
+  }
+
+  function confirmRemoveToken(tokenId: string, literal: string) {
     if (!activeBank) return;
-    if (!confirm(`Remove "${literal}" from ${bankMeta?.label ?? activeBank}? This may affect devices that reference this bank.`)) return;
     dispatch(mutateProject(removeToken(project, activeBank, tokenId)));
+    dispatch(announce(`Removed "${literal}" from ${bankMeta?.label ?? activeBank}.`));
+    setPendingRemoveTokenId(null);
   }
 
   // Drag/drop reorder
@@ -153,7 +180,18 @@ export function MaterialsPanel() {
             onChange={(e) => setNewBankLabel(e.target.value)}
             aria-label="New bank label"
           />
-          <button className="tr-btn tr-btn--ghost tr-btn--sm" onClick={doAddBank}>Add bank</button>
+          <button
+            className="tr-btn tr-btn--ghost tr-btn--sm"
+            onClick={doAddBank}
+            disabled={!canAddBank}
+            aria-disabled={!canAddBank}
+            title={addBankReason || undefined}
+          >
+            Add bank
+          </button>
+          {addBankReason && (newBankKey || newBankLabel) && (
+            <span className="tr-error tr-panel__add-row-reason" role="alert">{addBankReason}</span>
+          )}
         </div>
       </div>
 
@@ -175,6 +213,7 @@ export function MaterialsPanel() {
                     } else {
                       setRemoveBankError(null);
                       dispatch(mutateProject(result));
+                      dispatch(announce(`Removed bank "${bankMeta?.label ?? activeBank}".`));
                     }
                   }}
                   aria-label="Remove bank"
@@ -191,13 +230,6 @@ export function MaterialsPanel() {
                   aria-expanded={bulkOpen}
                 >
                   Bulk paste
-                </button>
-                <button
-                  className="tr-btn tr-btn--primary tr-btn--sm"
-                  onClick={doAddSample}
-                  aria-label="Add sample"
-                >
-                  Add sample
                 </button>
               </div>
             </div>
@@ -240,7 +272,16 @@ export function MaterialsPanel() {
                 onKeyDown={(e) => { if (e.key === "Enter") doAddSample(); }}
                 aria-label="New sample literal"
               />
-              <button className="tr-btn tr-btn--primary" onClick={doAddSample}>Add</button>
+              <button
+                className="tr-btn tr-btn--primary"
+                onClick={doAddSample}
+                disabled={!canAddSample}
+                aria-disabled={!canAddSample}
+                aria-label="Add sample"
+                title={addSampleReason || undefined}
+              >
+                Add
+              </button>
             </div>
 
             <table className="tr-table tr-mat-table">
@@ -340,13 +381,22 @@ export function MaterialsPanel() {
                             <button
                               role="menuitem"
                               className="tr-move-menu__item tr-move-menu__item--danger"
-                              onClick={(e) => { e.stopPropagation(); setMoveMenuFor(null); doRemoveToken(tok.id, tok.literal); }}
+                              onClick={(e) => { e.stopPropagation(); requestRemoveToken(tok.id); }}
                             >
                               Remove sample
                             </button>
                           </div>
                         )}
                       </div>
+                      {pendingRemoveTokenId === tok.id && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <ConfirmInline
+                            message={`Remove "${tok.literal}" from ${bankMeta?.label ?? activeBank}? This may affect devices that reference this bank.`}
+                            onCancel={() => setPendingRemoveTokenId(null)}
+                            onConfirm={() => confirmRemoveToken(tok.id, tok.literal)}
+                          />
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

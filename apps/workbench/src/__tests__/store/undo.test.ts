@@ -9,8 +9,10 @@ import historyReducer, { popForUndo, popForRedo } from "../../store/historySlice
 import importReceiptReducer from "../../store/importReceiptSlice.js";
 import takesReducer from "../../store/takesSlice.js";
 import surfaceReducer from "../../store/surfaceSlice.js";
+import feedbackReducer from "../../store/feedbackSlice.js";
 import { createUndoMiddleware } from "../../store/undoMiddleware.js";
 import { autosaveMiddleware } from "../../store/autosave.js";
+import { selectionIntegrityMiddleware } from "../../store/selectionIntegrityMiddleware.js";
 import { setProjectTitle, addToken, removeToken } from "../../store/commands.js";
 import { defaultProject } from "@taroke/core";
 
@@ -29,11 +31,13 @@ function makeStore() {
       importReceipt: importReceiptReducer,
       takes: takesReducer,
       surface: surfaceReducer,
+      feedback: feedbackReducer,
     },
     middleware: (get) =>
       get({ serializableCheck: { ignoredActionPaths: ["payload.patches", "payload.inversePatches"] } })
         .prepend(createUndoMiddleware())
-        .concat(autosaveMiddleware),
+        .concat(autosaveMiddleware)
+        .concat(selectionIntegrityMiddleware),
   });
 }
 

@@ -1,14 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import projectReducer from "../../store/projectSlice.js";
-import selectionReducer from "../../store/selectionSlice.js";
+import selectionReducer, { selectBank } from "../../store/selectionSlice.js";
 import editorReducer, { toggleSidebar, toggleInspector } from "../../store/editorSlice.js";
 import runtimeReducer from "../../store/runtimeSlice.js";
 import historyReducer from "../../store/historySlice.js";
 import takesReducer from "../../store/takesSlice.js";
 import importReceiptReducer from "../../store/importReceiptSlice.js";
+import feedbackReducer from "../../store/feedbackSlice.js";
 import { Transport } from "../../shell/Transport.js";
 import { Navigator } from "../../shell/Navigator.js";
 import { Workspace } from "../../shell/Workspace.js";
@@ -25,6 +26,7 @@ function makeStore(editorOverrides?: Partial<{ sidebarOpen: boolean; inspectorOp
       history: historyReducer,
       importReceipt: importReceiptReducer,
       takes: takesReducer,
+      feedback: feedbackReducer,
     },
   });
   if (editorOverrides?.sidebarOpen === false) store.dispatch(toggleSidebar());
@@ -137,6 +139,19 @@ describe("Inspector", () => {
   it("shows hint text when nothing is selected", () => {
     wrap(<Inspector />);
     expect(screen.getByText("Select an item to inspect")).toBeInTheDocument();
+  });
+
+  // SEL-02: the bank Label field is an uncontrolled input keyed by bank
+  // identity — without the key, switching banks quickly would leave the
+  // previous bank's label showing next to the new bank's count/description.
+  it("SEL-02: bank Label field updates when switching banks, not stale", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<Inspector />, store);
+    expect(screen.getByLabelText("Bank label")).toHaveValue("ABOVE");
+
+    act(() => { store.dispatch(selectBank("below")); });
+    expect(screen.getByLabelText("Bank label")).toHaveValue("BELOW");
   });
 });
 

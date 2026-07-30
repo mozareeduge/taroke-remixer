@@ -13,6 +13,8 @@ import importReceiptReducer, { showReceipt } from "../../store/importReceiptSlic
 import { ImportReceiptBanner } from "../../panels/ImportReceiptBanner.js";
 import takesReducer from "../../store/takesSlice.js";
 import surfaceReducer from "../../store/surfaceSlice.js";
+import feedbackReducer from "../../store/feedbackSlice.js";
+import { selectionIntegrityMiddleware } from "../../store/selectionIntegrityMiddleware.js";
 import { PHASE_A_NEUTRAL_TEST_FIXTURE } from "../neutral-test-fixture.js";
 import { MaterialsPanel } from "../../panels/MaterialsPanel.js";
 import { FormsPanel } from "../../panels/FormsPanel.js";
@@ -33,7 +35,9 @@ function makeStore() {
       importReceipt: importReceiptReducer,
       takes: takesReducer,
       surface: surfaceReducer,
+      feedback: feedbackReducer,
     },
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(selectionIntegrityMiddleware),
   });
 }
 
@@ -66,6 +70,62 @@ describe("MaterialsPanel", () => {
     wrap(<MaterialsPanel />, store);
     // Sample column header should be visible
     expect(screen.getByText("Sample")).toBeInTheDocument();
+  });
+
+  // ACT-02: exactly one primary add-sample affordance, not one in the
+  // heading and one adjacent to the input.
+  it("ACT-02: exactly one Add sample affordance is rendered", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.getAllByRole("button", { name: "Add sample" }).length).toBe(1);
+  });
+
+  // ACT-01: Add sample is disabled (not a silent no-op) until valid.
+  it("ACT-01: Add sample button is disabled until a sample is entered", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    const addBtn = screen.getByRole("button", { name: "Add sample" });
+    expect(addBtn).toBeDisabled();
+
+    const input = screen.getByLabelText("New sample literal");
+    fireEvent.change(input, { target: { value: "glacier" } });
+    expect(addBtn).not.toBeDisabled();
+    fireEvent.click(addBtn);
+
+    const bank = store.getState().project.present.materials.trays["above"];
+    expect(bank?.some((t) => t.literal === "glacier")).toBe(true);
+  });
+
+  // ACT-03: Add bank explains a duplicate key instead of silently no-oping.
+  it("ACT-03: Add bank is disabled with a reason for a duplicate key", () => {
+    const store = makeStore();
+    wrap(<MaterialsPanel />, store);
+    fireEvent.change(screen.getByLabelText("New bank key"), { target: { value: "above" } });
+    fireEvent.change(screen.getByLabelText("New bank label"), { target: { value: "Duplicate" } });
+    const addBankBtn = screen.getByRole("button", { name: "Add bank" });
+    expect(addBankBtn).toBeDisabled();
+    expect(addBankBtn.title).toMatch(/already exists/i);
+  });
+
+  // ACT-11: destructive removal uses an inline confirm, not native confirm().
+  it("ACT-11: removing a sample requires inline confirmation, not window.confirm", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    const before = store.getState().project.present.materials.trays["above"]?.length ?? 0;
+
+    const actionsBtn = screen.getAllByRole("button", { name: /^Actions for /i })[0]!;
+    fireEvent.click(actionsBtn);
+    fireEvent.click(screen.getByRole("menuitem", { name: "Remove sample" }));
+
+    // Not removed yet — an inline confirmation must appear first.
+    expect(store.getState().project.present.materials.trays["above"]?.length ?? 0).toBe(before);
+    expect(screen.getByRole("group", { name: "Confirm removal" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(store.getState().project.present.materials.trays["above"]?.length ?? 0).toBe(before - 1);
   });
 
   it("shows add sample input when a bank is selected", () => {
@@ -239,6 +299,23 @@ describe("CompositionPanel", () => {
       expect(sceneRemoveBtns[0]!.textContent).toMatch(/remove scene/i);
     }
   });
+
+  // ACT-04: Add pattern/scene must be disabled with a reason, not a silent no-op.
+  it("ACT-04: + Pattern is disabled until a name is entered", () => {
+    wrap(<CompositionPanel />, makeStoreWithFixture());
+    const addPatternBtn = screen.getByRole("button", { name: "+ Pattern" });
+    expect(addPatternBtn).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("New pattern name"), { target: { value: "New pattern" } });
+    expect(addPatternBtn).not.toBeDisabled();
+  });
+
+  it("ACT-04: + Scene is disabled until a scene name is entered", () => {
+    wrap(<CompositionPanel />, makeStoreWithFixture());
+    const addSceneBtn = screen.getByRole("button", { name: "+ Scene" });
+    expect(addSceneBtn).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("New scene name"), { target: { value: "New scene" } });
+    expect(addSceneBtn).not.toBeDisabled();
+  });
 });
 
 // ── AutomationPanel ────────────────────────────────────────────────────────────
@@ -289,6 +366,49 @@ describe("AutomationPanel", () => {
     expect(xButtons.length).toBe(0);
     const removeBtns = screen.queryAllByRole("button", { name: /remove trigger/i });
     expect(removeBtns.length).toBeGreaterThan(0);
+  });
+
+  // ACT-05: a newly created trigger with blank THEN text must not be an
+  // enabled no-op — it is created as a visibly incomplete draft (OFF).
+  it("ACT-05: a new trigger is created disabled (draft) rather than enabled with blank THEN text", () => {
+    const store = makeStoreWithFixture();
+    wrap(<AutomationPanel />, store);
+
+    fireEvent.change(screen.getByLabelText("New trigger name"), { target: { value: "Untested rule" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ Trigger" }));
+
+    const created = store.getState().project.present.triggers.find((t) => t.name === "Untested rule");
+    expect(created).toBeTruthy();
+    expect(created?.enabled).toBe(false);
+    expect(screen.getByText("DRAFT")).toBeInTheDocument();
+  });
+
+  it("ACT-05: + Trigger is disabled until a name is entered", () => {
+    wrap(<AutomationPanel />, makeStoreWithFixture());
+    expect(screen.getByRole("button", { name: "+ Trigger" })).toBeDisabled();
+  });
+
+  it("ACT-05: an incomplete trigger cannot be toggled on until THEN text is set", () => {
+    const store = makeStoreWithFixture();
+    store.dispatch(selectTrigger("trig_1"));
+    // Blank out the fixture trigger's action text to make it incomplete.
+    store.dispatch(mutateProject({
+      present: {
+        ...store.getState().project.present,
+        triggers: store.getState().project.present.triggers.map((t) =>
+          t.id === "trig_1" ? { ...t, enabled: false, action: { ...t.action, text: "" } } : t,
+        ),
+      },
+      patches: [],
+      inversePatches: [],
+      label: "test setup",
+    }));
+    wrap(<AutomationPanel />, store);
+
+    const toggleBtn = screen.getByText("Disabled");
+    expect(toggleBtn).toBeDisabled();
+    fireEvent.click(toggleBtn);
+    expect(store.getState().project.present.triggers.find((t) => t.id === "trig_1")?.enabled).toBe(false);
   });
 });
 

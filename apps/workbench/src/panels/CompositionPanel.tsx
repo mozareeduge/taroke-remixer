@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectStanza, selectScene } from "../store/selectionSlice.js";
+import { announce } from "../store/feedbackSlice.js";
 import {
   addStanzaPattern, toggleStanzaEnabled,
   addStanzaSlot, removeStanzaSlot, reorderStanzaSlots, setSlotChance, setSlotRepeat,
@@ -54,31 +55,44 @@ export function CompositionPanel() {
     return () => el.removeEventListener("touchmove", handleNativeTouchMove);
   }, [touchDragId]);
 
+  const trimmedStanzaName = newStanzaName.trim();
+  const canAddStanza = trimmedStanzaName.length > 0;
+  const addStanzaReason = canAddStanza ? "" : "Enter a pattern name";
+
   function doAddStanza() {
-    const name = newStanzaName.trim();
-    if (!name) return;
+    if (!canAddStanza) return;
     const stanza = {
       id: uid("st"),
-      name,
+      name: trimmedStanzaName,
       enabled: true,
       description: "",
       slots: [],
     };
     dispatch(mutateProject(addStanzaPattern(project, stanza)));
+    dispatch(announce(`Added pattern "${trimmedStanzaName}".`));
     setNewStanzaName("");
   }
 
+  const trimmedSceneName = newSceneName.trim();
+  const canAddScene = trimmedSceneName.length > 0 && Boolean(activeStanzaId);
+  const addSceneReason = !activeStanzaId
+    ? "Select a pattern first"
+    : trimmedSceneName.length === 0
+    ? "Enter a scene name"
+    : "";
+
   function doAddScene() {
-    if (!newSceneName.trim() || !activeStanzaId) return;
+    if (!canAddScene || !activeStanzaId) return;
     const scene = {
       id: uid("sc"),
-      name: newSceneName.trim(),
+      name: trimmedSceneName,
       stanzaId: activeStanzaId,
       enabled: true,
       chance: 100,
       mode: "loop",
     };
     dispatch(mutateProject(addFlowScene(project, scene)));
+    dispatch(announce(`Added scene "${trimmedSceneName}".`));
     setNewSceneName("");
   }
 
@@ -261,7 +275,15 @@ export function CompositionPanel() {
             onKeyDown={(e) => { if (e.key === "Enter") doAddStanza(); }}
             aria-label="New pattern name"
           />
-          <button className="tr-btn tr-btn--ghost" onClick={doAddStanza}>+ Pattern</button>
+          <button
+            className="tr-btn tr-btn--ghost"
+            onClick={doAddStanza}
+            disabled={!canAddStanza}
+            aria-disabled={!canAddStanza}
+            title={addStanzaReason || undefined}
+          >
+            + Pattern
+          </button>
         </div>
       </div>
 
@@ -468,7 +490,15 @@ export function CompositionPanel() {
                   onKeyDown={(e) => { if (e.key === "Enter") doAddScene(); }}
                   aria-label="New scene name"
                 />
-                <button className="tr-btn tr-btn--ghost" onClick={doAddScene}>+ Scene</button>
+                <button
+                  className="tr-btn tr-btn--ghost"
+                  onClick={doAddScene}
+                  disabled={!canAddScene}
+                  aria-disabled={!canAddScene}
+                  title={addSceneReason || undefined}
+                >
+                  + Scene
+                </button>
               </div>
             </div>
           </>

@@ -6,6 +6,7 @@ import { Transport } from "./Transport.js";
 import { Navigator } from "./Navigator.js";
 import { Workspace } from "./Workspace.js";
 import { Inspector } from "./Inspector.js";
+import { LiveRegion } from "./LiveRegion.js";
 import type { EditorPanel, InspectorMode } from "../store/types.js";
 
 const MOBILE_NAV_ITEMS: Array<{ id: EditorPanel; label: string; abbr: string }> = [
@@ -93,6 +94,7 @@ export function AppShell() {
       <Workspace />
       <Navigator />
       <Inspector onClose={handleInspectorClose} />
+      <LiveRegion />
 
       <nav className="tr-mobile-nav" aria-label="Main navigation">
         {MOBILE_NAV_ITEMS.map((item) => (

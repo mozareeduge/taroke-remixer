@@ -1517,6 +1517,49 @@ input[type="checkbox"] {
 .tr-banner--info  { border-left: 3px solid var(--tr-focus); }
 .tr-banner--error { border-left: 3px solid var(--tr-danger); }
 
+/* Shared action receipt / live region — announces every action outcome so
+   screen-reader and sighted feedback are the same message (A11Y-02). */
+.tr-live-region {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tr-mobile-nav-h, 0px) + var(--tr-sp-5));
+  transform: translateX(-50%);
+  z-index: 500;
+  max-width: min(92vw, 480px);
+  padding: 0;
+  font-size: var(--tr-font-size-sm);
+  line-height: 1.4;
+  pointer-events: none;
+  text-align: center;
+}
+.tr-live-region:empty { padding: 0; }
+.tr-live-region:not(:empty) {
+  padding: var(--tr-sp-3) var(--tr-sp-5);
+  background: var(--tr-plate);
+  border: 1px solid var(--tr-line);
+  box-shadow: 0 4px 16px var(--tr-shadow);
+}
+.tr-live-region--success:not(:empty) { border-left: 3px solid var(--tr-active); color: var(--tr-text); }
+.tr-live-region--error:not(:empty)   { border-left: 3px solid var(--tr-danger); color: var(--tr-text); }
+.tr-live-region--info:not(:empty)    { border-left: 3px solid var(--tr-focus); color: var(--tr-text); }
+
+/* Inline destructive confirmation — replaces native confirm() (ACT-11). */
+.tr-confirm-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-3);
+  flex-wrap: wrap;
+  padding: var(--tr-sp-3);
+  background: color-mix(in srgb, var(--tr-danger) 8%, var(--tr-plate-2));
+  border: 1px solid var(--tr-danger);
+}
+.tr-confirm-inline__text {
+  flex: 1 1 auto;
+  min-width: 120px;
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-text);
+}
+
 .tr-banner__text {
   flex: 1;
   color: var(--tr-muted);
@@ -3189,6 +3232,12 @@ details[open] > .tr-forms__bank-label::before {
   background: var(--tr-raised);
   color: var(--tr-muted-min);
   border: 1px solid var(--tr-line);
+}
+
+.tr-trigger__pill--draft {
+  background: transparent;
+  color: var(--tr-warning);
+  border: 1px solid var(--tr-warning);
 }
 
 .tr-trigger__editor {
