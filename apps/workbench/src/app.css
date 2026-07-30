@@ -104,6 +104,11 @@ h1, h2, h3, h4 { font-weight: normal; }
   position: relative;
   z-index: 10;
   flex-shrink: 0;
+  /* A grid item's implicit min-width is auto (its content size), which lets
+     a flex container blow out past its grid track instead of shrinking —
+     invisibly clipped by an ancestor's overflow:hidden rather than
+     producing a detectable document scrollWidth (SHELL-05/SHELL-07). */
+  min-width: 0;
 }
 
 .tr-transport__title {
@@ -1698,9 +1703,20 @@ input[type="checkbox"] {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 959px) {
+  :root {
+    /* Two-row Transport: title+controls, then subordinate status+Details
+       (SHELL-05) — a single 42px row cannot fit six status/control
+       concepts at a 44px touch-target minimum without collision. */
+    --tr-transport-h: 84px;
+  }
+
   .tr-shell {
     grid-template-rows: var(--tr-transport-h) auto 1fr;
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr), not bare 1fr — a bare fr track's minimum can still be
+       inflated by a row's unshrinkable content (e.g. an unwrapped table or
+       chamber-rail list), silently pushing every row in the column past the
+       viewport and behind an ancestor's overflow:hidden (SHELL-05/07). */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "transport"
       "chamber-switcher"
@@ -1748,9 +1764,50 @@ input[type="checkbox"] {
   }
 
   /* Project title gets more room without app name */
-  .tr-transport__name { max-width: none; }
+  .tr-transport__name {
+    max-width: none;
+    /* The intrinsic min-width of a nowrap text node is its full content
+       width — without min-width:0 here, this is the actual grid/flex
+       blowout culprit: it refuses to shrink even though every ancestor
+       flex container already allows shrinking (SHELL-05/SHELL-07). */
+    min-width: 0;
+    flex: 1 1 auto;
+  }
 
-  /* Transport toggle: raise to 44px touch target on mobile */
+  /* Two-row layout: title+controls on row 1, subordinate status+Details on
+     row 2 — never more than title, one runtime control cluster, and one
+     status/Details cluster share a row (SHELL-05). */
+  .tr-transport {
+    flex-wrap: wrap;
+    align-content: center;
+    height: var(--tr-transport-h);
+    row-gap: var(--tr-sp-2);
+    padding: var(--tr-sp-2) var(--tr-sp-4);
+  }
+
+  .tr-transport__title {
+    flex: 1 1 auto;
+    min-width: 0;
+    order: 1;
+  }
+
+  .tr-transport__controls {
+    order: 2;
+  }
+
+  .tr-transport__status {
+    order: 3;
+    flex-basis: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  /* Transport controls: 44px minimum touch target on mobile (SHELL-05) */
+  .tr-transport__btn {
+    width: 44px;
+    height: 44px;
+  }
+
   .tr-transport__toggle {
     min-width: 44px;
     min-height: 44px;
@@ -1868,6 +1925,20 @@ input[type="checkbox"] {
     max-height: 45px;
     flex-shrink: 0;
     scrollbar-width: none;
+    /* Scroll-shadow cue (SHELL-06): a hidden scrollbar alone is not a
+       discoverable affordance for the bank/device/pattern lists this class
+       backs. Two "local" background layers mask a pair of "scroll" shadow
+       layers near each edge — the shadow is only visible once there is
+       more content in that direction, and disappears at the scroll start
+       or end. Pure CSS, no JS scroll-position tracking needed. */
+    background:
+      linear-gradient(to right, var(--tr-plate) 30%, rgba(255, 255, 255, 0)) 0 0,
+      linear-gradient(to left, var(--tr-plate) 30%, rgba(255, 255, 255, 0)) 100% 0,
+      radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0)) 0 0,
+      radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0)) 100% 0;
+    background-repeat: no-repeat;
+    background-size: 32px 100%, 32px 100%, 12px 100%, 12px 100%;
+    background-attachment: local, local, scroll, scroll;
   }
   .tr-panel__sidebar::-webkit-scrollbar { display: none; }
 
@@ -1945,6 +2016,32 @@ input[type="checkbox"] {
 @media (max-width: 959px) and (max-height: 500px) {
   :root {
     --tr-transport-h: 44px;
+  }
+
+  /* Vertical space is too tight here for the two-row Transport used at
+     taller mobile heights — collapse back to one compact row. Controls
+     are 40px (not the full 44px) because a 44px control plus its own
+     padding cannot fit inside a 44px-tall bar that also carries the
+     title; this is a deliberate, documented compromise for this one
+     constrained breakpoint, not the general case. */
+  .tr-transport {
+    flex-wrap: nowrap;
+    height: var(--tr-transport-h);
+    padding: 0 var(--tr-sp-4);
+  }
+
+  .tr-transport__status {
+    flex-basis: auto;
+  }
+
+  .tr-transport__btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .tr-transport__toggle {
+    min-width: 40px;
+    min-height: 40px;
   }
 
   /* Compact horizontally scrollable full-name rail (SHELL-10) — replaces
@@ -2965,6 +3062,89 @@ details[open] > .tr-forms__bank-label::before {
 
 .tr-mat-table__actions {
   position: relative;
+}
+
+/* Sample cards — replace the five-column table below 600px, where a table
+   can only survive by compressing itself into an unusable strip (SHELL-09,
+   MAT-04). Same underlying data and actions as the table, different shape. */
+.tr-mat-cards {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-3);
+  padding: var(--tr-sp-4);
+}
+
+.tr-mat-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-3);
+  padding: var(--tr-sp-4);
+  background: var(--tr-plate-2);
+  border: 1px solid var(--tr-line-soft);
+  border-left: 3px solid transparent;
+}
+
+.tr-mat-card--selected {
+  border-left-color: var(--tr-active);
+  background: color-mix(in srgb, var(--tr-active) 8%, var(--tr-plate-2));
+}
+
+/* Select button — a sibling of the actions menu button below, not a
+   wrapper around it (see MaterialsPanel.tsx for why). Reset to look like
+   the card's own content, not a default button. */
+.tr-mat-card__select {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-3);
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tr-mat-card__main {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--tr-sp-3);
+}
+
+.tr-mat-card__literal {
+  font-size: var(--tr-font-size-md);
+  font-weight: 600;
+  color: var(--tr-text);
+}
+
+.tr-mat-card__role {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+  letter-spacing: 0.04em;
+}
+
+.tr-mat-card__locked {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-focus);
+  letter-spacing: 0.04em;
+}
+
+.tr-mat-card__meta {
+  display: flex;
+  gap: var(--tr-sp-5);
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted);
+}
+
+.tr-mat-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.tr-mat-card__actions .tr-btn {
+  min-height: 44px;
 }
 
 /* Move menu */

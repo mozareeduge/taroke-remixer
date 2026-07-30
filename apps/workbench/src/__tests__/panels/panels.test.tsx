@@ -1,7 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { enablePatches } from "immer";
 enablePatches();
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import projectReducer, { mutateProject } from "../../store/projectSlice.js";
@@ -659,6 +659,60 @@ describe("MaterialsPanel — share column", () => {
     const pctCells = document.querySelectorAll(".tr-table__td--share");
     expect(pctCells.length).toBeGreaterThan(0);
     expect(pctCells[0]!.textContent).toMatch(/%/);
+  });
+});
+
+// ── MaterialsPanel — SHELL-09 compact cards below 600px ────────────────────────
+
+describe("MaterialsPanel — compact cards (SHELL-09)", () => {
+  const originalMatchMedia = window.matchMedia;
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
+  function mockCompactViewport() {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes("max-width: 599px"),
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as typeof window.matchMedia;
+  }
+
+  it("renders sample cards, not a five-column table, below 600px", () => {
+    mockCompactViewport();
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+
+    expect(document.querySelector(".tr-mat-cards")).toBeInTheDocument();
+    expect(document.querySelector(".tr-mat-table")).not.toBeInTheDocument();
+    expect(document.querySelectorAll(".tr-mat-card").length).toBeGreaterThan(0);
+  });
+
+  it("compact cards still expose weight, share, and an actions menu", () => {
+    mockCompactViewport();
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+
+    const firstCard = document.querySelector(".tr-mat-card")!;
+    expect(firstCard.textContent).toMatch(/Weight \d+/);
+    expect(firstCard.textContent).toMatch(/% share/);
+    expect(within(firstCard as HTMLElement).getByRole("button", { name: /^Actions for /i })).toBeInTheDocument();
+  });
+
+  it("desktop width (no match) still renders the table", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    expect(document.querySelector(".tr-mat-table")).toBeInTheDocument();
+    expect(document.querySelector(".tr-mat-cards")).not.toBeInTheDocument();
   });
 });
 

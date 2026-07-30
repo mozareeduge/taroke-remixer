@@ -16,6 +16,24 @@ async function goto(page: Page) {
   await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
 }
 
+// Below 600px, Materials samples render as cards instead of a table
+// (SHELL-09) — these helpers work across both layouts so the same journey
+// test is meaningful regardless of the project's viewport.
+function sampleLiteral(page: Page) {
+  return page.locator(".tr-mat-table__literal, .tr-mat-card__literal").first();
+}
+function sampleRows(page: Page) {
+  return page.locator(".tr-table tbody tr, .tr-mat-card");
+}
+function samplesContainer(page: Page) {
+  return page.locator(".tr-mat-table, .tr-mat-cards");
+}
+// Structural check only — the active bank may legitimately be empty (e.g.
+// a freshly added bank), so this does not require an actual sample to exist.
+async function waitForSamplesLoaded(page: Page) {
+  await expect(samplesContainer(page)).toBeVisible({ timeout: 5_000 });
+}
+
 const NAV_LABELS: Record<string, string> = {
   "Materials": "Banks & Samples",
   "Forms": "Forms",
@@ -99,21 +117,26 @@ test("3 — Materials: bank list renders and selecting a bank shows sample table
   // At least one bank button exists
   const bankBtns = page.locator(".tr-list__btn");
   await expect(bankBtns.first()).toBeVisible();
-  // Default bank is auto-selected — sample table must already be visible
-  // (Table has a "Sample" column header)
-  await expect(page.getByRole("columnheader", { name: "Sample" })).toBeVisible();
-  // Click a different bank — table must remain visible
+  // Default bank is auto-selected — samples must already be visible
+  await waitForSamplesLoaded(page);
+  // Click a different bank — samples must remain visible
   await bankBtns.last().click();
-  await expect(page.getByRole("columnheader", { name: "Sample" })).toBeVisible();
+  await waitForSamplesLoaded(page);
 });
 
-// ── 4. Materials: accessible reorder buttons for samples ───────────────────────
+// ── 4. Materials: accessible reorder affordance for samples ───────────────────
+// Desktop uses drag handles; below 600px, samples are cards reordered via
+// the explicit Move menu instead of native HTML5 drag (SHELL-09, COMP-02
+// principle applied to Materials). Pin this test to a desktop viewport since
+// it is specifically about the drag-handle mechanism, not the responsive
+// breakpoint — that is covered separately in breakpoints.spec.ts and
+// panels.test.tsx's compact-card unit tests.
 
-test("4 — Materials: drag handles exist for samples in active bank", async ({ page }) => {
+test("4 — Materials: drag handles exist for samples in active bank (desktop)", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await goto(page);
   await clickNav(page, "Materials");
-  // Wait for default bank's sample table to render
-  await expect(page.getByRole("columnheader", { name: "Sample" })).toBeVisible();
+  await waitForSamplesLoaded(page);
   // Drag handle cells must exist for reordering
   const dragHandles = page.locator(".tr-table__td--drag");
   const count = await dragHandles.count();
@@ -414,32 +437,40 @@ test("20 — Performance: Cue audition shows output in Cue section", async ({ pa
 
 // ── 21. Materials: sample literal is editable ──────────────────────────────────
 
-test("21 — Materials: sample rows are selectable and show aria-selected", async ({ page }) => {
+test("21 — Materials: sample rows are selectable and expose selection state", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Materials");
-  await expect(page.getByRole("columnheader", { name: "Sample" })).toBeVisible();
+  await waitForSamplesLoaded(page);
 
-  // Click the literal span inside the first row (avoids table pointer-event interception on draggable rows)
-  const firstLiteral = page.locator(".tr-mat-table__literal").first();
+  // Click the literal span (avoids table pointer-event interception on draggable rows)
+  const firstLiteral = sampleLiteral(page);
   await expect(firstLiteral).toBeVisible();
   await firstLiteral.click();
   await page.waitForTimeout(200);
 
-  const rows = page.locator(".tr-table tbody tr");
-  await expect(rows.first()).toHaveAttribute("aria-selected", "true");
+  // Table rows use aria-selected; cards use aria-current (a card is not an
+  // ARIA "option" widget, so aria-selected is not a permitted attribute
+  // there — see MaterialsPanel.tsx / A11Y-05).
+  const row = sampleRows(page).first();
+  const ariaSelected = await row.getAttribute("aria-selected");
+  const ariaCurrent = await row.getAttribute("aria-current");
+  expect(
+    ariaSelected === "true" || ariaCurrent === "true",
+    "Expected the selected sample row/card to expose aria-selected or aria-current",
+  ).toBe(true);
 });
 
-// ── 22. Materials: expected share column shows percentage ──────────────────────
+// ── 22. Materials: expected share shows percentage ──────────────────────────────
 
-test("22 — Materials: expected share column shows percentage for tokens", async ({ page }) => {
+test("22 — Materials: expected share shows percentage for tokens", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Materials");
-  await expect(page.getByRole("columnheader", { name: "Share" })).toBeVisible();
-  // At least one share cell must contain a percentage
-  const shareCells = page.locator(".tr-table__td--share");
+  await waitForSamplesLoaded(page);
+  // At least one share value must contain a percentage, table or card layout.
+  const shareCells = page.locator(".tr-table__td--share, .tr-mat-card__share");
   await expect(shareCells.first()).toBeVisible();
   const text = await shareCells.first().textContent();
-  expect(text, "Expected share cell to contain a percentage").toMatch(/%/);
+  expect(text, "Expected share value to contain a percentage").toMatch(/%/);
 });
 
 // ── 23. Forms: case policy select is editable ──────────────────────────────────
@@ -467,7 +498,7 @@ test("24 — Inspector: form override inputs appear after selecting a token from
   const bankBtns = page.locator(".tr-list__btn");
   await bankBtns.first().click();
   await page.waitForTimeout(200);
-  const firstLiteral = page.locator(".tr-mat-table__literal").first();
+  const firstLiteral = sampleLiteral(page);
   if (await firstLiteral.count() > 0) {
     await firstLiteral.click();
     await page.waitForTimeout(200);
@@ -1071,9 +1102,9 @@ test("48 — Archive: Project Info table shows title, device count, and pattern 
 test("49 — Materials: new sample literal input + Add button append a sample row", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Materials");
-  await expect(page.getByRole("columnheader", { name: "Sample" })).toBeVisible();
+  await waitForSamplesLoaded(page);
 
-  const rows = page.locator(".tr-table tbody tr");
+  const rows = sampleRows(page);
   const before = await rows.count();
 
   // Type into the "Add sample…" input and click Add

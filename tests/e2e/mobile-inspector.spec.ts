@@ -64,9 +64,9 @@ test("MI-1 — mobile: select sample → sheet not auto-opened → open Details 
   await gotoChamber(page, "Materials");
   await page.waitForTimeout(200);
 
-  // Wait for sample table to appear and click first sample literal
-  await expect(page.getByRole("columnheader", { name: "Sample" })).toBeVisible({ timeout: 5_000 });
-  const firstLiteral = page.locator(".tr-mat-table__literal").first();
+  // Below 600px, samples render as cards, not a table (SHELL-09).
+  await expect(page.locator(".tr-mat-cards")).toBeVisible({ timeout: 5_000 });
+  const firstLiteral = page.locator(".tr-mat-card__literal").first();
   await expect(firstLiteral).toBeVisible();
   await firstLiteral.click();
   await page.waitForTimeout(200);

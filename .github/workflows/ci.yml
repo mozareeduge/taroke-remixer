@@ -476,7 +476,8 @@ jobs:
               }
 
               // Select the first sample literal to populate the Inspector
-              const firstLiteral = page.locator('.tr-mat-table__literal').first();
+              // (below 600px, samples render as cards, not a table — SHELL-09)
+              const firstLiteral = page.locator('.tr-mat-table__literal, .tr-mat-card__literal').first();
               if (!(await firstLiteral.isVisible({ timeout: 3000 }).catch(() => false))) {
                 throw new Error(`Inspector pre-check: no sample literal visible for ${vp.name}`);
               }
