@@ -23,6 +23,7 @@ import {
   setTriggerCondition,
   setTriggerChance,
   toggleTriggerEnabled,
+  previewTrigger,
   setSurfaceSpeed,
   setCasePolicy,
 } from "../../store/commands.js";
@@ -216,6 +217,62 @@ describe("commands — triggers", () => {
     expect(tr.enabled).toBe(true);
     const result = toggleTriggerEnabled(p, tr.id);
     expect(result.present.triggers.find((t) => t.id === tr.id)!.enabled).toBe(false);
+  });
+});
+
+describe("commands — trigger preview", () => {
+  function projectWithMatchingMaterial() {
+    const p = defaultProject();
+    p.materials.trays["above"] = [{ id: "tok_preview_0", literal: "mist", role: "noun", weight: 1, lockedLiteral: false }];
+    p.triggers.push({
+      id: "trig_preview_0",
+      name: "mist trigger",
+      enabled: true,
+      condition: { tray: "above", term: "mist" },
+      chance: 100,
+      action: { type: "append", text: "falls" },
+    });
+    return p;
+  }
+
+  it("reports a match and the append effect against a representative token", () => {
+    const p = projectWithMatchingMaterial();
+    const preview = previewTrigger(p, p.triggers[0]!);
+    expect(preview.matched).toBe(true);
+    expect(preview.sampleLiteral).toBe("mist");
+    expect(preview.effectText).toBe("…mist… falls");
+  });
+
+  it("computes the prepend and replace effects the same way generation would", () => {
+    const p = projectWithMatchingMaterial();
+    const prepend = previewTrigger(p, { ...p.triggers[0]!, action: { type: "prepend", text: "falls" } });
+    expect(prepend.effectText).toBe("falls …mist…");
+    const replace = previewTrigger(p, { ...p.triggers[0]!, action: { type: "replace", text: "falls" } });
+    expect(replace.effectText).toBe("falls");
+  });
+
+  it("reports no match when no material in the bank satisfies the term", () => {
+    const p = projectWithMatchingMaterial();
+    const tr = { ...p.triggers[0]!, condition: { tray: "above", term: "stone" } };
+    const preview = previewTrigger(p, tr);
+    expect(preview.matched).toBe(false);
+    expect(preview.sampleLiteral).toBeNull();
+  });
+
+  it("wildcard (blank term) matches any token in the bank", () => {
+    const p = projectWithMatchingMaterial();
+    const tr = { ...p.triggers[0]!, condition: { tray: "above", term: "" } };
+    const preview = previewTrigger(p, tr);
+    expect(preview.matched).toBe(true);
+    expect(preview.sampleLiteral).toBe("mist");
+  });
+
+  it("shows a placeholder effect when THEN text is blank", () => {
+    const p = projectWithMatchingMaterial();
+    const tr = { ...p.triggers[0]!, action: { type: "append" as const, text: "" } };
+    const preview = previewTrigger(p, tr);
+    expect(preview.matched).toBe(true);
+    expect(preview.effectText).toBe("(no THEN text yet)");
   });
 });
 

@@ -3542,9 +3542,40 @@ details[open] > .tr-forms__bank-label::before {
   border: 1px solid var(--tr-warning);
 }
 
+.tr-trigger__pill--invalid {
+  background: transparent;
+  color: var(--tr-danger);
+  border: 1px solid var(--tr-danger);
+}
+
 .tr-trigger__editor {
   border-top: 1px solid var(--tr-line-soft);
   padding: var(--tr-sp-1) 0 var(--tr-sp-2);
+}
+
+.tr-trigger__preview {
+  display: flex;
+  align-items: baseline;
+  gap: var(--tr-sp-2);
+  padding: var(--tr-sp-1) var(--tr-sp-4);
+  font-size: var(--tr-font-size-sm);
+}
+
+.tr-trigger__preview-label {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--tr-muted-min);
+  flex-shrink: 0;
+}
+
+.tr-trigger__preview-text {
+  color: var(--tr-text);
+  overflow-wrap: anywhere;
+}
+
+.tr-trigger__preview-text--empty {
+  color: var(--tr-muted);
+  font-style: italic;
 }
 
 .tr-trigger__row--controls {

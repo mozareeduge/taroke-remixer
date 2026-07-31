@@ -6,6 +6,7 @@ import { announce } from "../store/feedbackSlice.js";
 import {
   addTrigger, removeTrigger, toggleTriggerEnabled,
   setTriggerCondition, setTriggerChance, setTriggerAction,
+  previewTrigger,
 } from "../store/commands.js";
 import { uid } from "@taroke/core";
 
@@ -67,8 +68,12 @@ export function AutomationPanel() {
             const complete = isTriggerComplete(tr.action);
             const actionDisplay = complete ? tr.action.text : "(incomplete — no action text)";
             const summary = `WHEN ${bankLabel} ${termDisplay} → ${tr.chance}% → THEN ${tr.action.type} ${actionDisplay}`;
-            const pillState = !complete ? "draft" : tr.enabled ? "on" : "off";
-            const pillText = !complete ? "DRAFT" : tr.enabled ? "ON" : "OFF";
+            const preview = previewTrigger(project, tr);
+            // Invalid: complete and enabled, but no material in the bank currently satisfies
+            // WHEN, so the rule is live but structurally inert — distinct from an incomplete Draft.
+            const isInvalid = complete && tr.enabled && !preview.matched;
+            const pillState = !complete ? "draft" : isInvalid ? "invalid" : tr.enabled ? "on" : "off";
+            const pillText = !complete ? "DRAFT" : isInvalid ? "INVALID" : tr.enabled ? "ON" : "OFF";
 
             return (
               <div
@@ -159,6 +164,19 @@ export function AutomationPanel() {
                       />
                     </div>
 
+                    <div className="tr-trigger__preview" role="note" aria-label={`Match and effect preview for ${tr.name}`}>
+                      <span className="tr-trigger__preview-label">PREVIEW</span>
+                      {preview.matched ? (
+                        <span className="tr-trigger__preview-text">
+                          matches “{preview.sampleLiteral}” in {bankLabel} → {preview.effectText}
+                        </span>
+                      ) : (
+                        <span className="tr-trigger__preview-text tr-trigger__preview-text--empty">
+                          no material in {bankLabel} currently matches {termDisplay} — rule cannot fire yet
+                        </span>
+                      )}
+                    </div>
+
                     <div className="tr-trigger__row tr-trigger__row--controls">
                       <button
                         className={["tr-btn tr-btn--ghost tr-btn--sm", tr.enabled ? "" : "tr-btn--dim"].filter(Boolean).join(" ")}
@@ -172,6 +190,9 @@ export function AutomationPanel() {
                       </button>
                       {!complete && (
                         <span className="tr-error" role="alert">Add THEN action text before enabling</span>
+                      )}
+                      {isInvalid && (
+                        <span className="tr-error" role="alert">Enabled, but no material currently matches — rule is inert</span>
                       )}
                     </div>
                   </div>

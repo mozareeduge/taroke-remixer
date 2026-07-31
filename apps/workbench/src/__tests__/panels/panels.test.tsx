@@ -459,6 +459,36 @@ describe("AutomationPanel", () => {
     fireEvent.click(toggleBtn);
     expect(store.getState().project.present.triggers.find((t) => t.id === "trig_1")?.enabled).toBe(false);
   });
+
+  it("selected trigger shows a representative match/effect preview", () => {
+    const store = makeStoreWithFixture();
+    store.dispatch(selectTrigger("trig_1"));
+    wrap(<AutomationPanel />, store);
+    // trig_1 matches WHEN nouns=river THEN append " flows" — the fixture guarantees "river" exists.
+    expect(screen.getByText("PREVIEW")).toBeInTheDocument();
+    expect(screen.getByText(/matches\s+.river./)).toBeInTheDocument();
+    expect(screen.getByText(/…river… flows/)).toBeInTheDocument();
+  });
+
+  it("an enabled, complete trigger whose term matches no material shows INVALID, not ON", () => {
+    const store = makeStoreWithFixture();
+    store.dispatch(mutateProject({
+      present: {
+        ...store.getState().project.present,
+        triggers: store.getState().project.present.triggers.map((t) =>
+          t.id === "trig_1" ? { ...t, enabled: true, condition: { tray: "nouns", term: "glacier" } } : t,
+        ),
+      },
+      patches: [],
+      inversePatches: [],
+      label: "test setup",
+    }));
+    store.dispatch(selectTrigger("trig_1"));
+    wrap(<AutomationPanel />, store);
+    expect(screen.getByText("INVALID")).toBeInTheDocument();
+    expect(screen.queryByText("ON")).not.toBeInTheDocument();
+    expect(screen.getByText(/rule is inert/)).toBeInTheDocument();
+  });
 });
 
 // ── PerformancePanel ───────────────────────────────────────────────────────────

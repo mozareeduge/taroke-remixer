@@ -478,6 +478,46 @@ export function removeTrigger(project: TarokeProject, triggerId: string): Comman
   });
 }
 
+// ── Trigger preview ─────────────────────────────────────────────────────────────
+
+export interface TriggerPreview {
+  /** Whether any material in the bank currently satisfies WHEN, so the rule can fire at all. */
+  matched: boolean;
+  /** A representative token literal the rule would match against, if any. */
+  sampleLiteral: string | null;
+  /** The line text the THEN effect would produce against the sample, or a placeholder if incomplete. */
+  effectText: string;
+}
+
+// Mirrors the match rule in packages/core/src/generation.ts (case-insensitive literal
+// equality against the tray, or any token when term is blank) so the preview shown in
+// the editor cannot drift from what actually fires at generation time.
+export function previewTrigger(project: TarokeProject, trigger: Trigger): TriggerPreview {
+  const tray = trigger.condition?.tray ?? "";
+  const term = (trigger.condition?.term ?? "").trim();
+  const tokens = project.materials.trays[tray] ?? [];
+  const candidates = term
+    ? tokens.filter((t) => t.literal.toLowerCase() === term.toLowerCase())
+    : tokens;
+  const sample = candidates[0] ?? null;
+  const sampleLiteral = sample?.literal ?? null;
+  const actionText = trigger.action?.text ?? "";
+  const surfacePlaceholder = sampleLiteral ? `…${sampleLiteral}…` : "…line…";
+
+  let effectText: string;
+  if (!actionText.trim()) {
+    effectText = "(no THEN text yet)";
+  } else if (trigger.action.type === "prepend") {
+    effectText = `${actionText} ${surfacePlaceholder}`;
+  } else if (trigger.action.type === "replace") {
+    effectText = actionText;
+  } else {
+    effectText = `${surfacePlaceholder} ${actionText}`;
+  }
+
+  return { matched: candidates.length > 0, sampleLiteral, effectText };
+}
+
 // ── Surface commands ───────────────────────────────────────────────────────────
 
 export function setSurfaceSpeed(project: TarokeProject, speedMs: number): CommandResult {
