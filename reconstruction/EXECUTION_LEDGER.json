@@ -1,0 +1,74 @@
+{
+  "schema": "taroke.anti-blind-execution-ledger.v1",
+  "repository": "mozareeduge/taroke-remixer",
+  "branch": "claude/new-session-cfh8s7",
+  "starting_head": "8a5eb55d2c6dff75fd7fe0c108343768acc44cb6",
+  "original_pr_branch": "claude/taroke-final-experience-elzkea-zzgowx",
+  "pr": 20,
+  "current_head": "82c616c3636ab5f5e51d90845a4bd0f9b175df03",
+  "units": {
+    "A": {
+      "name": "Composition and Automation",
+      "status": "in_progress",
+      "required_components": [
+        "CompositionPanel.tsx or documented replacement",
+        "AutomationPanel.tsx or documented replacement"
+      ],
+      "touched_files": [
+        "apps/workbench/src/store/commands.ts",
+        "apps/workbench/src/panels/AutomationPanel.tsx",
+        "apps/workbench/src/app.css",
+        "apps/workbench/src/__tests__/store/commands.test.ts",
+        "apps/workbench/src/__tests__/panels/panels.test.tsx"
+      ],
+      "tests": [
+        "apps/workbench/src/__tests__/store/commands.test.ts :: commands — trigger preview (5 new tests)",
+        "apps/workbench/src/__tests__/panels/panels.test.tsx :: AutomationPanel > selected trigger shows a representative match/effect preview",
+        "apps/workbench/src/__tests__/panels/panels.test.tsx :: AutomationPanel > an enabled, complete trigger whose term matches no material shows INVALID, not ON"
+      ],
+      "evidence_scenarios": [],
+      "open_issues": [
+        "Automation: no mobile-native editor redesign yet — current editor is the same inline form on all breakpoints, not evaluated against mobile touch ergonomics.",
+        "Automation: 'No duplicate editable Inspector' not yet audited against Inspector.tsx for this unit.",
+        "Composition: not yet touched. Pattern Score and Flow Score are not visually or structurally distinguished as separate scores. No previewable runtime consequence of the score. No purpose-built desktop vs mobile arrangement beyond existing responsive CSS. Empty/selected/editing/invalid/dependency-blocked states not audited against the contract point by point.",
+        "No evidence scenarios captured for this unit yet (desktop1440.automation.draft, desktop1440.automation.invalid, desktop1440.automation.on-preview, mobile390.automation.editor, desktop1440.composition.*, mobile390.composition.move) — Unit C's evidence workflow has not been built yet.",
+        "'implemented' status is intentionally withheld until Composition is substantively addressed and the Unit A exit criteria (central components changed, unit+E2E tests pass, all Composition/Automation evidence scenarios exist) are actually met."
+      ],
+      "self_review": "This commit is real, tested, and narrowly scoped: it adds a genuine missing piece of the Automation contract (representative match/effect preview) and a genuine missing trigger state (Invalid), both backed by new unit and component tests, all passing (443/443 workbench suite, tsc --noEmit clean). It does not claim Unit A is done — Composition has not been touched at all, and several Automation contract points (mobile-native editor, Inspector duplication audit) remain open.",
+      "external_audit": "pending"
+    },
+    "B": {
+      "name": "Performance and Recovery",
+      "status": "open",
+      "required_components": [
+        "PerformancePanel.tsx or documented replacement",
+        "DraftRecoveryBanner.tsx or documented replacement"
+      ],
+      "touched_files": [],
+      "tests": [],
+      "evidence_scenarios": [],
+      "open_issues": [],
+      "self_review": "",
+      "external_audit": "pending"
+    },
+    "C": {
+      "name": "Visual system and evidence",
+      "status": "open",
+      "required_components": [
+        "cross-chamber visual implementation",
+        "exact-head evidence workflow"
+      ],
+      "touched_files": [],
+      "tests": [],
+      "evidence_scenarios": [],
+      "open_issues": [],
+      "self_review": "",
+      "external_audit": "pending"
+    }
+  },
+  "implementation_discovered_issues": [],
+  "known_unresolved": [
+    "Full evidence manifest (70-scenario matrix) does not exist yet; 08_VALIDATE_COMPLETION.py will fail if run now, correctly, since reconstruction/EVIDENCE_MANIFEST.json does not exist."
+  ],
+  "final_candidate_status": "not_ready"
+}
