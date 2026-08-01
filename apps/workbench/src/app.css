@@ -2609,6 +2609,7 @@ details[open] > .tr-forms__bank-label::before {
   border-radius: 2px;
   font-variant-numeric: tabular-nums;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .tr-badge--direct {
