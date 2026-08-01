@@ -1,6 +1,6 @@
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { start, stop, pause } from "../store/runtimeSlice.js";
-import { toggleInspector } from "../store/editorSlice.js";
+import { toggleInspector, setActivePanel } from "../store/editorSlice.js";
 import { StatusLamp } from "@taroke/ui";
 
 export function Transport() {
@@ -9,6 +9,16 @@ export function Transport() {
   const title = useAppSelector((s) => s.project.present.project.title);
   const isDirty = useAppSelector((s) => s.project.isDirty);
   const inspectorOpen = useAppSelector((s) => s.editor.inspectorOpen);
+  const activePanel = useAppSelector((s) => s.editor.activePanel);
+
+  // A2/DS-G-08: outside Performance, a running or paused runtime gets a
+  // "jump to Surface" affordance. It only navigates the active chamber —
+  // it must never touch runtime status or the current Surface selection.
+  const surfaceJumpLabel =
+    activePanel === "performance" ? null :
+    status === "running" ? "Running to Surface" :
+    status === "paused" ? "Paused on Surface" :
+    null;
 
   return (
     <header className="tr-transport" role="banner">
@@ -25,7 +35,7 @@ export function Transport() {
           aria-label={status === "running" ? "Pause" : "Play"}
           aria-pressed={status === "running"}
         >
-          {status === "running" ? "■■" : "▶"}
+          {status === "running" ? "Pause" : "Play"}
         </button>
         <button
           className="tr-transport__btn"
@@ -33,12 +43,25 @@ export function Transport() {
           aria-label="Stop"
           disabled={status === "stopped"}
         >
-          ◼
+          Stop
         </button>
       </div>
 
       <div className="tr-transport__status">
         <span className="tr-transport__status-label">{status.toUpperCase()}</span>
+        {surfaceJumpLabel && (
+          <span className="tr-transport__surface-jump">
+            <span className="tr-transport__surface-jump-label">{surfaceJumpLabel} ·</span>
+            <button
+              type="button"
+              className="tr-btn tr-btn--ghost tr-btn--sm"
+              onClick={() => dispatch(setActivePanel("performance"))}
+              aria-label={`${surfaceJumpLabel} · View, go to Performance`}
+            >
+              View
+            </button>
+          </span>
+        )}
         <button
           className="tr-transport__toggle"
           onClick={() => dispatch(toggleInspector())}
@@ -46,7 +69,7 @@ export function Transport() {
           aria-pressed={inspectorOpen}
           title="Inspector"
         >
-          ⊞
+          {inspectorOpen ? "Hide details" : "Details"}
         </button>
       </div>
     </header>

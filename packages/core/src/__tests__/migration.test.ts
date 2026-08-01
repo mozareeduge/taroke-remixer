@@ -8,7 +8,7 @@ describe("migrateProject", () => {
     expect(p.schemaVersion).toBe("0.7-reset");
     expect(p.materials.trays).toBeDefined();
     expect(p.lineDevices.length).toBeGreaterThan(0);
-    expect(p.triggers.length).toBeGreaterThan(0);
+    expect(p.triggers).toBeDefined();
   });
 
   it("preserves explicit modern trays (A path)", () => {
@@ -180,7 +180,7 @@ describe("validateProject", () => {
 
   it("errors when no scenes are active", () => {
     const p = defaultProject();
-    p.flowScenes[0]!.enabled = false;
+    for (const sc of p.flowScenes) sc.enabled = false;
     const issues = validateProject(p);
     expect(issues.some((i) => i.area === "flow")).toBe(true);
   });

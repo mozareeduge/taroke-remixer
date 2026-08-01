@@ -29,21 +29,22 @@ test("S2 — Source panel renders WORK IDENTITY section on desktop", async ({ pa
   await goto(page);
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.getByRole("button", { name: "Source" }).click();
-  // Section heads use exact text in DOM (CSS text-transform: uppercase is visual only)
-  await expect(page.getByText("WORK IDENTITY", { exact: true })).toBeVisible();
+  // Section head now carries an "editable — this remix" meta label alongside
+  // the heading text, so match by substring rather than exact.
+  await expect(page.getByText("WORK IDENTITY")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Project title" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Author" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Language" })).toBeVisible();
 });
 
-// ── 3. Desktop: Source panel has SOURCE and TEXT sections ─────────────────────
+// ── 3. Desktop: Source panel has LINEAGE, SOURCE PROVENANCE and TEXT sections ─
 
-test("S3 — Source panel renders SOURCE and TEXT sections", async ({ page }) => {
+test("S3 — Source panel renders LINEAGE, SOURCE PROVENANCE and TEXT sections", async ({ page }) => {
   await goto(page);
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.getByRole("button", { name: "Source" }).click();
-  // Use exact: true to avoid case-insensitive substring ambiguity
-  await expect(page.getByText("SOURCE", { exact: true })).toBeVisible();
+  await expect(page.getByText("LINEAGE", { exact: true })).toBeVisible();
+  await expect(page.getByText("SOURCE PROVENANCE")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Source title" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Source URL" })).toBeVisible();
   await expect(page.getByText("TEXT", { exact: true })).toBeVisible();
@@ -65,25 +66,23 @@ test("S4 — Title edit in SourcePanel reflects in ArchivePanel PROJECT INFO", a
   await expect(page.getByRole("cell", { name: "Gorge Poem" })).toBeVisible();
 });
 
-// ── 5. Mobile: Source is reachable via Material grouped nav ───────────────────
+// ── 5. Mobile: Source is reachable via the chamber switcher ──────────────────
 
-test("S5 — Source is reachable via mobile Material grouped sub-nav", async ({ page }) => {
+test("S5 — Source is reachable via the mobile chamber switcher", async ({ page }) => {
   await goto(page);
   await page.setViewportSize({ width: 390, height: 844 });
-  // Click the Material top-level tab in mobile bottom nav
-  const materialTab = page.getByRole("button", { name: "Material" });
-  if (await materialTab.isVisible()) {
-    await materialTab.click();
-    // Source sub-item must appear
-    const sourceSubBtn = page.getByRole("button", { name: "Source" }).first();
-    await expect(sourceSubBtn).toBeVisible();
-    await sourceSubBtn.click();
-    await expect(page.getByText("WORK IDENTITY", { exact: true })).toBeVisible();
-  } else {
-    // Desktop nav visible at this viewport — find Source in sidebar
-    await page.getByRole("button", { name: "Source" }).click();
-    await expect(page.getByText("WORK IDENTITY", { exact: true })).toBeVisible();
-  }
+  // Brief wait for React's matchMedia listener to update isMobile state
+  await page.waitForTimeout(150);
+  // Open the chamber switcher and select Source directly — it is a
+  // full top-level destination, not nested under a Material group.
+  await page.locator(".tr-chamber-switcher__trigger").click();
+  await page.waitForTimeout(150);
+  const sourceOption = page.getByRole("option", { name: /\bSource/ });
+  await expect(sourceOption).toBeVisible();
+  await sourceOption.click();
+  // Section head now carries an "editable — this remix" meta label alongside
+  // the heading text, so match by substring rather than exact.
+  await expect(page.getByText("WORK IDENTITY")).toBeVisible();
 });
 
 // ── 6. Invalid URL shows accessible validation error ─────────────────────────

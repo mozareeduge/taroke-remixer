@@ -16,6 +16,24 @@ async function goto(page: Page) {
   await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
 }
 
+// Below 600px, Materials samples render as cards instead of a table
+// (SHELL-09) — these helpers work across both layouts so the same journey
+// test is meaningful regardless of the project's viewport.
+function sampleLiteral(page: Page) {
+  return page.locator(".tr-mat-table__literal, .tr-mat-card__literal").first();
+}
+function sampleRows(page: Page) {
+  return page.locator(".tr-table tbody tr, .tr-mat-card");
+}
+function samplesContainer(page: Page) {
+  return page.locator(".tr-mat-table, .tr-mat-cards");
+}
+// Structural check only — the active bank may legitimately be empty (e.g.
+// a freshly added bank), so this does not require an actual sample to exist.
+async function waitForSamplesLoaded(page: Page) {
+  await expect(samplesContainer(page)).toBeVisible({ timeout: 5_000 });
+}
+
 const NAV_LABELS: Record<string, string> = {
   "Materials": "Banks & Samples",
   "Forms": "Forms",
@@ -24,17 +42,6 @@ const NAV_LABELS: Record<string, string> = {
   "Automation": "Triggers",
   "Performance": "Cue & Surface",
   "Archive": "Import & Export",
-};
-
-// Mobile bottom nav maps desktop panel names to { top-level tab, optional sub-item }
-const MOBILE_NAV: Record<string, { top: string; sub?: string }> = {
-  "Banks & Samples": { top: "Material", sub: "Banks & Samples" },
-  "Forms":           { top: "Material", sub: "Forms" },
-  "Devices":         { top: "Devices" },
-  "Patterns":        { top: "Compose" },
-  "Triggers":        { top: "Automate" },
-  "Cue & Surface":   { top: "Perform" },
-  "Import & Export": { top: "Archive" },
 };
 
 async function clickNav(page: Page, label: string) {
@@ -46,13 +53,17 @@ async function clickNav(page: Page, label: string) {
     return;
   }
 
-  // Mobile: use the bottom nav, then the material sub-nav if needed
-  const route = MOBILE_NAV[desktopName];
-  if (!route) throw new Error(`No mobile nav route for "${desktopName}"`);
-  await page.getByRole("button", { name: route.top }).click();
-  if (route.sub) {
-    await page.getByRole("button", { name: route.sub }).click();
+  // Mobile: the chamber switcher lists all eight chambers by their canonical
+  // name (the same `label` passed in, e.g. "Materials", "Performance").
+  const trigger = page.locator(".tr-chamber-switcher__trigger");
+  if (await trigger.isVisible()) {
+    await trigger.click();
+    await page.getByRole("option", { name: new RegExp(`\\b${label}`) }).click();
+    return;
   }
+
+  // Short landscape: compact scrollable rail instead of the collapsed switcher.
+  await page.locator(".tr-chamber-rail__btn", { hasText: label }).click();
 }
 
 // ── 1. Shell loads ─────────────────────────────────────────────────────────────
@@ -61,7 +72,7 @@ test("1 — v08 workbench shell loads at /next/", async ({ page }) => {
   await goto(page);
   await expect(page.locator("h1")).toBeVisible();
   // Navigation is present
-  await expect(page.locator("nav, [role='navigation']").first()).toBeVisible();
+  await expect(page.locator("nav:visible, [role='navigation']:visible").first()).toBeVisible();
 });
 
 // ── 2. Navigation panel switching ──────────────────────────────────────────────
@@ -86,7 +97,7 @@ test("2 — all six panels are reachable via nav", async ({ page }) => {
       await expect(page.getByText("CUE").first()).toBeVisible();
     }],
     ["Archive", async () => {
-      await expect(page.getByText("EXPORT").first()).toBeVisible();
+      await expect(page.getByText("SAVE PROJECT").first()).toBeVisible();
     }],
   ];
 
@@ -106,27 +117,30 @@ test("3 — Materials: bank list renders and selecting a bank shows sample table
   // At least one bank button exists
   const bankBtns = page.locator(".tr-list__btn");
   await expect(bankBtns.first()).toBeVisible();
-  // Default bank is auto-selected — sample table must already be visible
-  // (Table has a "Literal" column header)
-  await expect(page.getByRole("columnheader", { name: "Literal" })).toBeVisible();
-  // Click a different bank — table must remain visible
+  // Default bank is auto-selected — samples must already be visible
+  await waitForSamplesLoaded(page);
+  // Click a different bank — samples must remain visible
   await bankBtns.last().click();
-  await expect(page.getByRole("columnheader", { name: "Literal" })).toBeVisible();
+  await waitForSamplesLoaded(page);
 });
 
-// ── 4. Materials: accessible reorder buttons for samples ───────────────────────
+// ── 4. Materials: accessible reorder affordance for samples ───────────────────
+// Desktop uses drag handles; below 600px, samples are cards reordered via
+// the explicit Move menu instead of native HTML5 drag (SHELL-09, COMP-02
+// principle applied to Materials). Pin this test to a desktop viewport since
+// it is specifically about the drag-handle mechanism, not the responsive
+// breakpoint — that is covered separately in breakpoints.spec.ts and
+// panels.test.tsx's compact-card unit tests.
 
-test("4 — Materials: Up/Down reorder buttons exist for samples in active bank", async ({ page }) => {
+test("4 — Materials: drag handles exist for samples in active bank (desktop)", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await goto(page);
   await clickNav(page, "Materials");
-  // Wait for default bank's sample table to render
-  await expect(page.getByRole("columnheader", { name: "Literal" })).toBeVisible();
-  // Reorder buttons must exist (role=button with name matching move pattern)
-  const upButtons = page.getByRole("button", { name: /move .+ up/i });
-  const downButtons = page.getByRole("button", { name: /move .+ down/i });
-  const upCount = await upButtons.count();
-  const downCount = await downButtons.count();
-  expect(upCount + downCount, "Expected reorder Up/Down buttons for samples").toBeGreaterThan(0);
+  await waitForSamplesLoaded(page);
+  // Drag handle cells must exist for reordering
+  const dragHandles = page.locator(".tr-table__td--drag");
+  const count = await dragHandles.count();
+  expect(count, "Expected drag handle cells for sample reorder").toBeGreaterThan(0);
 });
 
 // ── 5. Instruments: route template is editable ─────────────────────────────────
@@ -135,8 +149,10 @@ test("5 — Instruments: route template textarea is editable and updates model",
   await goto(page);
   await clickNav(page, "Instruments");
   await expect(page.getByText("DEVICES").first()).toBeVisible();
+  // Raw template syntax lives under Advanced, closed by default (INS-01)
+  await page.getByRole("button", { name: /Advanced: edit raw template/i }).first().click();
   // PATH device is selected by default; route template textarea must be editable
-  const templateArea = page.locator("textarea").first();
+  const templateArea = page.getByLabel(/^Template for route/i).first();
   await expect(templateArea).toBeVisible();
   await templateArea.fill("test template text");
   // After editing the template, the textarea value must reflect the change
@@ -145,27 +161,27 @@ test("5 — Instruments: route template textarea is editable and updates model",
 
 // ── 6. Composition: slot reorder buttons present ───────────────────────────────
 
-test("6 — Composition: slot Up/Down reorder buttons exist for the active pattern", async ({ page }) => {
+test("6 — Composition: slot Actions menus exist for the active pattern", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Composition");
   await expect(page.getByText("PATTERNS").first()).toBeVisible();
-  await expect(page.getByText("SLOTS").first()).toBeVisible();
-  // Default stanza has slots; each slot must have Up/Down reorder buttons
-  const upButtons = page.getByRole("button", { name: /move slot .+ up/i });
-  const downButtons = page.getByRole("button", { name: /move slot .+ down/i });
-  const total = (await upButtons.count()) + (await downButtons.count());
-  expect(total, "Expected Up/Down reorder buttons for slots").toBeGreaterThan(0);
+  await expect(page.getByText("PATTERN SCORE").first()).toBeVisible();
+  // Default stanza has slots; each slot must have an Actions menu (the single
+  // keyboard/touch-safe reorder + remove path, replacing four competing affordances).
+  const actionsBtns = page.getByRole("button", { name: /^Actions for slot /i });
+  const count = await actionsBtns.count();
+  expect(count, "Expected Actions menu buttons for slot reorder/remove").toBeGreaterThan(0);
 });
 
-// ── 7. Automation: WHEN→THEN trigger format ────────────────────────────────────
+// ── 7. Automation: TRIGGERS section and add affordance present ─────────────────
 
-test("7 — Automation: WHEN→THEN trigger readable format present", async ({ page }) => {
+test("7 — Automation: TRIGGERS section heading and add-trigger affordance present", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Automation");
   await expect(page.getByText("TRIGGERS").first()).toBeVisible();
-  // Default trigger uses WHEN / THEN labels
-  await expect(page.getByText("WHEN").first()).toBeVisible();
-  await expect(page.getByText("THEN").first()).toBeVisible();
+  // Add-trigger button must always be present (even with empty trigger list)
+  const addBtn = page.getByRole("button", { name: /\+ Trigger/i });
+  await expect(addBtn).toBeVisible();
 });
 
 // ── 8. Performance: Cue does NOT write to Surface ──────────────────────────────
@@ -178,7 +194,7 @@ test("8 — Performance: Cue audition does NOT append to Surface history", async
   await expect(emptyMsg).toBeVisible();
 
   // Click Cue Audition 5 times
-  const cueBtn = page.getByRole("button", { name: "Generate next event" });
+  const cueBtn = page.getByRole("button", { name: /Audition next event/i });
   await expect(cueBtn).toBeVisible();
   for (let i = 0; i < 5; i++) {
     await cueBtn.click();
@@ -249,24 +265,30 @@ test("10 — Performance: Surface Clear empties history", async ({ page }) => {
 
 // ── 11. Performance: Take capture workflow ─────────────────────────────────────
 
-test("11 — Performance: Surface Generate → UNMIX appears → Capture Take → Take listed", async ({
+test("11 — Performance: Surface Generate → select line → UNMIX appears → Capture Take → Take listed", async ({
   page,
 }) => {
   await goto(page);
   await clickNav(page, "Performance");
   const surfaceGenBtn = page.getByRole("button", { name: /Surface: generate/i });
 
-  // Generate until we get a line event (UNMIX section appears)
+  // Generate until we get a line event. UNMIX must NOT appear on its own —
+  // it opens only through explicit selection of a Surface line.
   let gotLine = false;
   for (let i = 0; i < 15; i++) {
     await surfaceGenBtn.click();
     await page.waitForTimeout(200);
-    if ((await page.getByText("UNMIX").count()) > 0) {
+    expect(await page.locator("#unmix-head").count(), "UNMIX must not auto-open on Generate").toBe(0);
+    if ((await page.locator(".tr-surface__line").count()) > 0) {
       gotLine = true;
       break;
     }
   }
   expect(gotLine, "Expected at least one line event in 15 Surface generates").toBe(true);
+
+  // Explicitly select the Surface line — only now must UNMIX open.
+  await page.locator(".tr-surface__line").first().click();
+  await expect(page.locator("#unmix-head")).toBeVisible();
 
   // Capture Take button must be visible
   const captureBtn = page.getByRole("button", { name: /Capture.*Take/i });
@@ -275,17 +297,18 @@ test("11 — Performance: Surface Generate → UNMIX appears → Capture Take �
   await page.waitForTimeout(200);
 
   // TAKES section must appear with the captured take
-  await expect(page.getByText("TAKES")).toBeVisible();
+  await expect(page.locator("#takes-head")).toBeVisible();
 });
 
 // ── 12. Archive: export buttons visible ────────────────────────────────────────
 
-test("12 — Archive: JSON and HTML export buttons are visible", async ({ page }) => {
+test("12 — Archive: JSON save and HTML publish buttons are visible", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Archive");
-  await expect(page.getByText("EXPORT").first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /Export JSON/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Export HTML/i })).toBeVisible();
+  await expect(page.getByText("SAVE PROJECT").first()).toBeVisible();
+  await expect(page.getByText("PUBLISH ARTIFACT").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Save JSON/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Publish HTML/i })).toBeVisible();
 });
 
 // ── 13. Archive: Import button and section present ─────────────────────────────
@@ -372,7 +395,7 @@ test("18 — a11y: h1, nav landmark, and named buttons present", async ({ page }
   await goto(page);
 
   await expect(page.locator("h1")).toBeVisible();
-  await expect(page.locator("nav, [role='navigation']").first()).toBeVisible();
+  await expect(page.locator("nav:visible, [role='navigation']:visible").first()).toBeVisible();
 
   // All buttons in the first 20 must have an accessible name
   const buttons = await page.getByRole("button").all();
@@ -412,7 +435,7 @@ test("20 — Performance: Cue audition shows output in Cue section", async ({ pa
   await goto(page);
   await clickNav(page, "Performance");
 
-  const cueBtn = page.getByRole("button", { name: "Generate next event" });
+  const cueBtn = page.getByRole("button", { name: /Audition next event/i });
   await expect(cueBtn).toBeVisible();
   await cueBtn.click();
   await page.waitForTimeout(300);
@@ -424,39 +447,40 @@ test("20 — Performance: Cue audition shows output in Cue section", async ({ pa
 
 // ── 21. Materials: sample literal is editable ──────────────────────────────────
 
-test("21 — Materials: sample literal input is editable and model updates", async ({ page }) => {
+test("21 — Materials: sample rows are selectable and expose selection state", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Materials");
-  await expect(page.getByRole("columnheader", { name: "Literal" })).toBeVisible();
+  await waitForSamplesLoaded(page);
 
-  // Get the first editable literal input
-  const literalInputs = page.getByRole("textbox", { name: /literal for sample/i });
-  await expect(literalInputs.first()).toBeVisible();
-  const original = await literalInputs.first().inputValue();
-
-  // Edit it
-  await literalInputs.first().fill("edited-sample-literal");
-  await literalInputs.first().dispatchEvent("change");
+  // Click the literal span (avoids table pointer-event interception on draggable rows)
+  const firstLiteral = sampleLiteral(page);
+  await expect(firstLiteral).toBeVisible();
+  await firstLiteral.click();
   await page.waitForTimeout(200);
 
-  // The input must retain the new value
-  await expect(literalInputs.first()).toHaveValue("edited-sample-literal");
-
-  // Revert so other tests are not affected
-  await literalInputs.first().fill(original);
+  // Table rows use aria-selected; cards use aria-current (a card is not an
+  // ARIA "option" widget, so aria-selected is not a permitted attribute
+  // there — see MaterialsPanel.tsx / A11Y-05).
+  const row = sampleRows(page).first();
+  const ariaSelected = await row.getAttribute("aria-selected");
+  const ariaCurrent = await row.getAttribute("aria-current");
+  expect(
+    ariaSelected === "true" || ariaCurrent === "true",
+    "Expected the selected sample row/card to expose aria-selected or aria-current",
+  ).toBe(true);
 });
 
-// ── 22. Materials: expected share column shows percentage ──────────────────────
+// ── 22. Materials: expected share shows percentage ──────────────────────────────
 
-test("22 — Materials: expected share column shows percentage for tokens", async ({ page }) => {
+test("22 — Materials: expected share shows percentage for tokens", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Materials");
-  await expect(page.getByRole("columnheader", { name: "Share" })).toBeVisible();
-  // At least one share cell must contain a percentage
-  const shareCells = page.locator(".tr-table__td--share");
+  await waitForSamplesLoaded(page);
+  // At least one share value must contain a percentage, table or card layout.
+  const shareCells = page.locator(".tr-table__td--share, .tr-mat-card__share");
   await expect(shareCells.first()).toBeVisible();
   const text = await shareCells.first().textContent();
-  expect(text, "Expected share cell to contain a percentage").toMatch(/%/);
+  expect(text, "Expected share value to contain a percentage").toMatch(/%/);
 });
 
 // ── 23. Forms: case policy select is editable ──────────────────────────────────
@@ -474,44 +498,59 @@ test("23 — Forms: case policy select is present and editable", async ({ page }
   await expect(caseSelect).toHaveValue("lower");
 });
 
-// ── 24. Forms: plural override input is editable ───────────────────────────────
+// ── 24. Inspector: form override inputs appear after selecting a token ─────────
 
-test("24 — Forms: plural override input exists and is editable", async ({ page }) => {
+test("24 — Inspector: form override inputs appear after selecting a token from Materials", async ({ page }) => {
   await goto(page);
-  await clickNav(page, "Forms");
-  await expect(page.getByText("OVERRIDES").first()).toBeVisible();
-
-  // At least one plural override input must be visible
-  const overrideInputs = page.getByRole("textbox", { name: /plural override/i });
+  // Navigate to Materials, select a bank, then click the literal span in the first token row
+  // (clicking the literal span avoids table pointer-event interception on draggable rows)
+  await clickNav(page, "Materials");
+  const bankBtns = page.locator(".tr-list__btn");
+  await bankBtns.first().click();
+  await page.waitForTimeout(200);
+  const firstLiteral = sampleLiteral(page);
+  if (await firstLiteral.count() > 0) {
+    await firstLiteral.click();
+    await page.waitForTimeout(200);
+  }
+  // data-form-override inputs are in the Inspector (the sole full editor for form exceptions).
+  // The Inspector DOM is present regardless of open/closed state; in docked mode it is always visible.
+  const overrideInputs = page.locator("[data-form-override]");
   const count = await overrideInputs.count();
-  expect(count, "Expected at least one plural override input").toBeGreaterThan(0);
-
-  // Editing it must update the value
-  await overrideInputs.first().fill("wolves");
-  await expect(overrideInputs.first()).toHaveValue("wolves");
+  expect(count, "Expected data-form-override inputs in Inspector after selecting a token").toBeGreaterThan(0);
 });
 
 // ── 25. Instruments: route variable chips insert at caret ─────────────────────
 
-test("25 — Instruments: route variable chips appear and insert into template", async ({ page }) => {
+test("25 — Instruments: variable palette opens and inserts a token into the template", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Instruments");
-  // Variable chips only appear when device has inputs; PATH has inputs
   await expect(page.getByText("DEVICES").first()).toBeVisible();
 
-  // Wait for route cards (PATH has 3 routes)
-  const chips = page.getByRole("button", { name: /insert .+:.+ variable/i });
-  const chipCount = await chips.count();
-  expect(chipCount, "Expected variable insertion chips").toBeGreaterThan(0);
+  // Raw template syntax lives under Advanced, closed by default (INS-01)
+  await page.getByRole("button", { name: /Advanced: edit raw template/i }).first().click();
 
-  // Click a chip — template textarea must contain the inserted variable
-  const templateArea = page.locator("textarea").first();
+  // "Insert variable…" button must be present (PATH device has inputs)
+  const insertBtn = page.getByRole("button", { name: /Insert variable/i }).first();
+  await expect(insertBtn).toBeVisible();
+
+  // Clear the first template textarea, then open the palette and insert a variable
+  const templateArea = page.getByLabel(/^Template for route/i).first();
   await templateArea.fill("");
-  await templateArea.click();
-  await chips.first().click();
+  await insertBtn.click();
+  await page.waitForTimeout(200);
+
+  // Palette dialog must appear
+  const palette = page.getByRole("dialog", { name: /insert variable/i });
+  await expect(palette).toBeVisible();
+
+  // Click the first available item
+  const items = palette.locator(".tr-palette__item:not(.tr-palette__item--unavailable)");
+  await items.first().click();
   await page.waitForTimeout(100);
+
   const val = await templateArea.inputValue();
-  expect(val, "Expected chip to insert a {slot:form} variable").toMatch(/\{.+:.+\}/);
+  expect(val, "Expected palette to insert a {slot:form} variable").toMatch(/\{.+:.+\}/);
 });
 
 // ── 26. Archive: import receipt banner appears after successful import ─────────
@@ -541,7 +580,12 @@ test("26 — Archive: import receipt banner appears after a valid file is loaded
     mimeType: "application/json",
     buffer: Buffer.from(validProject),
   });
-  await page.waitForTimeout(500);
+
+  // Import preflight must appear and require explicit confirmation before
+  // the current project is replaced.
+  const preflight = page.getByRole("alertdialog", { name: /confirm import/i });
+  await expect(preflight).toBeVisible({ timeout: 3000 });
+  await page.getByRole("button", { name: "Replace project" }).click();
 
   // Import receipt banner must appear
   const banner = page.locator('[aria-label="Import receipt"]');
@@ -551,58 +595,51 @@ test("26 — Archive: import receipt banner appears after a valid file is loaded
 
 // ── 27. Composition: slot reorder changes order in model ──────────────────────
 
-test("27 — Composition: clicking slot Down reorder button moves slot", async ({ page }) => {
+test("27 — Composition: Move later in the Actions menu moves the slot", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Composition");
-  await expect(page.getByText("SLOTS").first()).toBeVisible();
+  await expect(page.getByText("PATTERN SCORE").first()).toBeVisible();
 
-  // Get slot Down buttons
-  const downBtns = page.getByRole("button", { name: /move slot .+ down/i });
-  const count = await downBtns.count();
-  if (count < 2) {
-    // If only one slot, skip reorder check (first slot's Down is also last = disabled)
-    return;
-  }
+  // Identify by data-slot-id, not label text — adjacent slots may share
+  // the same device label (e.g. two PATH slots) without being the same slot.
+  const slotRows = page.locator("[data-slot-id]");
+  const totalSlots = await slotRows.count();
+  if (totalSlots < 2) return; // Need ≥2 slots for a visible reorder
 
-  // Click the first enabled Down button — first slot's label must change
-  const firstEnabled = downBtns.filter({ hasNot: page.locator("[disabled]") }).first();
+  const beforeFirstId = await slotRows.first().getAttribute("data-slot-id");
+
+  // Open the first slot's Actions menu and click "Move later"
+  await page.getByRole("button", { name: /^Actions for slot /i }).first().click();
+  await page.getByRole("menuitem", { name: "Move later" }).click();
+  await page.waitForTimeout(200);
+
+  const afterFirstId = await slotRows.first().getAttribute("data-slot-id");
+  expect(afterFirstId, "Expected slot reorder to change which slot is first").not.toBe(beforeFirstId);
+});
+
+// ── 28. Composition: Move to start/end menu items ─────────────────────────────
+
+test("28 — Composition: Move to start in the Actions menu reorders the last slot to first", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Composition");
+  await expect(page.getByText("PATTERN SCORE").first()).toBeVisible();
+
+  // Actions menus must exist for all slots
+  const actionsBtns = page.getByRole("button", { name: /^Actions for slot /i });
+  const count = await actionsBtns.count();
+  expect(count, "Expected Actions menu buttons for slot reorder").toBeGreaterThan(0);
+
   const slotLabels = page.locator(".tr-slot__type");
-  const beforeFirstLabel = await slotLabels.first().textContent();
+  const totalSlots = await slotLabels.count();
+  expect(totalSlots, "Need ≥3 slots to verify reorder is meaningful").toBeGreaterThanOrEqual(3);
 
-  await firstEnabled.click();
+  const beforeLastLabel = await slotLabels.last().textContent();
+  await actionsBtns.last().click();
+  await page.getByRole("menuitem", { name: "Move to start" }).click();
   await page.waitForTimeout(200);
 
   const afterFirstLabel = await slotLabels.first().textContent();
-  // After moving the first slot down, a different slot is now first — label changes
-  expect(afterFirstLabel, "Expected slot reorder to change first slot's label").not.toBe(beforeFirstLabel);
-});
-
-// ── 28. Composition: Move to start/end buttons ────────────────────────────────
-
-test("28 — Composition: Move to start and Move to end buttons are present and functional", async ({ page }) => {
-  await goto(page);
-  await clickNav(page, "Composition");
-  await expect(page.getByText("SLOTS").first()).toBeVisible();
-
-  // Move to start / end buttons must exist
-  const toStartBtns = page.getByRole("button", { name: /move slot .+ to start/i });
-  const toEndBtns = page.getByRole("button", { name: /move slot .+ to end/i });
-  const startCount = await toStartBtns.count();
-  const endCount = await toEndBtns.count();
-  expect(startCount + endCount, "Expected Move to start/end buttons for slots").toBeGreaterThan(0);
-
-  // Default stanza must have 3+ slots for Move-to-end to produce a verifiable change
-  const slotLabels = page.locator(".tr-slot__type");
-  const totalSlots = await slotLabels.count();
-  expect(totalSlots, "Need ≥3 slots to verify Move to end").toBeGreaterThanOrEqual(3);
-
-  // Click Move to end on the first slot — it should become last
-  const firstLabel = await slotLabels.first().textContent();
-  const enabledToEnd = toEndBtns.filter({ hasNot: page.locator("[disabled]") }).first();
-  await enabledToEnd.click();
-  await page.waitForTimeout(200);
-  const newLastLabel = await slotLabels.last().textContent();
-  expect(newLastLabel, "Move to end should place slot at last position").toBe(firstLabel);
+  expect(afterFirstLabel, "Expected the last slot to become first").toBe(beforeLastLabel);
 });
 
 // ── 29. Instruments: device input slot is editable ───────────────────────────
@@ -663,9 +700,9 @@ test("30 — Archive: PREVIEW section renders with UNBUILT badge before first pr
   await expect(badge).toContainText("UNBUILT", { ignoreCase: true });
 });
 
-// ── 31. Archive: preview generates iframe and shows FRESH badge ───────────────
+// ── 31. Archive: preview generates iframe and shows READY badge ───────────────
 
-test("31 — Archive: clicking Preview artifact generates iframe with FRESH badge", async ({ page }) => {
+test("31 — Archive: clicking Preview artifact generates iframe with READY badge", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Archive");
 
@@ -673,12 +710,12 @@ test("31 — Archive: clicking Preview artifact generates iframe with FRESH badg
   const previewBtn = page.getByRole("button", { name: /Generate preview|Preview artifact/i });
   await expect(previewBtn).toBeVisible();
   await previewBtn.click();
-  await page.waitForTimeout(500);
 
-  // Badge must now be FRESH
+  // Badge transitions unbuilt -> building -> ready once the artifact iframe
+  // posts its postMessage handshake back (see standaloneRuntime in core).
   const badge = page.locator("[data-preview-lifecycle]").first();
-  await expect(badge).toHaveAttribute("data-preview-lifecycle", "fresh");
-  await expect(badge).toContainText("FRESH", { ignoreCase: true });
+  await expect(badge).toHaveAttribute("data-preview-lifecycle", "ready", { timeout: 5000 });
+  await expect(badge).toContainText("READY", { ignoreCase: true });
 
   // iframe must be in the DOM
   const iframe = page.locator("iframe[title='Artifact preview']");
@@ -692,18 +729,17 @@ test("32 — Archive: preview badge becomes STALE after project mutation", async
   await goto(page);
   await clickNav(page, "Archive");
 
-  // Generate preview → FRESH
+  // Generate preview → READY
   const previewBtn = page.getByRole("button", { name: /Preview artifact|Generate preview/i });
   await previewBtn.click();
-  await page.waitForTimeout(300);
-  await expect(page.locator("[data-preview-lifecycle]").first()).toHaveAttribute("data-preview-lifecycle", "fresh");
+  await expect(page.locator("[data-preview-lifecycle]").first()).toHaveAttribute("data-preview-lifecycle", "ready", { timeout: 5000 });
 
-  // Navigate to Materials and edit a sample to mutate the project
+  // Navigate to Materials and add a sample to mutate the project
   await clickNav(page, "Materials");
-  const literalInputs = page.getByRole("textbox", { name: /literal for sample/i });
-  await expect(literalInputs.first()).toBeVisible();
-  await literalInputs.first().fill("stale-trigger-mutation");
-  await literalInputs.first().dispatchEvent("change");
+  const addInput = page.getByRole("textbox", { name: /New sample literal/i });
+  await expect(addInput).toBeVisible();
+  await addInput.fill("stale-trigger-mutation");
+  await page.getByRole("button", { name: "Add sample" }).click();
   await page.waitForTimeout(300);
 
   // Return to Archive — badge must now be STALE
@@ -733,15 +769,15 @@ test("33 — Archive: preview iframe has sandbox=allow-scripts and no allow-same
   expect(sandbox, "iframe sandbox must NOT include allow-same-origin").not.toContain("allow-same-origin");
 });
 
-// ── 34. Archive: Export JSON triggers download with valid parseable JSON ───────
+// ── 34. Archive: Save JSON triggers download with valid parseable JSON ─────────
 
-test("34 — Archive: Export JSON triggers a download with valid parseable JSON", async ({ page }) => {
+test("34 — Archive: Save JSON triggers a download with valid parseable JSON", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Archive");
 
   const [download] = await Promise.all([
     page.waitForEvent("download"),
-    page.getByRole("button", { name: /Export JSON/i }).click(),
+    page.getByRole("button", { name: /Save JSON/i }).click(),
   ]);
 
   // Download must have a .json filename
@@ -759,15 +795,15 @@ test("34 — Archive: Export JSON triggers a download with valid parseable JSON"
   expect(parsed["stanzaPatterns"], "Expected stanzaPatterns array").toBeDefined();
 });
 
-// ── 35. Archive: Export HTML triggers download with standalone artifact ────────
+// ── 35. Archive: Publish HTML triggers download with standalone artifact ───────
 
-test("35 — Archive: Export HTML triggers a download with standalone taroke HTML", async ({ page }) => {
+test("35 — Archive: Publish HTML triggers a download with standalone taroke HTML", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Archive");
 
   const [download] = await Promise.all([
     page.waitForEvent("download"),
-    page.getByRole("button", { name: /Export HTML/i }).click(),
+    page.getByRole("button", { name: /Publish HTML/i }).click(),
   ]);
 
   expect(download.suggestedFilename(), "Expected .taroke.html extension").toMatch(/\.taroke\.html$/);
@@ -918,21 +954,24 @@ test("42 — Performance: UNMIX table shows device name, route, and consumed inp
   await clickNav(page, "Performance");
   const surfaceGenBtn = page.getByRole("button", { name: /Surface: generate/i });
 
-  // Generate until UNMIX appears (line event)
+  // Generate until a line event appears, then explicitly select it — UNMIX
+  // opens only through user selection, never automatically on Generate.
   let gotLine = false;
   for (let i = 0; i < 15; i++) {
     await surfaceGenBtn.click();
     await page.waitForTimeout(200);
-    if ((await page.getByText("UNMIX").count()) > 0) { gotLine = true; break; }
+    if ((await page.locator(".tr-surface__line").count()) > 0) { gotLine = true; break; }
   }
-  expect(gotLine, "Expected a line event to appear in UNMIX within 15 generates").toBe(true);
+  expect(gotLine, "Expected a line event to appear within 15 generates").toBe(true);
+  await page.locator(".tr-surface__line").first().click();
+  await expect(page.locator("#unmix-head")).toBeVisible();
 
-  // UNMIX table must contain Device, Route, and Surface rows
-  const unmixTable = page.locator(".tr-table--unmix");
-  await expect(unmixTable).toBeVisible();
-  await expect(unmixTable.getByText("Device")).toBeVisible();
-  await expect(unmixTable.getByText("Route")).toBeVisible();
-  await expect(unmixTable.getByText("Surface")).toBeVisible();
+  // UNMIX section must contain Device, Route, and Final rows
+  const unmixSection = page.locator(".tr-unmix");
+  await expect(unmixSection).toBeVisible();
+  await expect(unmixSection.getByText("Device")).toBeVisible();
+  await expect(unmixSection.getByText("Route")).toBeVisible();
+  await expect(unmixSection.getByText("Final")).toBeVisible();
 });
 
 // ── 43. Performance: UNMIX tick number appears in captured Take ───────────────
@@ -942,12 +981,14 @@ test("43 — Performance: captured take shows tick number badge", async ({ page 
   await clickNav(page, "Performance");
   const surfaceGenBtn = page.getByRole("button", { name: /Surface: generate/i });
 
-  // Get a line event into UNMIX
+  // Get a line event, then explicitly select it to open UNMIX.
   for (let i = 0; i < 15; i++) {
     await surfaceGenBtn.click();
     await page.waitForTimeout(200);
-    if ((await page.getByText("UNMIX").count()) > 0) break;
+    if ((await page.locator(".tr-surface__line").count()) > 0) break;
   }
+  await page.locator(".tr-surface__line").first().click();
+  await expect(page.locator("#unmix-head")).toBeVisible();
 
   // Capture take
   const captureBtn = page.getByRole("button", { name: /Capture.*Take/i });
@@ -1010,7 +1051,7 @@ test("45 — Instruments: Remove input button removes a device input row", async
 test("46 — Composition: Add Breath button appends a BREATH slot", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Composition");
-  await expect(page.getByText("SLOTS").first()).toBeVisible();
+  await expect(page.getByText("PATTERN SCORE").first()).toBeVisible();
 
   const slotLabels = page.locator(".tr-slot__type");
   const before = await slotLabels.count();
@@ -1029,29 +1070,29 @@ test("46 — Composition: Add Breath button appends a BREATH slot", async ({ pag
 test("47 — Composition: undo after slot reorder restores previous slot order", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Composition");
-  await expect(page.getByText("SLOTS").first()).toBeVisible();
+  await expect(page.getByText("PATTERN SCORE").first()).toBeVisible();
 
-  const slotLabels = page.locator(".tr-slot__type");
-  const count = await slotLabels.count();
+  const slotRows = page.locator("[data-slot-id]");
+  const count = await slotRows.count();
   if (count < 2) return; // Can't test reorder with < 2 slots
 
-  const beforeFirst = await slotLabels.first().textContent();
+  // Record slot identity (id attribute) rather than label text — adjacent slots may share the same label
+  const beforeFirstId = await slotRows.first().getAttribute("data-slot-id");
 
-  // Move first slot down
-  const downBtns = page.getByRole("button", { name: /move slot .+ down/i });
-  const firstEnabled = downBtns.filter({ hasNot: page.locator("[disabled]") }).first();
-  await firstEnabled.click();
+  // Reorder via the Actions menu — the single keyboard/touch-safe move path.
+  await page.getByRole("button", { name: /^Actions for slot /i }).first().click();
+  await page.getByRole("menuitem", { name: "Move later" }).click();
   await page.waitForTimeout(200);
 
-  const afterMove = await slotLabels.first().textContent();
-  expect(afterMove, "Slot must have moved").not.toBe(beforeFirst);
+  const afterMoveId = await slotRows.first().getAttribute("data-slot-id");
+  expect(afterMoveId, "Slot must have moved (first slot id must change)").not.toBe(beforeFirstId);
 
   // Undo via Ctrl+Z
   await page.keyboard.press("Control+z");
   await page.waitForTimeout(300);
 
-  const afterUndo = await slotLabels.first().textContent();
-  expect(afterUndo, "Undo must restore original slot order").toBe(beforeFirst);
+  const afterUndoId = await slotRows.first().getAttribute("data-slot-id");
+  expect(afterUndoId, "Undo must restore original slot order").toBe(beforeFirstId);
 });
 
 // ── 48. Archive: Project Info reflects the current project ────────────────────
@@ -1082,16 +1123,16 @@ test("48 — Archive: Project Info table shows title, device count, and pattern 
 test("49 — Materials: new sample literal input + Add button append a sample row", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Materials");
-  await expect(page.getByRole("columnheader", { name: "Literal" })).toBeVisible();
+  await waitForSamplesLoaded(page);
 
-  const rows = page.locator(".tr-table tbody tr");
+  const rows = sampleRows(page);
   const before = await rows.count();
 
   // Type into the "Add sample…" input and click Add
   const addInput = page.getByRole("textbox", { name: /New sample literal/i });
   await expect(addInput).toBeVisible();
   await addInput.fill("freshly-added-sample");
-  await page.getByRole("button", { name: /^Add$/i }).click();
+  await page.getByRole("button", { name: "Add sample" }).click();
   await page.waitForTimeout(300);
 
   const after = await rows.count();

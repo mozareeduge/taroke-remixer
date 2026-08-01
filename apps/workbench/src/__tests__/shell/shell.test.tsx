@@ -1,14 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import projectReducer from "../../store/projectSlice.js";
-import selectionReducer from "../../store/selectionSlice.js";
-import editorReducer, { toggleSidebar, toggleInspector } from "../../store/editorSlice.js";
-import runtimeReducer from "../../store/runtimeSlice.js";
+import selectionReducer, { selectBank } from "../../store/selectionSlice.js";
+import editorReducer, { toggleSidebar, toggleInspector, setActivePanel } from "../../store/editorSlice.js";
+import runtimeReducer, { start, pause, stop } from "../../store/runtimeSlice.js";
 import historyReducer from "../../store/historySlice.js";
 import takesReducer from "../../store/takesSlice.js";
 import importReceiptReducer from "../../store/importReceiptSlice.js";
+import feedbackReducer from "../../store/feedbackSlice.js";
 import { Transport } from "../../shell/Transport.js";
 import { Navigator } from "../../shell/Navigator.js";
 import { Workspace } from "../../shell/Workspace.js";
@@ -25,9 +26,11 @@ function makeStore(editorOverrides?: Partial<{ sidebarOpen: boolean; inspectorOp
       history: historyReducer,
       importReceipt: importReceiptReducer,
       takes: takesReducer,
+      feedback: feedbackReducer,
     },
   });
   if (editorOverrides?.sidebarOpen === false) store.dispatch(toggleSidebar());
+  // inspectorOpen defaults to false; toggle to open when true is requested
   if (editorOverrides?.inspectorOpen === true) store.dispatch(toggleInspector());
   return store;
 }
@@ -71,6 +74,57 @@ describe("Transport", () => {
     const toggle = screen.getByLabelText("Show inspector");
     fireEvent.click(toggle);
     expect(screen.getByLabelText("Hide inspector")).toBeInTheDocument();
+  });
+});
+
+// ── Transport: DS-G-08 Running to Surface · View affordance ─────────────────────
+
+describe("Transport: DS-G-08 Running to Surface · View affordance", () => {
+  it("shows no Surface jump while stopped", () => {
+    const store = makeStore();
+    wrap(<Transport />, store);
+    expect(screen.queryByText(/Running to Surface|Paused on Surface/)).not.toBeInTheDocument();
+  });
+
+  it("shows 'Running to Surface · View' outside Performance while running", () => {
+    const store = makeStore();
+    store.dispatch(start());
+    wrap(<Transport />, store);
+    expect(screen.getByText("Running to Surface ·")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Running to Surface · View/ })).toBeInTheDocument();
+  });
+
+  it("shows 'Paused on Surface · View' outside Performance while paused", () => {
+    const store = makeStore();
+    store.dispatch(start());
+    store.dispatch(pause());
+    wrap(<Transport />, store);
+    expect(screen.getByText("Paused on Surface ·")).toBeInTheDocument();
+  });
+
+  it("hides the affordance while already on Performance", () => {
+    const store = makeStore();
+    store.dispatch(start());
+    store.dispatch(setActivePanel("performance"));
+    wrap(<Transport />, store);
+    expect(screen.queryByText(/Running to Surface/)).not.toBeInTheDocument();
+  });
+
+  it("View navigates to Performance without changing runtime status", () => {
+    const store = makeStore();
+    store.dispatch(start());
+    wrap(<Transport />, store);
+    fireEvent.click(screen.getByRole("button", { name: /Running to Surface · View/ }));
+    expect(store.getState().editor.activePanel).toBe("performance");
+    expect(store.getState().runtime.status).toBe("running");
+  });
+
+  it("clears with Stop", () => {
+    const store = makeStore();
+    store.dispatch(start());
+    store.dispatch(stop());
+    wrap(<Transport />, store);
+    expect(screen.queryByText(/Running to Surface|Paused on Surface/)).not.toBeInTheDocument();
   });
 });
 
@@ -137,6 +191,19 @@ describe("Inspector", () => {
     wrap(<Inspector />);
     expect(screen.getByText("Select an item to inspect")).toBeInTheDocument();
   });
+
+  // SEL-02: the bank Label field is an uncontrolled input keyed by bank
+  // identity — without the key, switching banks quickly would leave the
+  // previous bank's label showing next to the new bank's count/description.
+  it("SEL-02: bank Label field updates when switching banks, not stale", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<Inspector />, store);
+    expect(screen.getByLabelText("Bank label")).toHaveValue("ABOVE");
+
+    act(() => { store.dispatch(selectBank("below")); });
+    expect(screen.getByLabelText("Bank label")).toHaveValue("BELOW");
+  });
 });
 
 // ── AppShell ───────────────────────────────────────────────────────────────────
@@ -150,11 +217,11 @@ describe("AppShell", () => {
     expect(screen.getByRole("complementary", { hidden: true })).toBeInTheDocument();
   });
 
-  it("renders mobile nav with 6 destinations", () => {
+  it("renders the chamber switcher with a trigger for the current chamber", () => {
     wrap(<AppShell />);
-    const mobileNav = screen.getByRole("navigation", { name: "Main navigation" });
-    expect(mobileNav).toBeInTheDocument();
-    expect(mobileNav.querySelectorAll("button")).toHaveLength(6);
+    const switcher = screen.getByRole("navigation", { name: "Chambers" });
+    expect(switcher).toBeInTheDocument();
+    expect(switcher.querySelectorAll("button")).toHaveLength(1);
   });
 
   it("inspector is aria-visible when open", () => {

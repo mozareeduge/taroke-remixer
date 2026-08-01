@@ -23,6 +23,16 @@ export function ImportReceiptBanner() {
         <strong className="tr-import-receipt__title">
           Imported: {state.filename ?? "unknown file"}
         </strong>
+        {state.timestamp && (
+          <span className="tr-import-receipt__meta">
+            {new Date(state.timestamp).toLocaleString(undefined, { dateStyle: "short", timeStyle: "medium" })}
+          </span>
+        )}
+        {r?.checksum && (
+          <span className="tr-import-receipt__meta tr-import-receipt__checksum" title="Content checksum">
+            #{r.checksum}
+          </span>
+        )}
         <button
           className="tr-btn tr-btn--ghost tr-btn--xs tr-import-receipt__close"
           onClick={() => dispatch(dismissReceipt())}

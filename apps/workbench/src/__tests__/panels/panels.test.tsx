@@ -1,11 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { enablePatches } from "immer";
 enablePatches();
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
-import projectReducer from "../../store/projectSlice.js";
-import selectionReducer, { selectBank, selectDevice, selectTrigger } from "../../store/selectionSlice.js";
+import projectReducer, { mutateProject } from "../../store/projectSlice.js";
+import selectionReducer, { selectBank, selectDevice, selectTrigger, selectToken, selectStanza } from "../../store/selectionSlice.js";
 import editorReducer from "../../store/editorSlice.js";
 import runtimeReducer from "../../store/runtimeSlice.js";
 import historyReducer from "../../store/historySlice.js";
@@ -13,6 +13,11 @@ import importReceiptReducer, { showReceipt } from "../../store/importReceiptSlic
 import { ImportReceiptBanner } from "../../panels/ImportReceiptBanner.js";
 import takesReducer from "../../store/takesSlice.js";
 import surfaceReducer from "../../store/surfaceSlice.js";
+import feedbackReducer from "../../store/feedbackSlice.js";
+import { selectionIntegrityMiddleware } from "../../store/selectionIntegrityMiddleware.js";
+import { toggleDeviceEnabled } from "../../store/commands.js";
+import { PHASE_A_NEUTRAL_TEST_FIXTURE } from "../neutral-test-fixture.js";
+import { SourcePanel } from "../../panels/SourcePanel.js";
 import { MaterialsPanel } from "../../panels/MaterialsPanel.js";
 import { FormsPanel } from "../../panels/FormsPanel.js";
 import { InstrumentsPanel } from "../../panels/InstrumentsPanel.js";
@@ -32,7 +37,9 @@ function makeStore() {
       importReceipt: importReceiptReducer,
       takes: takesReducer,
       surface: surfaceReducer,
+      feedback: feedbackReducer,
     },
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(selectionIntegrityMiddleware),
   });
 }
 
@@ -40,25 +47,137 @@ function wrap(ui: React.ReactElement, store = makeStore()) {
   return { ...render(<Provider store={store}>{ui}</Provider>), store };
 }
 
+function makeStoreWithFixture() {
+  const store = makeStore();
+  store.dispatch(mutateProject({ present: PHASE_A_NEUTRAL_TEST_FIXTURE, patches: [], inversePatches: [], label: "load fixture" }));
+  return store;
+}
+
+// ── SourcePanel ──────────────────────────────────────────────────────────────
+
+describe("SourcePanel — lineage (T03)", () => {
+  it("renders a LINEAGE section describing the source→remix relationship", () => {
+    wrap(<SourcePanel />);
+    expect(screen.getByText("LINEAGE")).toBeInTheDocument();
+    expect(screen.getByText(/is a remix derived from/i)).toBeInTheDocument();
+  });
+
+  it("links to the recorded source URL", () => {
+    wrap(<SourcePanel />);
+    const link = screen.getByRole("link", { name: /view origin text/i });
+    expect(link).toHaveAttribute("href", expect.stringContaining("https://"));
+  });
+
+  it("distinguishes editable work identity from stable source provenance", () => {
+    wrap(<SourcePanel />);
+    expect(screen.getByText(/editable — this remix/i)).toBeInTheDocument();
+    expect(screen.getByText(/stable — the origin text/i)).toBeInTheDocument();
+  });
+
+  it("does not show a source link when no source URL is recorded", () => {
+    const store = makeStore();
+    wrap(<SourcePanel />, store);
+    fireEvent.change(screen.getByLabelText("Source URL"), { target: { value: "" } });
+    expect(screen.queryByRole("link", { name: /view origin text/i })).not.toBeInTheDocument();
+  });
+
+  // DS-SRC-03: the Lineage link must apply the same http(s)-only validation
+  // as the editable Source URL field, not render a non-http(s) URL as a live link.
+  it("does not render the Lineage link for a non-http(s) source URL", () => {
+    const store = makeStore();
+    wrap(<SourcePanel />, store);
+    fireEvent.change(screen.getByLabelText("Source URL"), { target: { value: "javascript:alert(1)" } });
+    expect(screen.queryByRole("link", { name: /view origin text/i })).not.toBeInTheDocument();
+  });
+});
+
 // ── MaterialsPanel ─────────────────────────────────────────────────────────────
 
 describe("MaterialsPanel", () => {
   it("renders BANKS section heading", () => {
     wrap(<MaterialsPanel />);
-    expect(screen.getByText("BANKS")).toBeInTheDocument();
+    expect(screen.getAllByText(/BANKS/i).length).toBeGreaterThan(0);
   });
 
   it("lists banks from the default project", () => {
     wrap(<MaterialsPanel />);
-    // default project has 'above' bank with label defined in TRAY_DEFS
     expect(screen.getAllByRole("button").length).toBeGreaterThan(0);
   });
 
-  it("selecting a bank shows its samples", () => {
+  it("selecting a bank shows its samples table", () => {
     const store = makeStore();
     store.dispatch(selectBank("above"));
     wrap(<MaterialsPanel />, store);
-    expect(screen.getByText(/Wt/)).toBeInTheDocument();
+    // Sample column header should be visible
+    expect(screen.getByText("Sample")).toBeInTheDocument();
+  });
+
+  // C4: the weight/share explanation gets an adjacent route-weight
+  // distinction link into Instruments.
+  it("C4: weight hint has an adjacent link to route weight in Instruments", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.getByText(/Sample weight chooses material inside this bank\./)).toBeInTheDocument();
+    const link = screen.getByRole("button", { name: "Route weight is configured in Instruments." });
+    fireEvent.click(link);
+    expect(store.getState().editor.activePanel).toBe("instruments");
+  });
+
+  // ACT-02: exactly one primary add-sample affordance, not one in the
+  // heading and one adjacent to the input.
+  it("ACT-02: exactly one Add sample affordance is rendered", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.getAllByRole("button", { name: "Add sample" }).length).toBe(1);
+  });
+
+  // ACT-01: Add sample is disabled (not a silent no-op) until valid.
+  it("ACT-01: Add sample button is disabled until a sample is entered", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    const addBtn = screen.getByRole("button", { name: "Add sample" });
+    expect(addBtn).toBeDisabled();
+
+    const input = screen.getByLabelText("New sample literal");
+    fireEvent.change(input, { target: { value: "glacier" } });
+    expect(addBtn).not.toBeDisabled();
+    fireEvent.click(addBtn);
+
+    const bank = store.getState().project.present.materials.trays["above"];
+    expect(bank?.some((t) => t.literal === "glacier")).toBe(true);
+  });
+
+  // ACT-03: Add bank explains a duplicate key instead of silently no-oping.
+  it("ACT-03: Add bank is disabled with a reason for a duplicate key", () => {
+    const store = makeStore();
+    wrap(<MaterialsPanel />, store);
+    fireEvent.change(screen.getByLabelText("New bank key"), { target: { value: "above" } });
+    fireEvent.change(screen.getByLabelText("New bank label"), { target: { value: "Duplicate" } });
+    const addBankBtn = screen.getByRole("button", { name: "Add bank" });
+    expect(addBankBtn).toBeDisabled();
+    expect(addBankBtn.title).toMatch(/already exists/i);
+  });
+
+  // ACT-11: destructive removal uses an inline confirm, not native confirm().
+  it("ACT-11: removing a sample requires inline confirmation, not window.confirm", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    const before = store.getState().project.present.materials.trays["above"]?.length ?? 0;
+
+    const actionsBtn = screen.getAllByRole("button", { name: /^Actions for /i })[0]!;
+    fireEvent.click(actionsBtn);
+    fireEvent.click(screen.getByRole("menuitem", { name: "Remove sample" }));
+
+    // Not removed yet — an inline confirmation must appear first.
+    expect(store.getState().project.present.materials.trays["above"]?.length ?? 0).toBe(before);
+    expect(screen.getByRole("group", { name: "Confirm removal" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(store.getState().project.present.materials.trays["above"]?.length ?? 0).toBe(before - 1);
   });
 
   it("shows add sample input when a bank is selected", () => {
@@ -77,6 +196,45 @@ describe("MaterialsPanel", () => {
     fireEvent.click(screen.getByText("Add"));
     const trays = store.getState().project.present.materials.trays;
     expect(trays["above"]?.some((t) => t.literal === "test-sample")).toBe(true);
+  });
+
+  // R2: No 4-arrow clusters — arrow reorder buttons must not exist
+  it("R2: no 4-arrow reorder button cluster — only drag handles and Move menu", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    // Arrow cluster buttons must not exist
+    expect(screen.queryAllByRole("button", { name: /move .+ up/i }).length).toBe(0);
+    expect(screen.queryAllByRole("button", { name: /move .+ down/i }).length).toBe(0);
+    expect(screen.queryAllByRole("button", { name: /move .+ to start/i }).length).toBe(0);
+    // Move menu buttons should exist instead
+    const moveMenuBtns = screen.queryAllByRole("button", { name: /actions for/i });
+    expect(moveMenuBtns.length).toBeGreaterThan(0);
+  });
+
+  // R2: Move menu
+  it("R2: Move menu opens on click and shows Move to top", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    const moveMenuBtns = screen.getAllByRole("button", { name: /actions for/i });
+    fireEvent.click(moveMenuBtns[0]!);
+    expect(screen.getByText("Move to top")).toBeInTheDocument();
+  });
+
+  // R2: Bulk paste
+  it("R2: Bulk paste section opens when button clicked", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    fireEvent.click(screen.getByLabelText("Bulk paste samples"));
+    expect(screen.getByLabelText(/Bulk paste text/i)).toBeInTheDocument();
+  });
+
+  // R2: Bank search
+  it("R2: shows bank search input in sidebar", () => {
+    wrap(<MaterialsPanel />);
+    expect(screen.getByLabelText("Search banks")).toBeInTheDocument();
   });
 });
 
@@ -101,6 +259,178 @@ describe("InstrumentsPanel", () => {
     wrap(<InstrumentsPanel />, store);
     expect(screen.getByText("ROUTES")).toBeInTheDocument();
   });
+
+  // R3: No permanent chip wall — only Insert variable… button, behind Advanced
+  it("R3: no permanent variable chip wall — only Insert variable… button", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: /Advanced: edit raw template/i }));
+    // "Insert variable…" button(s) must exist (one per route)
+    const insertBtns = screen.queryAllByRole("button", { name: /Insert variable/i });
+    expect(insertBtns.length).toBeGreaterThan(0);
+    // Chip wall pattern: buttons with {slot:form} directly in aria-label — must NOT exist
+    const chipWall = screen.queryAllByRole("button", { name: /insert .+:.+ variable/i });
+    expect(chipWall.length).toBe(0);
+  });
+
+  // R3: Insert variable… opens palette
+  it("R3: Insert variable… button opens variable palette", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: /Advanced: edit raw template/i }));
+    const insertBtns = screen.queryAllByRole("button", { name: /Insert variable/i });
+    expect(insertBtns.length).toBeGreaterThan(0);
+    fireEvent.click(insertBtns[0]!);
+    expect(screen.getByRole("dialog", { name: /insert variable/i })).toBeInTheDocument();
+  });
+
+  // INS-01/DS-INS-03: raw template syntax is not the primary route surface —
+  // it lives behind an Advanced disclosure, default closed.
+  it("INS-01: raw template is hidden behind an Advanced disclosure by default", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    expect(screen.queryByLabelText(/^Template for route/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Advanced: edit raw template/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Advanced: edit raw template/i }));
+    expect(screen.getByLabelText(/^Template for route/i)).toBeInTheDocument();
+  });
+
+  // DS-INS-03: a readable rendered example is shown for routes by default,
+  // without requiring a click.
+  it("DS-INS-03: shows a rendered example for the selected route without a click", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    expect(screen.getAllByText("renders like").length).toBeGreaterThan(0);
+  });
+
+  // R6: Remove buttons use written text, not bare ✕
+  it("R6: input Remove buttons use written text not bare ✕", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    // Must not find any ✕ button
+    const xButtons = screen.queryAllByRole("button", { name: /^✕$/ });
+    expect(xButtons.length).toBe(0);
+    // Must find written Remove buttons
+    const removeBtns = screen.queryAllByRole("button", { name: /remove/i });
+    expect(removeBtns.length).toBeGreaterThan(0);
+  });
+
+  // INST-04: each route can be tested directly, beside its own editor,
+  // instead of only via the device-level Cue (which uses a weighted pick
+  // that may never land on the route being edited).
+  it("INST-04: a selected route has its own Audition button beside its editor", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    expect(screen.getAllByRole("button", { name: /audition this route/i }).length).toBeGreaterThan(0);
+  });
+
+  it("INST-04: auditioning a route shows its rendered output inline, without waiting for the device Cue", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    const testBtn = screen.getAllByRole("button", { name: /audition this route/i })[0]!;
+    fireEvent.click(testBtn);
+    expect(document.querySelector(".tr-route__example")).not.toBeNull();
+  });
+
+  // E4: weight distinction is stated once, at the top of the chamber.
+  it("E4: shows the sample-weight-vs-route-weight distinction at the top of the chamber", () => {
+    wrap(<InstrumentsPanel />);
+    expect(screen.getByText(/Sample weight chooses a sample inside a bank\. Route weight chooses which route this device uses\./)).toBeInTheDocument();
+  });
+
+  // E3: a device with no routes shows the empty-state guidance instead of a bare list.
+  it("E3: shows 'No routes yet' guidance when a device has zero routes", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    // Remove every existing route on this device.
+    let removeBtns = screen.queryAllByRole("button", { name: /^Remove route/i });
+    while (removeBtns.length > 0) {
+      fireEvent.click(removeBtns[0]!);
+      removeBtns = screen.queryAllByRole("button", { name: /^Remove route/i });
+    }
+    expect(screen.getByText("No routes yet. Add a route to make this device speak.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ Route" })).toBeInTheDocument();
+  });
+
+  // E3: more than 8 routes collapses to a progressive disclosure.
+  it("E3: more than 8 routes shows 8 plus a 'Show all' disclosure", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    const addRouteBtn = screen.getByRole("button", { name: "+ Route" });
+    // ld_path starts with at least one route; add enough to exceed 8.
+    for (let i = 0; i < 10; i++) fireEvent.click(addRouteBtn);
+    expect(document.querySelectorAll(".tr-route").length).toBe(8);
+    const showAll = screen.getByRole("button", { name: /Show all \d+ routes/ });
+    fireEvent.click(showAll);
+    expect(document.querySelectorAll(".tr-route").length).toBeGreaterThan(8);
+  });
+
+  // E3: more than 6 inputs collapses to a progressive disclosure.
+  it("E3: more than 6 inputs shows 6 plus a 'Show all inputs' disclosure", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    const addInputBtn = screen.getByRole("button", { name: "+ Input" });
+    for (let i = 0; i < 8; i++) fireEvent.click(addInputBtn);
+    expect(screen.getAllByLabelText("Slot name").length).toBe(6);
+    fireEvent.click(screen.getByRole("button", { name: /Show all inputs \(\d+\)/ }));
+    expect(screen.getAllByLabelText("Slot name").length).toBeGreaterThan(6);
+  });
+
+  // E2: an unknown-slot token in the raw template blocks audition and shows
+  // a local error naming the exact token, without rewriting the user's text.
+  describe("E2: route template validation", () => {
+    function openAdvancedForFirstRoute(store: ReturnType<typeof makeStore>) {
+      wrap(<InstrumentsPanel />, store);
+      fireEvent.click(screen.getAllByRole("button", { name: /Advanced: edit raw template/i })[0]!);
+      return screen.getAllByLabelText(/^Template for route/i)[0]!;
+    }
+
+    it("shows an unknown-slot error and disables Audition, preserving the invalid text", () => {
+      const store = makeStore();
+      store.dispatch(selectDevice("ld_path"));
+      const textarea = openAdvancedForFirstRoute(store);
+      fireEvent.change(textarea, { target: { value: "the {ghost:literal} walks" } });
+      expect(screen.getByText(/references slot "ghost", which this device does not have/)).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: /audition this route/i })[0]).toBeDisabled();
+      expect((textarea as HTMLTextAreaElement).value).toBe("the {ghost:literal} walks");
+    });
+
+    it("shows an unmatched-brace error for a stray opening brace", () => {
+      const store = makeStore();
+      store.dispatch(selectDevice("ld_path"));
+      const textarea = openAdvancedForFirstRoute(store);
+      fireEvent.change(textarea, { target: { value: "broken {above template" } });
+      expect(screen.getByText(/is missing its closing "\}"/)).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: /audition this route/i })[0]).toBeDisabled();
+    });
+
+    it("shows an unknown-form error for a valid slot with an invalid form", () => {
+      const store = makeStore();
+      store.dispatch(selectDevice("ld_path"));
+      const textarea = openAdvancedForFirstRoute(store);
+      fireEvent.change(textarea, { target: { value: "{subject:nonsenseform}" } });
+      expect(screen.getByText(/uses form "nonsenseform", which is not valid/)).toBeInTheDocument();
+    });
+
+    it("valid template shows no errors and leaves Audition enabled", () => {
+      const store = makeStore();
+      store.dispatch(selectDevice("ld_path"));
+      const textarea = openAdvancedForFirstRoute(store);
+      fireEvent.change(textarea, { target: { value: "{subject:literal} plain text" } });
+      expect(document.querySelector(".tr-route__template-errors")).toBeNull();
+      expect(screen.getAllByRole("button", { name: /audition this route/i })[0]).not.toBeDisabled();
+    });
+  });
 });
 
 // ── CompositionPanel ───────────────────────────────────────────────────────────
@@ -113,16 +443,143 @@ describe("CompositionPanel", () => {
 
   it("lists default stanza pattern", () => {
     wrap(<CompositionPanel />);
-    expect(screen.getAllByText("Classic Taroko stanza").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Taroko scene/i).length).toBeGreaterThan(0);
   });
 
-  it("shows slots for selected stanza with slot content", () => {
+  it("shows Pattern Score slots for selected stanza", () => {
     wrap(<CompositionPanel />);
-    expect(screen.getByText("SLOTS")).toBeInTheDocument();
-    // Default stanza has slots; at least one slot chip or row must be present
-    const slotRows = document.querySelectorAll(".tr-slot-row, .tr-slot, [class*='slot']");
-    const slotBtns = screen.queryAllByRole("button", { name: /move slot/i });
-    expect(slotRows.length + slotBtns.length, "Expected slot rows or reorder buttons in default stanza").toBeGreaterThan(0);
+    expect(screen.getByText("PATTERN SCORE")).toBeInTheDocument();
+    const slotRows = document.querySelectorAll(".tr-slot");
+    expect(slotRows.length).toBeGreaterThan(0);
+  });
+
+  it("shows Flow Score scenes for selected stanza", () => {
+    wrap(<CompositionPanel />);
+    expect(screen.getByText("FLOW SCORE")).toBeInTheDocument();
+  });
+
+  // R3: one coherent reorder model — desktop drag rows + a single keyboard/
+  // touch-safe Actions menu, not four competing affordances (pointer-drag,
+  // touch-drag, keyboard-pickup, and a separate Move menu all at once).
+  it("R3: no 4-arrow reorder cluster in slots — a single Actions menu instead", () => {
+    wrap(<CompositionPanel />);
+    // Arrow cluster buttons must not exist
+    expect(screen.queryAllByRole("button", { name: /move slot .+ up/i }).length).toBe(0);
+    expect(screen.queryAllByRole("button", { name: /move slot .+ down/i }).length).toBe(0);
+    expect(screen.queryAllByRole("button", { name: /move slot .+ to start/i }).length).toBe(0);
+    // Decorative drag grip should exist (desktop direct manipulation)...
+    const handles = document.querySelectorAll(".tr-slot__drag-handle");
+    expect(handles.length).toBeGreaterThan(0);
+    // ...and exactly one Actions menu per slot (the keyboard/touch-safe path)
+    const actionsBtns = screen.queryAllByRole("button", { name: /^Actions for slot /i });
+    expect(actionsBtns.length).toBe(handles.length);
+  });
+
+  // R6: No bare ✕ in slots — removal lives behind the Actions menu with an
+  // inline confirm, mirroring the Materials/Instruments removal contract.
+  it("R6: slot remove requires opening Actions and confirming, uses written text not bare ✕", () => {
+    wrap(<CompositionPanel />);
+    const xButtons = screen.queryAllByRole("button", { name: /^✕$/ });
+    expect(xButtons.length).toBe(0);
+    const actionsBtn = screen.getAllByRole("button", { name: /^Actions for slot /i })[0]!;
+    fireEvent.click(actionsBtn);
+    const removeBtns = screen.queryAllByRole("menuitem", { name: /remove slot/i });
+    expect(removeBtns.length).toBeGreaterThan(0);
+    fireEvent.click(removeBtns[0]!);
+    expect(screen.getByRole("group", { name: "Confirm removal" })).toBeInTheDocument();
+  });
+
+  // E5/DS-INS-09: a slot referencing a disabled device is a runtime no-op
+  // unless that's surfaced directly where the slot is authored.
+  it("E5: a slot referencing a disabled device shows DEVICE OFF and an Enable-in-Instruments action", () => {
+    const store = makeStore();
+    store.dispatch(mutateProject(toggleDeviceEnabled(store.getState().project.present, "ld_path")));
+    wrap(<CompositionPanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: /^\+ PATH$/ }));
+    expect(screen.getAllByText("DEVICE OFF").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole("button", { name: "Enable in Instruments" })[0]!);
+    expect(store.getState().editor.activePanel).toBe("instruments");
+    expect(store.getState().selection.primary).toEqual({ type: "device", deviceId: "ld_path" });
+  });
+
+  it("E5: no DEVICE OFF badge for a slot whose device is enabled", () => {
+    wrap(<CompositionPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /^\+ PATH$/ }));
+    expect(screen.queryByText("DEVICE OFF")).not.toBeInTheDocument();
+  });
+
+  // R6: No bare ✕ in scenes
+  it("R6: scene remove buttons use written text not bare ✕", () => {
+    wrap(<CompositionPanel />);
+    const sceneRemoveBtns = screen.queryAllByRole("button", { name: /remove scene/i });
+    // Only present if there are scenes — default project may have scenes
+    const xButtons = screen.queryAllByRole("button", { name: /^✕$/ });
+    expect(xButtons.length).toBe(0);
+    // If there are Remove scene buttons, they should exist and pass
+    if (sceneRemoveBtns.length > 0) {
+      expect(sceneRemoveBtns[0]!.textContent).toMatch(/remove scene/i);
+    }
+  });
+
+  // ACT-04: Add pattern/scene must be disabled with a reason, not a silent no-op.
+  it("ACT-04: + Pattern is disabled until a name is entered", () => {
+    wrap(<CompositionPanel />, makeStoreWithFixture());
+    const addPatternBtn = screen.getByRole("button", { name: "+ Pattern" });
+    expect(addPatternBtn).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("New pattern name"), { target: { value: "New pattern" } });
+    expect(addPatternBtn).not.toBeDisabled();
+  });
+
+  it("ACT-04: + Scene is disabled until a scene name is entered", () => {
+    wrap(<CompositionPanel />, makeStoreWithFixture());
+    const addSceneBtn = screen.getByRole("button", { name: "+ Scene" });
+    expect(addSceneBtn).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("New scene name"), { target: { value: "New scene" } });
+    expect(addSceneBtn).not.toBeDisabled();
+  });
+
+  // Runtime preview/test path near the authored structure — a rolled
+  // resolution of the pattern's chance/repeat rules, distinct from the
+  // final generated Surface text (that only exists in Performance).
+  it("Preview resolution shows a rolled resolution of the pattern's slots", () => {
+    wrap(<CompositionPanel />, makeStoreWithFixture());
+    fireEvent.click(screen.getByRole("button", { name: /preview one resolution/i }));
+    expect(screen.getByRole("status", { name: /pattern resolution preview/i })).toBeInTheDocument();
+  });
+
+  it("Preview resolution is disabled when the pattern has no slots", () => {
+    const store = makeStoreWithFixture();
+    store.dispatch(mutateProject({
+      present: {
+        ...store.getState().project.present,
+        stanzaPatterns: [{ id: "st_empty", name: "Empty Pattern", enabled: true, description: "", slots: [] }],
+      },
+      patches: [], inversePatches: [], label: "test setup",
+    }));
+    store.dispatch(selectStanza("st_empty"));
+    wrap(<CompositionPanel />, store);
+    expect(screen.getByText(/No slots yet/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /preview one resolution/i })).toBeDisabled();
+  });
+
+  it("shows a dependency-blocked error when removing a pattern with scenes", () => {
+    const store = makeStoreWithFixture();
+    wrap(<CompositionPanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: "Remove Test Pattern" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/Cannot remove/i);
+    // Pattern must still exist — the blocked result is not applied.
+    expect(store.getState().project.present.stanzaPatterns.some((s) => s.id === "st_test1")).toBe(true);
+  });
+
+  it("empty state guides the user when no pattern is selected", () => {
+    const store = makeStore();
+    store.dispatch(mutateProject({
+      present: { ...store.getState().project.present, stanzaPatterns: [] },
+      patches: [], inversePatches: [], label: "test setup",
+    }));
+    wrap(<CompositionPanel />, store);
+    expect(screen.getByText(/Select a pattern/)).toBeInTheDocument();
   });
 });
 
@@ -134,32 +591,128 @@ describe("AutomationPanel", () => {
     expect(screen.getByText("TRIGGERS")).toBeInTheDocument();
   });
 
-  it("shows default trigger", () => {
-    wrap(<AutomationPanel />);
-    expect(screen.getByText("box intrusion")).toBeInTheDocument();
+  it("shows default trigger in summary row", () => {
+    // Load fixture which has trig_1
+    wrap(<AutomationPanel />, makeStoreWithFixture());
+    const summaries = screen.queryAllByRole("button", { name: /WHEN .* THEN/i });
+    expect(summaries.length).toBeGreaterThan(0);
   });
 
-  it("shows WHEN and THEN labels paired with actual trigger condition and action", () => {
-    wrap(<AutomationPanel />);
+  // R3: collapsed trigger rows with readable summary
+  it("R3: collapsed trigger row shows readable WHEN→Chance→THEN summary", () => {
+    wrap(<AutomationPanel />, makeStoreWithFixture());
+    const summaryBtns = screen.queryAllByRole("button", { name: /WHEN .* → .* → THEN/i });
+    expect(summaryBtns.length).toBeGreaterThan(0);
+  });
+
+  it("selected trigger shows WHEN and THEN labels in editor", () => {
+    const store = makeStoreWithFixture();
+    store.dispatch(selectTrigger("trig_1"));
+    wrap(<AutomationPanel />, store);
     expect(screen.getAllByText("WHEN").length).toBeGreaterThan(0);
     expect(screen.getAllByText("THEN").length).toBeGreaterThan(0);
-    // Default project has a trigger with "box intrusion" condition — verify it appears in context
-    const triggerText = screen.getByText("box intrusion");
-    expect(triggerText).toBeInTheDocument();
-    // The trigger label must be readable alongside WHEN/THEN structure
-    const whenEl = screen.getAllByText("WHEN")[0]!;
-    const container = whenEl.closest("[class*='tr-trigger'], [class*='trigger'], li, article") ?? whenEl.parentElement;
-    expect(container).not.toBeNull();
   });
 
   it("toggling trigger enabled dispatches command", () => {
-    const store = makeStore();
-    store.dispatch(selectTrigger("tr_box"));
+    const store = makeStoreWithFixture();
+    store.dispatch(selectTrigger("trig_1"));
     wrap(<AutomationPanel />, store);
-    const toggleBtn = screen.getByText("ON");
+    // The pill shows Enabled; toggling changes it
+    const toggleBtn = screen.getByText("Enabled");
     fireEvent.click(toggleBtn);
-    const trigger = store.getState().project.present.triggers.find((t) => t.id === "tr_box");
+    const trigger = store.getState().project.present.triggers.find((t) => t.id === "trig_1");
     expect(trigger?.enabled).toBe(false);
+  });
+
+  // R6: No bare ✕ in triggers
+  it("R6: trigger remove uses written text not bare ✕", () => {
+    wrap(<AutomationPanel />, makeStoreWithFixture());
+    const xButtons = screen.queryAllByRole("button", { name: /^✕$/ });
+    expect(xButtons.length).toBe(0);
+    const removeBtns = screen.queryAllByRole("button", { name: /remove trigger/i });
+    expect(removeBtns.length).toBeGreaterThan(0);
+  });
+
+  // ACT-05: a newly created trigger with blank THEN text must not be an
+  // enabled no-op — it is created as a visibly incomplete draft (OFF).
+  it("ACT-05: a new trigger is created disabled (draft) rather than enabled with blank THEN text", () => {
+    const store = makeStoreWithFixture();
+    wrap(<AutomationPanel />, store);
+
+    fireEvent.change(screen.getByLabelText("New trigger name"), { target: { value: "Untested rule" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ Trigger" }));
+
+    const created = store.getState().project.present.triggers.find((t) => t.name === "Untested rule");
+    expect(created).toBeTruthy();
+    expect(created?.enabled).toBe(false);
+    expect(screen.getByText("DRAFT")).toBeInTheDocument();
+  });
+
+  it("ACT-05: + Trigger is disabled until a name is entered", () => {
+    wrap(<AutomationPanel />, makeStoreWithFixture());
+    expect(screen.getByRole("button", { name: "+ Trigger" })).toBeDisabled();
+  });
+
+  it("ACT-05: an incomplete trigger cannot be toggled on until THEN text is set", () => {
+    const store = makeStoreWithFixture();
+    store.dispatch(selectTrigger("trig_1"));
+    // Blank out the fixture trigger's action text to make it incomplete.
+    store.dispatch(mutateProject({
+      present: {
+        ...store.getState().project.present,
+        triggers: store.getState().project.present.triggers.map((t) =>
+          t.id === "trig_1" ? { ...t, enabled: false, action: { ...t.action, text: "" } } : t,
+        ),
+      },
+      patches: [],
+      inversePatches: [],
+      label: "test setup",
+    }));
+    wrap(<AutomationPanel />, store);
+
+    const toggleBtn = screen.getByText("Disabled");
+    expect(toggleBtn).toBeDisabled();
+    fireEvent.click(toggleBtn);
+    expect(store.getState().project.present.triggers.find((t) => t.id === "trig_1")?.enabled).toBe(false);
+  });
+
+  // Condition preview/test path: the WHEN match is inspectable, not just
+  // the chance/THEN parts of the rule.
+  it("condition preview shows the sample that currently matches WHEN", () => {
+    const store = makeStoreWithFixture();
+    store.dispatch(selectTrigger("trig_1"));
+    wrap(<AutomationPanel />, store);
+    expect(screen.getByRole("status", { name: /condition preview/i })).toHaveTextContent(/river/);
+  });
+
+  it("condition preview shows no-match state when the term matches nothing in the bank", () => {
+    const store = makeStoreWithFixture();
+    store.dispatch(selectTrigger("trig_1"));
+    wrap(<AutomationPanel />, store);
+    fireEvent.change(screen.getByLabelText("Condition term"), { target: { value: "nonexistent-sample" } });
+    expect(screen.getByRole("status", { name: /condition preview/i })).toHaveTextContent(/cannot fire yet/i);
+  });
+
+  // Removal follows the shared confirmation/undo contract (Materials/
+  // Instruments/Composition all use the same inline confirm, not window.confirm).
+  it("removing a trigger requires inline confirmation, not window.confirm", () => {
+    const store = makeStoreWithFixture();
+    wrap(<AutomationPanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: /remove trigger/i }));
+    expect(store.getState().project.present.triggers.length).toBe(1);
+    expect(screen.getByRole("group", { name: "Confirm removal" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(store.getState().project.present.triggers.length).toBe(0);
+  });
+
+  it("empty state guides the user when there are no triggers", () => {
+    const store = makeStore();
+    store.dispatch(mutateProject({
+      present: { ...store.getState().project.present, triggers: [] },
+      patches: [], inversePatches: [], label: "test setup",
+    }));
+    wrap(<AutomationPanel />, store);
+    expect(screen.getByText(/No triggers yet/)).toBeInTheDocument();
   });
 });
 
@@ -168,13 +721,14 @@ describe("AutomationPanel", () => {
 describe("PerformancePanel", () => {
   it("renders CUE section heading", () => {
     wrap(<PerformancePanel />);
-    expect(screen.getByText("CUE")).toBeInTheDocument();
+    // CUE section is labeled "CUE · PRIVATE"
+    expect(screen.getByText(/CUE/)).toBeInTheDocument();
   });
 
   it("renders Audition button in Cue section", () => {
     wrap(<PerformancePanel />);
-    // Cue has an Audition button (private preview, aria-label "Generate next event")
-    expect(screen.getByRole("button", { name: /Generate next event/i })).toBeInTheDocument();
+    // Private audition button — does not write to surface
+    expect(screen.getByRole("button", { name: /Audition next event/i })).toBeInTheDocument();
   });
 
   it("renders SURFACE section heading", () => {
@@ -184,56 +738,115 @@ describe("PerformancePanel", () => {
 
   it("clicking Cue Audition shows a Cue preview (line or breath)", () => {
     wrap(<PerformancePanel />);
-    fireEvent.click(screen.getByRole("button", { name: /Generate next event/i }));
-    // After Cue audition: Cue section shows either a line preview or a breath marker
-    const hasCueLine = screen.queryByText(/tr-cue__line/) !== null
+    fireEvent.click(screen.getByRole("button", { name: /Audition next event/i }));
+    const hasCueOutput = document.querySelector(".tr-cue__output") !== null
       || document.querySelector(".tr-cue__line") !== null
       || document.querySelector(".tr-cue__breath") !== null
       || screen.queryByText("— breath —") !== null
-      || screen.queryByRole("status") !== null
-      || !!document.querySelector(".tr-cue__output");
-    expect(hasCueLine).toBe(true);
+      || screen.queryByRole("status") !== null;
+    expect(hasCueOutput).toBe(true);
   });
 
   // REGRESSION: Cue is a private audition — it must never append to Surface history.
-  it("REGRESSION: Cue Generate does not append to Surface history", () => {
+  it("REGRESSION: Cue Audition does not append to Surface history", () => {
     wrap(<PerformancePanel />);
-    // Surface starts empty
     expect(screen.getByText("Generate events to see surface output.")).toBeInTheDocument();
-    // Click Cue Generate multiple times to ensure we get at least one line event
     for (let i = 0; i < 6; i++) {
-      fireEvent.click(screen.getByRole("button", { name: /Generate next event/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Audition next event/i }));
     }
-    // Surface MUST still show the empty placeholder — Cue is private audition
     expect(screen.getByText("Generate events to see surface output.")).toBeInTheDocument();
   });
 
-  // REGRESSION: Surface must have its own separate generate/run action.
+  // REGRESSION: Surface must have its own separate generate action.
   it("REGRESSION: Surface has its own generate action separate from Cue", () => {
     wrap(<PerformancePanel />);
-    // Surface has a "Generate ▶" button with aria-label distinguishing it from Cue
     const surfaceGenBtn = screen.queryByRole("button", { name: /Surface: generate/i })
       ?? screen.queryByLabelText(/Surface: generate/i);
     expect(surfaceGenBtn).not.toBeNull();
+  });
+
+  // R4: MONITOR band
+  it("R4: MONITOR compact band visible with runtime state", () => {
+    wrap(<PerformancePanel />);
+    const monitor = document.querySelector(".tr-monitor");
+    expect(monitor).not.toBeNull();
+    // Monitor shows tick info
+    expect(monitor!.textContent).toMatch(/tick/i);
+  });
+
+  // R4: Surface dominant layout
+  it("R4: Surface column is present as dominant column", () => {
+    wrap(<PerformancePanel />);
+    const surfaceCol = document.querySelector(".tr-perf__surface-col");
+    expect(surfaceCol).not.toBeNull();
+    const cueCol = document.querySelector(".tr-perf__cue-col");
+    expect(cueCol).not.toBeNull();
+  });
+
+  // R4: TAKES section exists
+  it("R4: TAKES section heading is present", () => {
+    wrap(<PerformancePanel />);
+    expect(screen.getByText("TAKES")).toBeInTheDocument();
+  });
+
+  // REGRESSION: UNMIX must open only through explicit user selection of a
+  // Surface line — never automatically just because a line was generated
+  // (the previous behavior auto-selected the newest record on every Step).
+  it("REGRESSION: Step does not auto-open UNMIX", () => {
+    wrap(<PerformancePanel />, makeStoreWithFixture());
+    for (let i = 0; i < 5; i++) {
+      fireEvent.click(screen.getByRole("button", { name: /Surface: generate/i }));
+    }
+    expect(screen.queryByText("UNMIX")).toBeNull();
+  });
+
+  it("clicking a Surface line explicitly opens UNMIX for that line", () => {
+    wrap(<PerformancePanel />, makeStoreWithFixture());
+    fireEvent.click(screen.getByRole("button", { name: /Surface: generate/i }));
+    const line = document.querySelector(".tr-surface__line");
+    expect(line).not.toBeNull();
+    fireEvent.click(line!);
+    expect(screen.getByText("UNMIX")).toBeInTheDocument();
+  });
+
+  // Reset clarifies the Stop/Reset/Clear distinction: it clears runtime
+  // tick/queue but must not touch Surface history or Takes.
+  it("Reset clears the tick but leaves Surface history and Takes untouched", () => {
+    const store = makeStoreWithFixture();
+    wrap(<PerformancePanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: /Surface: generate/i }));
+    const before = store.getState().surface.records.length;
+    fireEvent.click(screen.getByRole("button", { name: /^Reset runtime/i }));
+    expect(store.getState().runtime.runState.tick).toBe(0);
+    expect(store.getState().surface.records.length).toBe(before);
+  });
+
+  it("Monitor shows a human-readable run mode instead of only raw counters", () => {
+    wrap(<PerformancePanel />);
+    const monitor = document.querySelector(".tr-monitor__compact");
+    expect(monitor!.textContent).toMatch(/Stopped|Paused|Running continuously/);
   });
 });
 
 // ── ArchivePanel ───────────────────────────────────────────────────────────────
 
 describe("ArchivePanel", () => {
-  it("renders EXPORT section heading", () => {
+  // ARCH-03: Save Project and Publish Artifact are distinct sections/cards,
+  // not one undifferentiated EXPORT list.
+  it("renders SAVE PROJECT and PUBLISH ARTIFACT as distinct section headings", () => {
     wrap(<ArchivePanel />);
-    expect(screen.getByText("EXPORT")).toBeInTheDocument();
+    expect(screen.getByText("SAVE PROJECT")).toBeInTheDocument();
+    expect(screen.getByText("PUBLISH ARTIFACT")).toBeInTheDocument();
   });
 
-  it("renders JSON export button", () => {
+  it("renders JSON save button", () => {
     wrap(<ArchivePanel />);
-    expect(screen.getByText(/Export JSON/)).toBeInTheDocument();
+    expect(screen.getByText(/Save JSON/)).toBeInTheDocument();
   });
 
-  it("renders HTML export button", () => {
+  it("renders HTML publish button", () => {
     wrap(<ArchivePanel />);
-    expect(screen.getByText(/Export HTML/)).toBeInTheDocument();
+    expect(screen.getByText(/Publish HTML/)).toBeInTheDocument();
   });
 
   it("renders import button", () => {
@@ -244,7 +857,25 @@ describe("ArchivePanel", () => {
   it("shows project info table", () => {
     wrap(<ArchivePanel />);
     expect(screen.getByText("Title")).toBeInTheDocument();
-    expect(screen.getByText("Grave sample")).toBeInTheDocument();
+    expect(screen.getByText("Taroko Gorge")).toBeInTheDocument();
+  });
+
+  // ARCH-03: Save Project, Publish Artifact, Import, Preview — in that order,
+  // each a distinct step in the hierarchy.
+  it("R5: SAVE PROJECT, then PUBLISH ARTIFACT, then IMPORT, then PREVIEW", () => {
+    const { container } = wrap(<ArchivePanel />);
+    const heads = Array.from(container.querySelectorAll(".tr-panel__section-head"));
+    const saveIdx = heads.findIndex((h) => h.textContent?.includes("SAVE PROJECT"));
+    const publishIdx = heads.findIndex((h) => h.textContent?.includes("PUBLISH ARTIFACT"));
+    const importIdx = heads.findIndex((h) => h.textContent?.includes("IMPORT"));
+    const previewIdx = heads.findIndex((h) => h.textContent?.includes("PREVIEW"));
+    expect(saveIdx).toBeGreaterThanOrEqual(0);
+    expect(publishIdx).toBeGreaterThanOrEqual(0);
+    expect(importIdx).toBeGreaterThanOrEqual(0);
+    expect(previewIdx).toBeGreaterThanOrEqual(0);
+    expect(saveIdx).toBeLessThan(publishIdx);
+    expect(publishIdx).toBeLessThan(importIdx);
+    expect(importIdx).toBeLessThan(previewIdx);
   });
 
   it("shows role=alert error message when a malformed file is imported", async () => {
@@ -253,13 +884,127 @@ describe("ArchivePanel", () => {
     expect(input).not.toBeNull();
     const badFile = new File(["{ not valid json }"], "bad.taroke.json", { type: "application/json" });
     fireEvent.change(input, { target: { files: [badFile] } });
-    // Wait for observable DOM state change — alert element must appear
     const alert = await waitFor(() => {
       const el = screen.queryByRole("alert");
       if (!el) throw new Error("alert not yet rendered");
       return el;
     }, { timeout: 2000 });
     expect(alert.textContent).toMatch(/could not|error|invalid|failed/i);
+  });
+
+  // Preview lifecycle: unbuilt -> building -> ready|error -> stale, gated by
+  // an iframe postMessage handshake (not just srcDoc being set).
+  describe("preview lifecycle handshake", () => {
+    it("starts UNBUILT, then shows BUILDING immediately after clicking Preview", () => {
+      wrap(<ArchivePanel />);
+      expect(screen.getByLabelText(/preview status: unbuilt/i)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /generate preview of exported artifact/i }));
+      expect(screen.getByLabelText(/preview status: building/i)).toBeInTheDocument();
+    });
+
+    it("becomes READY once the artifact iframe posts a ready handshake", () => {
+      wrap(<ArchivePanel />);
+      fireEvent.click(screen.getByRole("button", { name: /generate preview of exported artifact/i }));
+      act(() => {
+        window.dispatchEvent(new MessageEvent("message", { data: { source: "taroke-artifact", status: "ready" } }));
+      });
+      expect(screen.getByLabelText(/preview status: ready/i)).toBeInTheDocument();
+    });
+
+    it("becomes ERROR if the artifact posts an error handshake, with the message shown", () => {
+      wrap(<ArchivePanel />);
+      fireEvent.click(screen.getByRole("button", { name: /generate preview of exported artifact/i }));
+      act(() => {
+        window.dispatchEvent(new MessageEvent("message", { data: { source: "taroke-artifact", status: "error", message: "boom" } }));
+      });
+      expect(screen.getByLabelText(/preview status: error/i)).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent(/boom/);
+    });
+
+    it("becomes ERROR if no handshake arrives before the timeout", () => {
+      vi.useFakeTimers();
+      try {
+        wrap(<ArchivePanel />);
+        fireEvent.click(screen.getByRole("button", { name: /generate preview of exported artifact/i }));
+        expect(screen.getByLabelText(/preview status: building/i)).toBeInTheDocument();
+        act(() => { vi.advanceTimersByTime(5000); });
+        expect(screen.getByLabelText(/preview status: error/i)).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("ignores unrelated postMessage events (a different source)", () => {
+      wrap(<ArchivePanel />);
+      fireEvent.click(screen.getByRole("button", { name: /generate preview of exported artifact/i }));
+      act(() => {
+        window.dispatchEvent(new MessageEvent("message", { data: { source: "some-other-widget", status: "ready" } }));
+      });
+      expect(screen.getByLabelText(/preview status: building/i)).toBeInTheDocument();
+    });
+  });
+
+  // Open-separately action: the standalone artifact must be verifiable
+  // outside the app's own iframe sandbox, not only embedded in it.
+  describe("open artifact separately", () => {
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    const originalOpen = window.open;
+
+    beforeEach(() => {
+      URL.createObjectURL = vi.fn(() => "blob:mock-artifact-url");
+      URL.revokeObjectURL = vi.fn();
+      window.open = vi.fn();
+    });
+    afterEach(() => {
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+      window.open = originalOpen;
+    });
+
+    it("is absent until a preview has been generated", () => {
+      wrap(<ArchivePanel />);
+      expect(screen.queryByRole("button", { name: /open the standalone artifact in a new tab/i })).toBeNull();
+    });
+
+    it("opens a Blob URL of the exported artifact in a new tab once previewed", () => {
+      wrap(<ArchivePanel />);
+      fireEvent.click(screen.getByRole("button", { name: /generate preview of exported artifact/i }));
+      fireEvent.click(screen.getByRole("button", { name: /open the standalone artifact in a new tab/i }));
+      expect(window.open).toHaveBeenCalledWith("blob:mock-artifact-url", "_blank", expect.stringContaining("noopener"));
+    });
+  });
+
+  // Export/import receipts must carry filename/time/checksum (T04).
+  describe("export receipt", () => {
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+
+    beforeEach(() => {
+      URL.createObjectURL = vi.fn(() => "blob:mock-url");
+      URL.revokeObjectURL = vi.fn();
+    });
+
+    afterEach(() => {
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+    });
+
+    it("shows a receipt with filename, time, and checksum after saving JSON", () => {
+      wrap(<ArchivePanel />);
+      fireEvent.click(screen.getByText(/Save JSON/));
+      const receipt = screen.getByText(/Saved/i);
+      expect(receipt.textContent).toMatch(/\.taroke\.json/);
+      expect(receipt.textContent).toMatch(/#[0-9a-f]{8}/);
+      expect(receipt.textContent).toMatch(/bytes/);
+    });
+
+    it("shows a fresh receipt after publishing HTML", () => {
+      wrap(<ArchivePanel />);
+      fireEvent.click(screen.getByText(/Publish HTML/));
+      const receipt = screen.getByText(/Published/i);
+      expect(receipt.textContent).toMatch(/\.taroke\.html/);
+    });
   });
 });
 
@@ -285,15 +1030,48 @@ describe("PerformancePanel — store-backed Takes", () => {
   it("Capture Take button dispatches to Redux takes slice", () => {
     const store = makeStore();
     wrap(<PerformancePanel />, store);
-    // Generate first so there is a current event
-    const generateBtn = screen.getByRole("button", { name: /generate next event/i });
+    const generateBtn = screen.getByRole("button", { name: /Surface: generate/i });
     fireEvent.click(generateBtn);
-    // Capture Take may appear if last event was a line (not a breath)
     const captureBtn = screen.queryByRole("button", { name: /capture take/i });
     if (captureBtn) {
       fireEvent.click(captureBtn);
       expect(store.getState().takes.takes.length).toBeGreaterThan(0);
     }
+  });
+
+  // R4: Takes state machine — Keep/Repair/Pin
+  it("R4: captured take shows Keep and Pin buttons", () => {
+    const store = makeStore();
+    store.dispatch(captureTake({
+      id: "take_sm_1",
+      tick: 3,
+      surface: "a word returns",
+      trace: "PATH",
+      deviceName: "PATH",
+      route: "default",
+    }));
+    wrap(<PerformancePanel />, store);
+    expect(screen.getByRole("button", { name: /keep this take/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /pin this take/i })).toBeInTheDocument();
+  });
+
+  // R4: Take annotation
+  it("R4: take annotation input is present and updatable", () => {
+    const store = makeStore();
+    store.dispatch(captureTake({
+      id: "take_ann_1",
+      tick: 2,
+      surface: "stone calls the sky",
+      trace: "SITE",
+      deviceName: "SITE",
+      route: "default",
+    }));
+    wrap(<PerformancePanel />, store);
+    const annotationInput = screen.getByLabelText(/annotation for take/i);
+    expect(annotationInput).toBeInTheDocument();
+    fireEvent.change(annotationInput, { target: { value: "use this one" } });
+    const take = store.getState().takes.takes.find((t) => t.id === "take_ann_1");
+    expect(take?.annotation).toBe("use this one");
   });
 });
 
@@ -325,79 +1103,49 @@ describe("ImportReceiptBanner", () => {
     fireEvent.click(dismiss);
     expect(store.getState().importReceipt.visible).toBe(false);
   });
-});
 
-// ── MaterialsPanel — accessible reorder ───────────────────────────────────────
-
-describe("MaterialsPanel — accessible reorder", () => {
-  it("renders Up/Down buttons for each token", () => {
+  // T04: import receipts must carry filename/time/checksum.
+  it("shows the import timestamp and checksum when the full receipt is provided", () => {
     const store = makeStore();
-    store.dispatch(selectBank("above"));
-    wrap(<MaterialsPanel />, store);
-    const upButtons = screen.getAllByRole("button", { name: /move .+ up/i });
-    expect(upButtons.length).toBeGreaterThan(0);
-    const downButtons = screen.getAllByRole("button", { name: /move .+ down/i });
-    expect(downButtons.length).toBeGreaterThan(0);
-  });
-
-  it("Up button is disabled for the first token", () => {
-    const store = makeStore();
-    store.dispatch(selectBank("above"));
-    wrap(<MaterialsPanel />, store);
-    const upButtons = screen.getAllByRole("button", { name: /move .+ up/i });
-    expect(upButtons[0]).toBeDisabled();
-  });
-
-  it("Down button is disabled for the last token", () => {
-    const store = makeStore();
-    store.dispatch(selectBank("above"));
-    wrap(<MaterialsPanel />, store);
-    const downButtons = screen.getAllByRole("button", { name: /move .+ down/i });
-    expect(downButtons[downButtons.length - 1]).toBeDisabled();
-  });
-
-  it("clicking an enabled Up button changes token order with stable IDs", () => {
-    const store = makeStore();
-    store.dispatch(selectBank("above"));
-    wrap(<MaterialsPanel />, store);
-
-    const before = store.getState().project.present.materials.trays["above"]!.map((t) => t.id);
-    expect(before.length, "bank must have at least 2 tokens to test reorder").toBeGreaterThan(1);
-
-    // Find the first enabled Up button (index 1+ since index 0 is disabled)
-    const upButtons = screen.getAllByRole("button", { name: /move .+ up/i });
-    const enabledUp = upButtons.find((btn) => !btn.hasAttribute("disabled"));
-    expect(enabledUp, "Expected at least one enabled Up button").toBeTruthy();
-    fireEvent.click(enabledUp!);
-
-    const after = store.getState().project.present.materials.trays["above"]!.map((t) => t.id);
-    // IDs must all be present (stable) but order must have changed
-    expect([...after].sort()).toEqual([...before].sort());
-    expect(after).not.toEqual(before);
+    store.dispatch(showReceipt({
+      filename: "my-poem.taroke.json",
+      issues: [],
+      repairCount: 0,
+      fullReceipt: {
+        filename: "my-poem.taroke.json",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        checksum: "deadbeef",
+        byteSize: 1234,
+        sourceFormat: "json",
+        sourceSchema: "0.7-reset",
+        resultingSchema: "0.7-reset",
+        editorVersion: "0.8.0",
+        migrationPath: "current-schema",
+        orderedBankIds: [],
+        bankCount: 0,
+        tokenCount: 0,
+        deviceCount: 0,
+        routeCount: 0,
+        patternCount: 0,
+        flowSceneCount: 0,
+        triggerCount: 0,
+        warnings: [],
+        errors: [],
+        duplicateIdFindings: [],
+        repairCount: 0,
+        repairDetails: [],
+        classicDefaultsApplied: { devices: false, patterns: false, scenes: false, triggers: false },
+        authoredBankOrderPreserved: true,
+      },
+    }));
+    wrap(<ImportReceiptBanner />, store);
+    expect(screen.getByText(/#deadbeef/)).toBeInTheDocument();
   });
 });
 
-// ── MaterialsPanel — literal editing and expected share ───────────────────────
+// ── MaterialsPanel — share column ─────────────────────────────────────────────
 
-describe("MaterialsPanel — literal editing and expected share", () => {
-  it("shows literal input fields for each token", () => {
-    const store = makeStore();
-    store.dispatch(selectBank("above"));
-    wrap(<MaterialsPanel />, store);
-    const inputs = screen.getAllByRole("textbox", { name: /literal for sample/i });
-    expect(inputs.length).toBeGreaterThan(0);
-  });
-
-  it("editing a literal input updates the project model", () => {
-    const store = makeStore();
-    store.dispatch(selectBank("above"));
-    wrap(<MaterialsPanel />, store);
-    const inputs = screen.getAllByRole("textbox", { name: /literal for sample/i });
-    fireEvent.change(inputs[0]!, { target: { value: "renamed-token" } });
-    const tokens = store.getState().project.present.materials.trays["above"];
-    expect(tokens?.some((t) => t.literal === "renamed-token")).toBe(true);
-  });
-
+describe("MaterialsPanel — share column", () => {
   it("shows a Share column header", () => {
     const store = makeStore();
     store.dispatch(selectBank("above"));
@@ -413,26 +1161,144 @@ describe("MaterialsPanel — literal editing and expected share", () => {
     expect(pctCells.length).toBeGreaterThan(0);
     expect(pctCells[0]!.textContent).toMatch(/%/);
   });
+
+  it("shows a Weight/Share explanation", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.getByText(/relative pick probability/i)).toBeInTheDocument();
+  });
 });
 
-// ── CompositionPanel — slot reorder ──────────────────────────────────────────
+// ── MaterialsPanel — bank taxonomy (MAT-03) ────────────────────────────────────
 
-describe("CompositionPanel — slot reorder", () => {
-  it("renders Up/Down reorder buttons for each slot", () => {
+describe("MaterialsPanel — bank taxonomy", () => {
+  it("labels a source bank Canonical", () => {
     const store = makeStore();
-    wrap(<CompositionPanel />, store);
-    const upBtns = screen.queryAllByRole("button", { name: /move slot .+ up/i });
-    const downBtns = screen.queryAllByRole("button", { name: /move slot .+ down/i });
-    expect(upBtns.length + downBtns.length).toBeGreaterThan(0);
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.getAllByText("Canonical").length).toBeGreaterThan(0);
   });
 
-  it("Up button is disabled for the first slot", () => {
+  it("labels the large derived cave_phrases bank Compiled", () => {
     const store = makeStore();
-    wrap(<CompositionPanel />, store);
-    const upBtns = screen.queryAllByRole("button", { name: /move slot .+ up/i });
-    if (upBtns.length > 0) {
-      expect(upBtns[0]).toBeDisabled();
-    }
+    store.dispatch(selectBank("cave_phrases"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.getAllByText("Compiled").length).toBeGreaterThan(0);
+  });
+});
+
+// ── MaterialsPanel — compiled-bank summary (MAT-01) ─────────────────────────────
+
+describe("MaterialsPanel — compiled-bank summary", () => {
+  it("shows a summary, not a raw table, for a compiled bank by default", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("cave_phrases"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.queryByRole("columnheader", { name: "Sample" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Show full list/i })).toBeInTheDocument();
+  });
+
+  it("does not show a compiled-bank summary for a small canonical bank", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.queryByRole("button", { name: /Show full list/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Sample" })).toBeInTheDocument();
+  });
+
+  it("Show full list reveals the raw table for a compiled bank", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("cave_phrases"));
+    wrap(<MaterialsPanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: /Show full list/i }));
+    expect(screen.getByRole("columnheader", { name: "Sample" })).toBeInTheDocument();
+  });
+});
+
+// ── MaterialsPanel — sample search within active bank (MAT-02) ─────────────────
+
+describe("MaterialsPanel — sample search", () => {
+  it("filters samples in a normal bank by literal", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    const before = document.querySelectorAll(".tr-mat-table__literal").length;
+    fireEvent.change(screen.getByLabelText("Search samples in this bank"), { target: { value: "stone" } });
+    const after = document.querySelectorAll(".tr-mat-table__literal").length;
+    expect(after).toBeGreaterThan(0);
+    expect(after).toBeLessThan(before);
+  });
+
+  it("reveals matching entries in a compiled bank without expanding the full list", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("cave_phrases"));
+    wrap(<MaterialsPanel />, store);
+    fireEvent.change(screen.getByLabelText("Search samples in this bank"), { target: { value: "cool" } });
+    expect(screen.getByRole("columnheader", { name: "Sample" })).toBeInTheDocument();
+    expect(document.querySelectorAll(".tr-mat-table__literal").length).toBeGreaterThan(0);
+  });
+
+  it("shows a no-match message for a search with no results", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    fireEvent.change(screen.getByLabelText("Search samples in this bank"), { target: { value: "zzzznomatch" } });
+    expect(screen.getByText(/no sample matches/i)).toBeInTheDocument();
+  });
+});
+
+// ── MaterialsPanel — SHELL-09 compact cards below 600px ────────────────────────
+
+describe("MaterialsPanel — compact cards (SHELL-09)", () => {
+  const originalMatchMedia = window.matchMedia;
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
+  function mockCompactViewport() {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes("max-width: 599px"),
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as typeof window.matchMedia;
+  }
+
+  it("renders sample cards, not a five-column table, below 600px", () => {
+    mockCompactViewport();
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+
+    expect(document.querySelector(".tr-mat-cards")).toBeInTheDocument();
+    expect(document.querySelector(".tr-mat-table")).not.toBeInTheDocument();
+    expect(document.querySelectorAll(".tr-mat-card").length).toBeGreaterThan(0);
+  });
+
+  it("compact cards still expose weight, share, and an actions menu", () => {
+    mockCompactViewport();
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+
+    const firstCard = document.querySelector(".tr-mat-card")!;
+    expect(firstCard.textContent).toMatch(/Weight \d+/);
+    expect(firstCard.textContent).toMatch(/% share/);
+    expect(within(firstCard as HTMLElement).getByRole("button", { name: /^Actions for /i })).toBeInTheDocument();
+  });
+
+  it("desktop width (no match) still renders the table", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    expect(document.querySelector(".tr-mat-table")).toBeInTheDocument();
+    expect(document.querySelector(".tr-mat-cards")).not.toBeInTheDocument();
   });
 });
 
@@ -449,9 +1315,36 @@ describe("FormsPanel", () => {
     expect(screen.getByRole("combobox", { name: /case policy/i })).toBeInTheDocument();
   });
 
-  it("renders OVERRIDES section heading", () => {
+  it("renders BENCH section heading", () => {
     wrap(<FormsPanel />);
-    expect(screen.getByText("OVERRIDES")).toBeInTheDocument();
+    expect(screen.getByText("BENCH")).toBeInTheDocument();
+  });
+
+  it("guides the user to select a sample when none is selected", () => {
+    wrap(<FormsPanel />);
+    expect(screen.getByText(/select a bank or sample/i)).toBeInTheDocument();
+  });
+
+  it("shows the before/after form bench inline for a selected sample, with no redundant Edit-in-Details indirection", () => {
+    const store = makeStore();
+    const bankName = Object.keys(store.getState().project.present.materials.trays)[0]!;
+    const tokenId = store.getState().project.present.materials.trays[bankName]![0]!.id;
+    store.dispatch(selectToken({ bankName, tokenId }));
+    wrap(<FormsPanel />, store);
+    expect(screen.getByRole("group", { name: /form bench/i })).toBeInTheDocument();
+    expect(screen.queryByText(/edit in details/i)).not.toBeInTheDocument();
+  });
+
+  it("editing a form override in the bench updates the project", () => {
+    const store = makeStore();
+    const bankName = Object.keys(store.getState().project.present.materials.trays)[0]!;
+    const tokenId = store.getState().project.present.materials.trays[bankName]![0]!.id;
+    store.dispatch(selectToken({ bankName, tokenId }));
+    wrap(<FormsPanel />, store);
+    const input = screen.getAllByLabelText(/override for/i)[0]!;
+    fireEvent.change(input, { target: { value: "custom form" } });
+    const overrides = store.getState().project.present.forms.overrides?.[tokenId] as Record<string, string> | undefined;
+    expect(Object.values(overrides ?? {})).toContain("custom form");
   });
 
   it("changing case policy updates the project", () => {
@@ -495,39 +1388,47 @@ describe("ArchivePanel — import receipt dispatch on success", () => {
       fireEvent.change(fileInput, { target: { files: [file] } });
     });
 
-    // FileReader fires onload asynchronously — wait for Redux state to update
+    // Import preflight: state is not replaced until the replacement
+    // warning is explicitly confirmed.
+    const preflight = await waitFor(() => screen.getByRole("alertdialog", { name: /confirm import/i }), { timeout: 2000 });
+    expect(preflight.textContent).toMatch(/replace/i);
+    expect(store.getState().project.present.project.title).toBe(titleBefore);
+
+    fireEvent.click(screen.getByRole("button", { name: "Replace project" }));
+
     await waitFor(() => {
       expect(store.getState().importReceipt.visible, "importReceipt.visible must become true after import").toBe(true);
     }, { timeout: 2000 });
 
-    // Verify the project state was replaced with the imported project
     const titleAfter = store.getState().project.present.project.title;
     expect(titleAfter).toBe(importedTitle);
     expect(titleAfter).not.toBe(titleBefore);
-
-    // Verify receipt contains the correct filename
     expect(store.getState().importReceipt.filename).toBe("receipt-import-test.taroke.json");
   });
-});
 
-// ── InstrumentsPanel — route variable palette ─────────────────────────────────
-
-describe("InstrumentsPanel — route variable palette", () => {
-  it("shows variable chip buttons when device has inputs", () => {
+  it("Cancel on the import preflight leaves the current project untouched", async () => {
     const store = makeStore();
-    store.dispatch(selectDevice("ld_path"));
-    wrap(<InstrumentsPanel />, store);
-    const chips = screen.queryAllByRole("button", { name: /insert .+:.+ variable/i });
-    expect(chips.length).toBeGreaterThan(0);
-  });
+    const titleBefore = store.getState().project.present.project.title;
+    wrap(<ArchivePanel />, store);
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
 
-  it("chip labels use {slot:form} format", () => {
-    const store = makeStore();
-    store.dispatch(selectDevice("ld_path"));
-    wrap(<InstrumentsPanel />, store);
-    const chips = screen.queryAllByRole("button", { name: /insert .+:.+ variable/i });
-    // Hard failure: chips must be present when a device with inputs is selected
-    expect(chips.length, "Expected at least one {slot:form} chip when PATH device is selected").toBeGreaterThan(0);
-    expect(chips[0]!.textContent).toMatch(/\{.+:.+\}/);
+    const validProject = JSON.stringify({
+      schemaVersion: "7.8",
+      project: { title: "should-not-apply", author: "" },
+      materials: { trays: {}, bankMeta: {} },
+      forms: { casePolicy: "source" },
+      lineDevices: [], stanzaPatterns: [], flowScenes: [], triggers: [], meta: {},
+    });
+    const file = new File([validProject], "cancel-test.taroke.json", { type: "application/json" });
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
+    await waitFor(() => screen.getByRole("alertdialog", { name: /confirm import/i }), { timeout: 2000 });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("alertdialog", { name: /confirm import/i })).toBeNull();
+    expect(store.getState().project.present.project.title).toBe(titleBefore);
+    expect(store.getState().importReceipt.visible).toBe(false);
   });
 });

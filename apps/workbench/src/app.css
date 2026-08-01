@@ -104,6 +104,11 @@ h1, h2, h3, h4 { font-weight: normal; }
   position: relative;
   z-index: 10;
   flex-shrink: 0;
+  /* A grid item's implicit min-width is auto (its content size), which lets
+     a flex container blow out past its grid track instead of shrinking —
+     invisibly clipped by an ancestor's overflow:hidden rather than
+     producing a detectable document scrollWidth (SHELL-05/SHELL-07). */
+  min-width: 0;
 }
 
 .tr-transport__title {
@@ -176,6 +181,18 @@ h1, h2, h3, h4 { font-weight: normal; }
   font-size: var(--tr-font-size-sm);
   letter-spacing: 0.08em;
   color: var(--tr-muted-min);
+}
+
+.tr-transport__surface-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+}
+
+.tr-transport__surface-jump-label {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+  white-space: nowrap;
 }
 
 .tr-transport__toggle {
@@ -307,6 +324,18 @@ h1, h2, h3, h4 { font-weight: normal; }
   gap: var(--tr-sp-4);
 }
 
+/* Modal sheet backdrop (SHELL-04, A11Y-03) — only rendered on mobile when
+   the Inspector opens as a sheet; blocks and dims the inert background. */
+.tr-inspector-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 35;
+  border: none;
+  padding: 0;
+  cursor: default;
+}
+
 .tr-inspector__type {
   font-size: var(--tr-font-size-sm);
   letter-spacing: 0.1em;
@@ -364,15 +393,10 @@ h1, h2, h3, h4 { font-weight: normal; }
   }
 }
 
-/* ── Mobile nav: hidden on desktop ──────────────────────────────────────── */
+/* ── Chamber switcher: hidden on desktop, visible on mobile ─────────────── */
 
-.tr-mobile-nav {
-  display: none;
-}
-
-/* ── Material group sub-nav: hidden on desktop, visible on mobile ─────── */
-
-.tr-material-subnav {
+.tr-chamber-switcher,
+.tr-chamber-rail {
   display: none;
 }
 
@@ -1072,6 +1096,35 @@ input[type="checkbox"] {
   background: var(--tr-field);
 }
 
+/* INS-01/DS-INS-03: readable rendered example — the primary route surface,
+   distinct from the apparatus register used by the raw template below. */
+.tr-route__example {
+  padding: 0 var(--tr-sp-3) var(--tr-sp-2);
+  font-family: var(--tr-font-reading);
+  color: var(--tr-text);
+  font-size: var(--tr-font-size-md);
+  line-height: 1.5;
+}
+.tr-route__example-label {
+  font-family: var(--tr-font-ui);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--tr-muted-min);
+  margin-right: var(--tr-sp-2);
+}
+
+.tr-route__advanced {
+  border-top: 1px solid var(--tr-line-soft);
+  padding-top: var(--tr-sp-2);
+}
+
+.tr-route__advanced-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-2);
+  margin-top: var(--tr-sp-2);
+}
+
 .tr-route__template {
   width: 100%;
   padding: var(--tr-sp-2);
@@ -1092,6 +1145,24 @@ input[type="checkbox"] {
 }
 .tr-route__template::placeholder {
   color: var(--tr-muted-min);
+}
+
+.tr-route__template[aria-invalid="true"] {
+  border-color: var(--tr-danger);
+}
+
+.tr-route__template-errors {
+  list-style: none;
+  margin: var(--tr-sp-1) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-1);
+}
+
+.tr-route__template-error {
+  color: var(--tr-danger);
+  font-size: var(--tr-font-size-sm);
 }
 
 .tr-route__palette-row {
@@ -1517,6 +1588,49 @@ input[type="checkbox"] {
 .tr-banner--info  { border-left: 3px solid var(--tr-focus); }
 .tr-banner--error { border-left: 3px solid var(--tr-danger); }
 
+/* Shared action receipt / live region — announces every action outcome so
+   screen-reader and sighted feedback are the same message (A11Y-02). */
+.tr-live-region {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tr-sp-5) + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 500;
+  max-width: min(92vw, 480px);
+  padding: 0;
+  font-size: var(--tr-font-size-sm);
+  line-height: 1.4;
+  pointer-events: none;
+  text-align: center;
+}
+.tr-live-region:empty { padding: 0; }
+.tr-live-region:not(:empty) {
+  padding: var(--tr-sp-3) var(--tr-sp-5);
+  background: var(--tr-plate);
+  border: 1px solid var(--tr-line);
+  box-shadow: 0 4px 16px var(--tr-shadow);
+}
+.tr-live-region--success:not(:empty) { border-left: 3px solid var(--tr-active); color: var(--tr-text); }
+.tr-live-region--error:not(:empty)   { border-left: 3px solid var(--tr-danger); color: var(--tr-text); }
+.tr-live-region--info:not(:empty)    { border-left: 3px solid var(--tr-focus); color: var(--tr-text); }
+
+/* Inline destructive confirmation — replaces native confirm() (ACT-11). */
+.tr-confirm-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-3);
+  flex-wrap: wrap;
+  padding: var(--tr-sp-3);
+  background: color-mix(in srgb, var(--tr-danger) 8%, var(--tr-plate-2));
+  border: 1px solid var(--tr-danger);
+}
+.tr-confirm-inline__text {
+  flex: 1 1 auto;
+  min-width: 120px;
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-text);
+}
+
 .tr-banner__text {
   flex: 1;
   color: var(--tr-muted);
@@ -1648,17 +1762,28 @@ input[type="checkbox"] {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 959px) {
+  :root {
+    /* Two-row Transport: title+controls, then subordinate status+Details
+       (SHELL-05) — a single 42px row cannot fit six status/control
+       concepts at a 44px touch-target minimum without collision. */
+    --tr-transport-h: 84px;
+  }
+
   .tr-shell {
-    grid-template-rows: var(--tr-transport-h) 1fr var(--tr-mobile-nav-h);
-    grid-template-columns: 1fr;
+    grid-template-rows: var(--tr-transport-h) auto 1fr;
+    /* minmax(0, 1fr), not bare 1fr — a bare fr track's minimum can still be
+       inflated by a row's unshrinkable content (e.g. an unwrapped table or
+       chamber-rail list), silently pushing every row in the column past the
+       viewport and behind an ancestor's overflow:hidden (SHELL-05/07). */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "transport"
-      "workspace"
-      "mobile-nav";
+      "chamber-switcher"
+      "workspace";
   }
 
   .tr-navigator {
-    display: none; /* replaced by mobile nav */
+    display: none; /* replaced by the chamber switcher */
     grid-area: unset;
   }
 
@@ -1666,15 +1791,19 @@ input[type="checkbox"] {
     display: none; /* target is hidden on mobile; suppress false affordance */
   }
 
+  /* Inspector becomes a true modal sheet — no bottom bar to clear anymore
+     since the chamber switcher is sticky at the top, not fixed at the
+     bottom (SHELL-01, SHELL-04). */
   .tr-inspector {
     position: fixed;
     inset: var(--tr-transport-h) 0 0 0;
     width: 100%;
     border-left: none;
-    z-index: 30;
+    z-index: 40;
     transform: translateX(100%);
     transition: transform 200ms ease-out;
     grid-area: unset;
+    padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
   .tr-inspector--open {
@@ -1694,90 +1823,147 @@ input[type="checkbox"] {
   }
 
   /* Project title gets more room without app name */
-  .tr-transport__name { max-width: none; }
+  .tr-transport__name {
+    max-width: none;
+    /* The intrinsic min-width of a nowrap text node is its full content
+       width — without min-width:0 here, this is the actual grid/flex
+       blowout culprit: it refuses to shrink even though every ancestor
+       flex container already allows shrinking (SHELL-05/SHELL-07). */
+    min-width: 0;
+    flex: 1 1 auto;
+  }
 
-  /* Transport toggle: raise to 44px touch target on mobile */
+  /* Two-row layout: title+controls on row 1, subordinate status+Details on
+     row 2 — never more than title, one runtime control cluster, and one
+     status/Details cluster share a row (SHELL-05). */
+  .tr-transport {
+    flex-wrap: wrap;
+    align-content: center;
+    height: var(--tr-transport-h);
+    row-gap: var(--tr-sp-2);
+    padding: var(--tr-sp-2) var(--tr-sp-4);
+  }
+
+  .tr-transport__title {
+    flex: 1 1 auto;
+    min-width: 0;
+    order: 1;
+  }
+
+  .tr-transport__controls {
+    order: 2;
+  }
+
+  .tr-transport__status {
+    order: 3;
+    flex-basis: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  /* Transport controls: 44px minimum touch target on mobile (SHELL-05) */
+  .tr-transport__btn {
+    width: 44px;
+    height: 44px;
+  }
+
   .tr-transport__toggle {
     min-width: 44px;
     min-height: 44px;
   }
 
-  .tr-mobile-nav {
-    grid-area: mobile-nav;
-    display: flex;
-    align-items: stretch;
-    background: var(--tr-plate);
-    border-top: 1px solid var(--tr-line);
-    padding-bottom: env(safe-area-inset-bottom, 0);
-  }
-
-  .tr-mobile-nav__btn {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    font-size: 10px;
-    color: var(--tr-muted);
-    border: none;
-    background: none;
-    border-top: 2px solid transparent;
-    transition: color 100ms, border-color 100ms;
-    padding: 0 2px;
-    min-width: 0;
-    cursor: pointer;
-  }
-
-  .tr-mobile-nav__btn[aria-current="page"],
-  .tr-mobile-nav__btn--active {
-    color: var(--tr-text);
-    border-top-color: var(--tr-active);
-  }
-
-  .tr-mobile-nav__icon {
-    font-size: 16px;
-    line-height: 1;
-  }
-
-  .tr-mobile-nav__label {
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-  }
-
-  /* Material group sub-nav */
-  .tr-material-subnav {
-    display: flex;
-    align-items: stretch;
-    flex-shrink: 0;
+  .tr-chamber-switcher {
+    grid-area: chamber-switcher;
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 15;
     background: var(--tr-plate);
     border-bottom: 1px solid var(--tr-line);
   }
 
-  .tr-material-subnav__btn {
-    flex: 1;
-    padding: 10px 8px;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--tr-muted);
-    border: none;
+  .tr-chamber-switcher__trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--tr-sp-3);
+    width: 100%;
+    min-height: 44px;
+    padding: 0 var(--tr-sp-5);
     background: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    text-align: center;
-    letter-spacing: 0.04em;
-    min-height: 40px;
-    touch-action: manipulation;
+    border: none;
+    color: var(--tr-text);
+    font-size: var(--tr-font-size-md);
+    text-align: left;
   }
 
-  .tr-material-subnav__btn--active,
-  .tr-material-subnav__btn[aria-current="page"] {
+  .tr-chamber-switcher__seq {
+    color: var(--tr-muted);
+    font-size: var(--tr-font-size-sm);
+  }
+
+  .tr-chamber-switcher__label {
+    flex: 1;
+    font-weight: 600;
+  }
+
+  .tr-chamber-switcher__chevron {
+    color: var(--tr-muted);
+  }
+
+  .tr-chamber-switcher__menu {
+    list-style: none;
+    max-height: min(70vh, 480px);
+    overflow-y: auto;
+    background: var(--tr-plate);
+    border-top: 1px solid var(--tr-line-soft);
+    box-shadow: 0 8px 20px var(--tr-shadow);
+  }
+
+  .tr-chamber-switcher__item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--tr-sp-4);
+    width: 100%;
+    min-height: 44px;
+    padding: var(--tr-sp-3) var(--tr-sp-5);
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--tr-line-soft);
+    text-align: left;
     color: var(--tr-text);
-    border-bottom-color: var(--tr-active);
+  }
+
+  .tr-chamber-switcher__item--active {
+    background: color-mix(in srgb, var(--tr-active) 10%, transparent);
+    border-left: 3px solid var(--tr-active);
+  }
+
+  .tr-chamber-switcher__item-seq {
+    color: var(--tr-muted);
+    font-size: var(--tr-font-size-sm);
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .tr-chamber-switcher__item-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .tr-chamber-switcher__item-label {
+    font-weight: 600;
+  }
+
+  .tr-chamber-switcher__item-desc {
+    color: var(--tr-muted);
+    font-size: var(--tr-font-size-sm);
+  }
+
+  /* Terminal safe-area padding so the last interactive row in any chamber
+     can scroll fully clear of the device's home-indicator area (SHELL-08). */
+  .tr-workspace {
+    padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
   /* Sidebar panels: stack on mobile */
@@ -1798,6 +1984,20 @@ input[type="checkbox"] {
     max-height: 45px;
     flex-shrink: 0;
     scrollbar-width: none;
+    /* Scroll-shadow cue (SHELL-06): a hidden scrollbar alone is not a
+       discoverable affordance for the bank/device/pattern lists this class
+       backs. Two "local" background layers mask a pair of "scroll" shadow
+       layers near each edge — the shadow is only visible once there is
+       more content in that direction, and disappears at the scroll start
+       or end. Pure CSS, no JS scroll-position tracking needed. */
+    background:
+      linear-gradient(to right, var(--tr-plate) 30%, rgba(255, 255, 255, 0)) 0 0,
+      linear-gradient(to left, var(--tr-plate) 30%, rgba(255, 255, 255, 0)) 100% 0,
+      radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0)) 0 0,
+      radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0)) 100% 0;
+    background-repeat: no-repeat;
+    background-size: 32px 100%, 32px 100%, 12px 100%, 12px 100%;
+    background-attachment: local, local, scroll, scroll;
   }
   .tr-panel__sidebar::-webkit-scrollbar { display: none; }
 
@@ -1860,6 +2060,14 @@ input[type="checkbox"] {
 
 }
 
+/* ── Mobile: allow trigger summary text to wrap ──────────────────────────── */
+@media (max-width: 959px) {
+  .tr-trigger__summary-text {
+    white-space: normal;
+    text-overflow: unset;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    14. SHORT LANDSCAPE (~844×390)
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -1867,20 +2075,79 @@ input[type="checkbox"] {
 @media (max-width: 959px) and (max-height: 500px) {
   :root {
     --tr-transport-h: 44px;
-    --tr-mobile-nav-h: 44px;
   }
 
-  .tr-mobile-nav__label {
-    /* Visually hidden but kept in accessibility tree for button name */
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+  /* Vertical space is too tight here for the two-row Transport used at
+     taller mobile heights — collapse back to one compact row. Controls
+     are 40px (not the full 44px) because a 44px control plus its own
+     padding cannot fit inside a 44px-tall bar that also carries the
+     title; this is a deliberate, documented compromise for this one
+     constrained breakpoint, not the general case. */
+  .tr-transport {
+    flex-wrap: nowrap;
+    height: var(--tr-transport-h);
+    padding: 0 var(--tr-sp-4);
+  }
+
+  .tr-transport__status {
+    flex-basis: auto;
+  }
+
+  .tr-transport__btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .tr-transport__toggle {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  /* Compact horizontally scrollable full-name rail (SHELL-10) — replaces
+     the collapsed switcher when vertical space is too tight for a menu. */
+  .tr-chamber-rail {
+    grid-area: chamber-switcher;
+    display: flex;
+    align-items: stretch;
+    background: var(--tr-plate);
+    border-bottom: 1px solid var(--tr-line);
+    height: 40px;
+  }
+
+  .tr-chamber-rail__arrow {
+    flex-shrink: 0;
+    width: 32px;
+    background: var(--tr-plate-2);
+    color: var(--tr-muted);
+    border: none;
+    font-size: 16px;
+  }
+
+  .tr-chamber-rail__track {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    /* Visible edge fades — hidden scrollbars alone are not an affordance. */
+    mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+  }
+
+  .tr-chamber-rail__btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--tr-sp-4);
+    font-size: var(--tr-font-size-sm);
+    color: var(--tr-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
     white-space: nowrap;
-    border: 0;
+  }
+
+  .tr-chamber-rail__btn--active {
+    color: var(--tr-text);
+    border-bottom-color: var(--tr-active);
   }
 }
 
@@ -2293,6 +2560,11 @@ details[open] > .tr-forms__bank-label::before {
 }
 .tr-surface__line:last-child { border-bottom: none; }
 
+.tr-surface__line--selected {
+  box-shadow: inset 3px 0 0 var(--tr-focus, #b6ff48);
+  background: color-mix(in srgb, var(--tr-focus, #b6ff48) 8%, transparent);
+}
+
 .tr-takes {
   display: flex;
   flex-direction: column;
@@ -2337,6 +2609,7 @@ details[open] > .tr-forms__bank-label::before {
   border-radius: 2px;
   font-variant-numeric: tabular-nums;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .tr-badge--direct {
@@ -2352,6 +2625,20 @@ details[open] > .tr-forms__bank-label::before {
   margin-left: var(--tr-sp-2);
 }
 
+.tr-badge--warn {
+  background: transparent;
+  color: var(--tr-warning);
+  border: 1px solid var(--tr-warning);
+  font-weight: 600;
+}
+
+.tr-slot__device-off {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+  margin-left: var(--tr-sp-2);
+}
+
 .tr-badge--lifecycle {
   font-size: 10px;
   letter-spacing: 0.06em;
@@ -2364,7 +2651,12 @@ details[open] > .tr-forms__bank-label::before {
   color: var(--tr-muted);
   border: 1px solid var(--tr-line);
 }
-.tr-badge--lifecycle-fresh {
+.tr-badge--lifecycle-building {
+  background: var(--tr-raised);
+  color: var(--tr-muted);
+  border: 1px solid var(--tr-active);
+}
+.tr-badge--lifecycle-ready {
   background: var(--tr-active);
   color: var(--tr-well);
 }
@@ -2511,7 +2803,7 @@ details[open] > .tr-forms__bank-label::before {
   font-size: var(--tr-font-size-sm);
   color: var(--tr-muted);
   flex: 1;
-  min-width: 0;
+  min-width: 4rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2572,6 +2864,108 @@ details[open] > .tr-forms__bank-label::before {
   flex-shrink: 0;
 }
 
+.tr-scene__link {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+  margin-left: var(--tr-sp-2);
+}
+
+/* Pattern Score resolution preview — a rolled sample of the authored
+   chance/repeat rules, not the final generated text (that lives in
+   Performance). Distinct from the destructive/danger palette. */
+.tr-score-preview {
+  margin: 0 0 var(--tr-sp-3);
+  padding: var(--tr-sp-3);
+  background: var(--tr-plate);
+  border: 1px solid var(--tr-line-soft);
+  border-radius: var(--tr-radius-sm);
+}
+.tr-score-preview__note {
+  margin: 0 0 var(--tr-sp-2);
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+}
+.tr-score-preview__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tr-sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tr-score-preview__item {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-text);
+  padding: 2px var(--tr-sp-2);
+  background: var(--tr-raised);
+  border-radius: var(--tr-radius-sm);
+}
+.tr-score-preview__item::before { content: "→ "; color: var(--tr-muted-min); }
+.tr-score-preview__item:first-child::before { content: ""; }
+
+/* Mobile-native Pattern Score cards — replaces the desktop row grid below
+   a width where drag handle + index + type + chance + repeat + actions
+   cannot carry touch-sized targets (SHELL-09 pattern, applied to Composition). */
+.tr-slots--cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tr-slot--card {
+  /* Overrides the fixed-height desktop .tr-slot row rule — without this the
+     card's column content overflows its box and the next card, painted on
+     top in normal document flow, intercepts pointer events meant for this
+     one's controls. */
+  height: auto;
+  border-bottom: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-2);
+  padding: var(--tr-sp-3);
+  border: 1px solid var(--tr-line-soft);
+  border-radius: var(--tr-radius-sm);
+  background: var(--tr-plate);
+  position: relative;
+}
+.tr-slot__card-main {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+  font-size: var(--tr-font-size);
+  color: var(--tr-text);
+}
+.tr-slot__card-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tr-sp-3);
+}
+.tr-slot__field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+}
+.tr-slot__card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tr-scenes--cards {
+  gap: var(--tr-sp-2);
+}
+.tr-scenes--cards .tr-scene {
+  height: auto;
+  flex-wrap: wrap;
+  padding: var(--tr-sp-3);
+  border: 1px solid var(--tr-line-soft);
+  border-radius: var(--tr-radius-sm);
+  margin-bottom: var(--tr-sp-2);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    20. ARCHIVE PANEL — actual component classes
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -2583,6 +2977,27 @@ details[open] > .tr-forms__bank-label::before {
   padding: 0 0 var(--tr-sp-3);
 }
 
+/* ARCH-03: Save Project and Publish Artifact are visually distinct cards —
+   an editable-data action and a standalone-artifact action must not look
+   equivalent, since their consequences differ. */
+.tr-archive__card {
+  padding: var(--tr-sp-4);
+  margin: 0 0 var(--tr-sp-4);
+  border: 1px solid var(--tr-line);
+  border-left-width: 3px;
+  background: var(--tr-plate-2);
+}
+
+.tr-archive__card--save { border-left-color: var(--tr-focus); }
+.tr-archive__card--publish { border-left-color: var(--tr-active); }
+
+.tr-archive__card-kicker {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--tr-muted-min);
+  margin: 0 0 var(--tr-sp-2);
+}
+
 .tr-archive__desc {
   font-size: var(--tr-font-size-sm);
   color: var(--tr-muted-min);
@@ -2592,6 +3007,17 @@ details[open] > .tr-forms__bank-label::before {
 
 .tr-archive__stale-hint {
   color: var(--tr-warning);
+}
+
+.tr-archive__export-receipt {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-active);
+  margin: 0;
+}
+
+.tr-archive__export-receipt-checksum {
+  font-family: var(--tr-font-mono);
+  color: var(--tr-muted);   /* --tr-muted-min(4.25:1 FAIL) → --tr-muted(5.51:1 PASS) */
 }
 
 .tr-archive__error {
@@ -2609,13 +3035,32 @@ details[open] > .tr-forms__bank-label::before {
   border-radius: var(--tr-radius-sm);
   overflow: hidden;
   background: #fff;
+  margin-bottom: var(--tr-sp-4);
 }
 
 .tr-archive__iframe {
   display: block;
   width: 100%;
-  height: 360px;
+  height: 420px;
   border: none;
+}
+
+/* Import preflight — a replacement warning the user must explicitly
+   confirm before an import overwrites the in-memory project. */
+.tr-archive__import-preflight {
+  padding: var(--tr-sp-3);
+  background: color-mix(in srgb, var(--tr-warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tr-warning) 35%, transparent);
+  border-radius: var(--tr-radius-sm);
+}
+.tr-archive__import-preflight-warning {
+  margin: 0 0 var(--tr-sp-2);
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-text);
+}
+.tr-archive__import-preflight-actions {
+  display: flex;
+  gap: var(--tr-sp-2);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2683,6 +3128,17 @@ details[open] > .tr-forms__bank-label::before {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tr-import-receipt__meta {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted);   /* --tr-muted-min(4.25:1 FAIL) → --tr-muted(5.51:1 PASS) */
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.tr-import-receipt__checksum {
+  font-family: var(--tr-font-mono);
 }
 
 .tr-import-receipt__close { flex-shrink: 0; }
@@ -2753,6 +3209,30 @@ details[open] > .tr-forms__bank-label::before {
   padding-bottom: var(--tr-sp-2);
 }
 
+.tr-source__lineage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-1);
+  padding: var(--tr-sp-3) var(--tr-sp-4);
+  margin-bottom: var(--tr-sp-4);
+  background: var(--tr-plate-2);
+  border: 1px solid var(--tr-line-soft);
+  border-radius: var(--tr-radius-sm);
+}
+
+.tr-source__lineage-text {
+  margin: 0;
+  font-size: var(--tr-font-size);
+  color: var(--tr-text);
+  line-height: 1.5;
+}
+
+.tr-source__lineage-link {
+  align-self: flex-start;
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-active);
+}
+
 .tr-source__optional {
   font-size: var(--tr-font-size-sm);
   color: var(--tr-muted-min);
@@ -2791,3 +3271,1008 @@ details[open] > .tr-forms__bank-label::before {
   white-space: pre-line;
   display: block;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   22. NEW INTERACTION SCOPE — Pass A additions
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ── Panel section actions ───────────────────────────────────────────────── */
+
+.tr-panel__section-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+  margin-left: auto;
+}
+
+/* ── Materials panel ─────────────────────────────────────────────────────── */
+
+.tr-mat-search {
+  padding: var(--tr-sp-2) var(--tr-sp-3);
+  border-bottom: 1px solid var(--tr-line-soft);
+  flex-shrink: 0;
+}
+
+/* MAT-03: bank taxonomy chip — origin visible at a glance, restrained to
+   text + border (no reliance on colour alone, A11Y-04). */
+.tr-taxonomy-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  border-radius: 2px;
+  border: 1px solid var(--tr-line);
+  color: var(--tr-muted);
+  background: var(--tr-raised);
+  white-space: nowrap;
+}
+.tr-taxonomy-chip--canonical { border-color: var(--tr-focus); color: var(--tr-focus); }
+.tr-taxonomy-chip--compiled  { border-color: var(--tr-warning); color: var(--tr-warning); }
+
+.tr-list__taxonomy {
+  margin-left: var(--tr-sp-2);
+}
+
+/* MAT-01: compiled-bank summary — a concise, provenance-rich landing view
+   instead of an initial raw table of hundreds of rows. */
+.tr-mat-compiled-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-3);
+  padding: var(--tr-sp-4);
+  margin: 0 var(--tr-sp-4) var(--tr-sp-4);
+  border: 1px solid var(--tr-line);
+  background: var(--tr-plate-2);
+}
+
+.tr-mat-compiled-summary__desc {
+  color: var(--tr-muted);
+  font-size: var(--tr-font-size-sm);
+}
+
+.tr-mat-compiled-summary__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tr-sp-5);
+}
+
+.tr-mat-compiled-summary__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tr-mat-compiled-summary__stat-value {
+  font-size: var(--tr-font-size-lg);
+  color: var(--tr-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-mat-compiled-summary__stat-label {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--tr-muted-min);
+}
+
+.tr-mat-sample-search {
+  padding: 0 var(--tr-sp-4) var(--tr-sp-3);
+  flex-shrink: 0;
+}
+
+.tr-mat-weight-hint {
+  padding: 0 var(--tr-sp-4) var(--tr-sp-2);
+  color: var(--tr-muted);
+  font-size: var(--tr-font-size-sm);
+}
+
+.tr-mat-weight-hint__route-note {
+  display: block;
+  margin-top: var(--tr-sp-1);
+}
+
+.tr-mat-add-row {
+  display: flex;
+  gap: var(--tr-sp-2);
+  padding: var(--tr-sp-3) var(--tr-sp-4);
+  border-top: 1px solid var(--tr-line-soft);
+  flex-shrink: 0;
+}
+
+.tr-mat-table { width: 100%; }
+
+.tr-mat-table__sample {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tr-mat-table__literal {
+  color: var(--tr-text);
+  font-size: var(--tr-font-size);
+}
+
+.tr-mat-table__role {
+  font-size: 10px;
+  color: var(--tr-muted);   /* --tr-muted-min(4.25:1 FAIL) → --tr-muted(5.51:1 PASS) */
+  letter-spacing: 0.04em;
+}
+
+.tr-mat-table__locked {
+  font-size: 10px;
+  color: var(--tr-focus);
+  letter-spacing: 0.04em;
+}
+
+.tr-mat-table__actions {
+  position: relative;
+}
+
+/* Sample cards — replace the five-column table below 600px, where a table
+   can only survive by compressing itself into an unusable strip (SHELL-09,
+   MAT-04). Same underlying data and actions as the table, different shape. */
+.tr-mat-cards {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-3);
+  padding: var(--tr-sp-4);
+}
+
+.tr-mat-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-3);
+  padding: var(--tr-sp-4);
+  background: var(--tr-plate-2);
+  border: 1px solid var(--tr-line-soft);
+  border-left: 3px solid transparent;
+}
+
+.tr-mat-card--selected {
+  border-left-color: var(--tr-active);
+  background: color-mix(in srgb, var(--tr-active) 8%, var(--tr-plate-2));
+}
+
+/* Select button — a sibling of the actions menu button below, not a
+   wrapper around it (see MaterialsPanel.tsx for why). Reset to look like
+   the card's own content, not a default button. */
+.tr-mat-card__select {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-3);
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tr-mat-card__main {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--tr-sp-3);
+}
+
+.tr-mat-card__literal {
+  font-size: var(--tr-font-size-md);
+  font-weight: 600;
+  color: var(--tr-text);
+}
+
+.tr-mat-card__role {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted);   /* --tr-muted-min(4.25:1 FAIL) → --tr-muted(5.51:1 PASS) */
+  letter-spacing: 0.04em;
+}
+
+.tr-mat-card__locked {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-focus);
+  letter-spacing: 0.04em;
+}
+
+.tr-mat-card__meta {
+  display: flex;
+  gap: var(--tr-sp-5);
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted);
+}
+
+.tr-mat-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.tr-mat-card__actions .tr-btn {
+  min-height: 44px;
+}
+
+/* Move menu */
+.tr-move-menu-wrap {
+  position: relative;
+}
+
+.tr-move-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 200;
+  min-width: 160px;
+  background: var(--tr-plate-2);
+  border: 1px solid var(--tr-line);
+  border-radius: var(--tr-radius-sm);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tr-move-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--tr-sp-2) var(--tr-sp-4);
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tr-move-menu__item:hover:not(:disabled) { background: var(--tr-raised); color: var(--tr-text); }
+.tr-move-menu__item:disabled { color: var(--tr-muted-min); cursor: default; }
+
+.tr-move-menu__item--danger { color: var(--tr-danger); }
+.tr-move-menu__item--danger:hover { background: color-mix(in srgb, var(--tr-danger) 12%, transparent); }
+
+.tr-move-menu__sep {
+  height: 1px;
+  background: var(--tr-line-soft);
+  margin: var(--tr-sp-1) 0;
+}
+
+.tr-move-menu__move-to {
+  padding: 0 var(--tr-sp-4) var(--tr-sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-1);
+}
+.tr-move-menu__move-to .tr-inspector__action-label {
+  margin-bottom: 0;
+}
+.tr-move-menu__move-to .tr-inspector__move-row .tr-select {
+  min-width: 120px;
+}
+
+/* Bulk paste */
+.tr-bulk-paste {
+  background: var(--tr-plate);
+  border: 1px solid var(--tr-line-soft);
+  border-radius: var(--tr-radius-sm);
+  margin: 0 var(--tr-sp-4) var(--tr-sp-3);
+  overflow: hidden;
+}
+
+.tr-bulk-paste__area {
+  display: block;
+  width: 100%;
+  resize: none;
+  border: none;
+  border-bottom: 1px solid var(--tr-line-soft);
+  border-radius: 0;
+  background: var(--tr-well);
+  padding: var(--tr-sp-3) var(--tr-sp-4);
+  font-family: var(--tr-font-mono);
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-text);
+}
+
+.tr-bulk-paste__count {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted);
+  padding: var(--tr-sp-2) var(--tr-sp-4);
+  margin: 0;
+}
+
+.tr-bulk-paste__actions {
+  display: flex;
+  gap: var(--tr-sp-2);
+  padding: var(--tr-sp-2) var(--tr-sp-4);
+  border-top: 1px solid var(--tr-line-soft);
+  justify-content: flex-end;
+}
+
+/* ── Forms panel additions ───────────────────────────────────────────────── */
+
+.tr-forms__policies {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-3);
+  padding: 0 0 var(--tr-sp-3);
+}
+
+.tr-forms__label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-1);
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted);
+}
+
+.tr-forms__bank-context {
+  padding-bottom: var(--tr-sp-3);
+}
+
+.tr-forms__bank-info {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-3);
+  padding: var(--tr-sp-2) 0;
+}
+
+.tr-forms__bank-name {
+  font-size: var(--tr-font-size);
+  color: var(--tr-text);
+  font-weight: 500;
+}
+
+.tr-forms__bank-role {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+}
+
+.tr-forms__desc {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.tr-forms__sample-editor {
+  padding-top: var(--tr-sp-3);
+}
+
+.tr-forms__hint {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted);
+  margin: 0 0 var(--tr-sp-3);
+  line-height: 1.5;
+}
+
+.tr-forms {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.tr-forms__bench {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.tr-form-row {
+  display: grid;
+  grid-template-columns: 80px 80px 1fr;
+  grid-template-rows: auto auto;
+  gap: var(--tr-sp-1) var(--tr-sp-2);
+  padding: var(--tr-sp-2) 0;
+  border-bottom: 1px solid var(--tr-line-soft);
+  align-items: center;
+}
+.tr-form-row:last-child { border-bottom: none; }
+
+.tr-form-row__label {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.tr-form-row__preview {
+  font-family: var(--tr-font-reading);
+  font-size: var(--tr-font-size);
+  color: var(--tr-text);
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.tr-form-row__keep {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted);
+  grid-column: 3;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-1);
+}
+
+.tr-form-row__input {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+/* ── Instruments panel additions ─────────────────────────────────────────── */
+
+.tr-route__weight-label {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+  flex-shrink: 0;
+}
+
+.tr-route__palette-row {
+  padding: var(--tr-sp-1) 0;
+}
+
+/* Variable palette */
+.tr-palette {
+  background: var(--tr-plate-2);
+  border: 1px solid var(--tr-line);
+  border-radius: var(--tr-radius-sm);
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  margin-top: var(--tr-sp-1);
+}
+
+.tr-palette__header {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+  padding: var(--tr-sp-2) var(--tr-sp-3);
+  border-bottom: 1px solid var(--tr-line-soft);
+}
+
+.tr-palette__search {
+  flex: 1;
+  min-width: 0;
+}
+
+.tr-palette__list {
+  max-height: 200px;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--tr-line-soft) transparent;
+}
+
+.tr-palette__item {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+  padding: var(--tr-sp-2) var(--tr-sp-3);
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-text);
+  cursor: pointer;
+}
+.tr-palette__item:hover { background: var(--tr-raised); }
+
+.tr-palette__item--focused {
+  background: var(--tr-plate);
+  outline: 1px solid var(--tr-focus);
+  outline-offset: -1px;
+}
+
+.tr-palette__item--unavailable {
+  opacity: 0.5;
+  cursor: default;
+}
+.tr-palette__item--unavailable:hover { background: none; }
+
+.tr-palette__var {
+  font-family: var(--tr-font-mono);
+  font-size: 11px;
+  color: var(--tr-active);
+}
+
+.tr-palette__hint {
+  font-size: 10px;
+  color: var(--tr-muted-min);
+}
+
+.tr-palette__empty {
+  padding: var(--tr-sp-3) var(--tr-sp-4);
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+}
+
+/* ── Automation panel additions ──────────────────────────────────────────── */
+
+.tr-trigger__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+  padding: 0 var(--tr-sp-4);
+  height: var(--tr-row-h);
+  min-height: var(--tr-row-h);
+}
+
+.tr-trigger__select-btn.tr-trigger__select-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+}
+
+.tr-trigger__summary-text {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.tr-trigger__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.tr-trigger__pill--on {
+  background: var(--tr-active);
+  color: var(--tr-well);
+}
+
+.tr-trigger__pill--off {
+  background: var(--tr-raised);
+  color: var(--tr-muted-min);
+  border: 1px solid var(--tr-line);
+}
+
+.tr-trigger__pill--draft {
+  background: transparent;
+  color: var(--tr-warning);
+  border: 1px solid var(--tr-warning);
+}
+
+.tr-trigger__editor {
+  border-top: 1px solid var(--tr-line-soft);
+  padding: var(--tr-sp-1) 0 var(--tr-sp-2);
+}
+
+/* Condition preview/test path (ACT/AUTO): shows the actual match state
+   of WHEN right now, so the rule's causal consequence is inspectable
+   before Chance/THEN even come into play. */
+.tr-trigger__preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tr-sp-1) var(--tr-sp-2);
+  margin: var(--tr-sp-1) 0;
+  padding: var(--tr-sp-2);
+  font-size: var(--tr-font-size-sm);
+  background: var(--tr-plate);
+  border-radius: var(--tr-radius-sm);
+}
+.tr-trigger__preview-label {
+  color: var(--tr-muted-min);
+}
+.tr-trigger__preview-samples {
+  color: var(--tr-text);
+}
+.tr-trigger__preview-empty {
+  color: var(--tr-warning);
+}
+
+.tr-trigger__row--controls {
+  padding-top: var(--tr-sp-1);
+}
+
+/* ── Performance panel additions ─────────────────────────────────────────── */
+
+/* Override old grid layout for new flex column layout */
+.tr-panel--performance {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tr-monitor {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--tr-line-soft);
+  background: var(--tr-plate);
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted);
+}
+
+.tr-monitor__header {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+  padding: var(--tr-sp-1) var(--tr-sp-4);
+}
+
+.tr-monitor__title {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--tr-text);
+  margin-right: auto;
+}
+
+.tr-monitor__compact {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+  padding: 0 var(--tr-sp-4) var(--tr-sp-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tr-monitor__compact::-webkit-scrollbar { display: none; }
+
+.tr-monitor__item { white-space: nowrap; }
+.tr-monitor__item strong { color: var(--tr-text); font-weight: normal; }
+
+.tr-monitor__item--mode {
+  color: var(--tr-text);
+  font-weight: 600;
+}
+
+.tr-monitor__sep {
+  color: var(--tr-line);
+  flex-shrink: 0;
+}
+
+.tr-monitor__detail {
+  padding: 0 var(--tr-sp-4) var(--tr-sp-2);
+}
+
+.tr-monitor__follow {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-1);
+  flex-shrink: 0;
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted);
+  cursor: pointer;
+}
+
+.tr-perf__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tr-perf__surface-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--tr-line);
+  overflow: hidden;
+}
+
+.tr-perf__surface-col .tr-panel__section-head {
+  flex-shrink: 0;
+}
+
+.tr-surface {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--tr-sp-4);
+  scrollbar-width: thin;
+  scrollbar-color: var(--tr-line-soft) transparent;
+}
+
+.tr-surface__generate {
+  font-size: var(--tr-font-size);
+}
+
+.tr-perf__cue-col {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--tr-plate);
+}
+
+.tr-cue__generate {
+  margin: var(--tr-sp-3) var(--tr-sp-4) var(--tr-sp-2);
+  flex-shrink: 0;
+}
+
+.tr-cue__output {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--tr-sp-4) var(--tr-sp-4);
+}
+
+.tr-cue__output--breath {
+  color: var(--tr-muted-min);
+}
+
+.tr-cue__breath {
+  font-size: var(--tr-font-size-sm);
+  font-style: italic;
+  color: var(--tr-muted-min);
+}
+
+.tr-cue__line {
+  font-family: var(--tr-font-reading);
+  font-size: var(--tr-font-size-sm);
+  line-height: 1.6;
+  color: var(--tr-muted);
+  margin: 0;
+}
+
+/* UNMIX section */
+.tr-perf__unmix {
+  flex-shrink: 0;
+  border-top: 1px solid var(--tr-line);
+  overflow-y: auto;
+  max-height: 220px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--tr-line-soft) transparent;
+}
+
+.tr-unmix__row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: var(--tr-sp-2);
+  padding: var(--tr-sp-1) var(--tr-sp-4);
+  border-bottom: 1px solid var(--tr-line-soft);
+  font-size: var(--tr-font-size-sm);
+  align-items: baseline;
+}
+.tr-unmix__row:last-child { border-bottom: none; }
+
+.tr-unmix__row--final {
+  background: var(--tr-plate);
+}
+
+.tr-unmix__label {
+  color: var(--tr-muted-min);
+  font-size: var(--tr-font-size-sm);
+}
+
+.tr-unmix__value {
+  color: var(--tr-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tr-unmix__value--final {
+  font-family: var(--tr-font-reading);
+  color: var(--tr-text);
+  white-space: normal;
+  font-size: var(--tr-font-size);
+}
+
+/* Takes section */
+.tr-perf__takes {
+  flex-shrink: 0;
+  border-top: 1px solid var(--tr-line);
+  overflow-y: auto;
+  max-height: 280px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--tr-line-soft) transparent;
+}
+
+/* Restyle tr-take for expanded state machine */
+.tr-take {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-1);
+  padding: var(--tr-sp-2) var(--tr-sp-4);
+  border-bottom: 1px solid var(--tr-line-soft);
+}
+.tr-take:last-child { border-bottom: none; }
+
+.tr-take--kept   { border-left: 2px solid var(--tr-active); }
+.tr-take--pinned { border-left: 2px solid var(--tr-focus); }
+.tr-take--repair { border-left: 2px solid var(--tr-warning); }
+.tr-take--captured { border-left: 2px solid var(--tr-line); }
+
+.tr-take__header {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+}
+
+.tr-take__state-badge {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--tr-muted-min);
+  padding: 1px 4px;
+  border: 1px solid var(--tr-line);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.tr-take--kept   .tr-take__state-badge { color: var(--tr-active);  border-color: var(--tr-active); }
+.tr-take--pinned .tr-take__state-badge { color: var(--tr-focus);   border-color: var(--tr-focus); }
+.tr-take--repair .tr-take__state-badge { color: var(--tr-warning); border-color: var(--tr-warning); }
+
+.tr-take__device {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.tr-take__controls {
+  display: flex;
+  gap: var(--tr-sp-1);
+  flex-wrap: wrap;
+}
+
+.tr-take__annotation {
+  font-size: var(--tr-font-size-sm);
+  width: 100%;
+}
+
+/* ── Inspector additions ──────────────────────────────────────────────────── */
+
+.tr-inspector__weight-row {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+}
+
+.tr-inspector__share {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-inspector__share-bar {
+  height: 3px;
+  background: var(--tr-raised);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: var(--tr-sp-2);
+}
+
+.tr-inspector__share-fill {
+  height: 100%;
+  background: var(--tr-active);
+  min-width: 2px;
+  border-radius: 2px;
+}
+
+.tr-inspector__subsection {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--tr-muted-min);
+  text-transform: uppercase;
+  padding: var(--tr-sp-3) 0 var(--tr-sp-1);
+  border-top: 1px solid var(--tr-line-soft);
+  margin-top: var(--tr-sp-1);
+}
+
+.tr-inspector__form-row {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  grid-template-rows: auto auto;
+  gap: var(--tr-sp-1) var(--tr-sp-2);
+  padding: var(--tr-sp-1) 0;
+  border-bottom: 1px solid var(--tr-line-soft);
+  align-items: baseline;
+}
+.tr-inspector__form-row:last-of-type { border-bottom: none; }
+
+.tr-inspector__form-label {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.tr-inspector__form-preview {
+  font-family: var(--tr-font-reading);
+  font-size: var(--tr-font-size);
+  color: var(--tr-text);
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.tr-inspector__form-input {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.tr-inspector__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-2);
+  padding-top: var(--tr-sp-3);
+  border-top: 1px solid var(--tr-line-soft);
+  margin-top: var(--tr-sp-2);
+}
+
+.tr-inspector__action-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-1);
+}
+
+.tr-inspector__action-label {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--tr-muted-min);
+  text-transform: uppercase;
+  margin-bottom: var(--tr-sp-1);
+}
+
+.tr-inspector__move-row {
+  display: flex;
+  gap: var(--tr-sp-2);
+  align-items: center;
+}
+.tr-inspector__move-row .tr-select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tr-btn--danger {
+  color: var(--tr-danger);
+}
+.tr-btn--danger:hover {
+  background: color-mix(in srgb, var(--tr-danger) 10%, transparent);
+}
+
+/* ── Performance panel: small-height viewports ──────────────────────────── */
+
+@media (max-height: 520px) {
+  /* Guarantee the surface body stays visible; let UNMIX/TAKES shrink */
+  .tr-perf__body {
+    min-height: 120px;
+  }
+  .tr-perf__unmix {
+    flex-shrink: 1;
+    min-height: 0;
+    max-height: 100px;
+  }
+  .tr-perf__takes {
+    flex-shrink: 1;
+    min-height: 0;
+    max-height: 100px;
+  }
+}
+
+/* ── Performance panel: mobile overrides ─────────────────────────────────── */
+
+@media (max-width: 959px) {
+  .tr-perf__cue-col {
+    width: 100%;
+    max-height: 120px;
+    border-right: none;
+    border-top: 1px solid var(--tr-line);
+    flex-direction: row;
+    flex-shrink: 0;
+  }
+
+  .tr-perf__body {
+    flex-direction: column;
+  }
+
+  .tr-perf__surface-col {
+    flex: 1;
+    border-right: none;
+  }
+
+  .tr-perf__unmix,
+  .tr-perf__takes {
+    display: block; /* counteract legacy display:none from old grid layout */
+    max-height: 160px;
+  }
+}
+

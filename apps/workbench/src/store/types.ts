@@ -27,16 +27,23 @@ export type SelectionTarget =
 export interface SelectionState {
   primary: SelectionTarget;
   secondary: SelectionTarget;
+  // Last selection made while each chamber was active, so returning to a
+  // chamber restores its own context instead of showing whatever chamber
+  // was visited most recently (see selectionRules.ts).
+  lastValidByPanel: Partial<Record<EditorPanel, SelectionTarget>>;
 }
 
 // ── Editor state ───────────────────────────────────────────────────────────────
 
 export type EditorPanel = "source" | "materials" | "forms" | "instruments" | "composition" | "automation" | "performance" | "archive";
 
+export type InspectorMode = "docked" | "overlay" | "sheet";
+
 export interface EditorState {
   activePanel: EditorPanel;
   sidebarOpen: boolean;
   inspectorOpen: boolean;
+  inspectorMode: InspectorMode;
   previewFresh: boolean;
   previewHtml: string | null;
 }
@@ -78,6 +85,20 @@ export interface ImportReceiptState {
   fullReceipt: ImportReceipt | null;
 }
 
+// ── Feedback (shared action receipt / live region) ────────────────────────────
+
+export type FeedbackTone = "success" | "error" | "info";
+
+export interface FeedbackMessage {
+  id: number;
+  tone: FeedbackTone;
+  text: string;
+}
+
+export interface FeedbackState {
+  current: FeedbackMessage | null;
+}
+
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 export interface RootState {
@@ -89,4 +110,5 @@ export interface RootState {
   importReceipt: ImportReceiptState;
   takes: TakesState;
   surface: SurfaceState;
+  feedback: FeedbackState;
 }

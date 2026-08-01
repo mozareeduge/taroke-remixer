@@ -59,16 +59,6 @@ const NAV_LABELS_A11Y: Record<string, string> = {
   "Archive": "Import & Export",
 };
 
-const MOBILE_NAV_A11Y: Record<string, { top: string; sub?: string }> = {
-  "Banks & Samples": { top: "Material", sub: "Banks & Samples" },
-  "Forms":           { top: "Material", sub: "Forms" },
-  "Devices":         { top: "Devices" },
-  "Patterns":        { top: "Compose" },
-  "Triggers":        { top: "Automate" },
-  "Cue & Surface":   { top: "Perform" },
-  "Import & Export": { top: "Archive" },
-};
-
 async function clickNav(page: Page, label: string) {
   const desktopName = NAV_LABELS_A11Y[label] ?? label;
 
@@ -77,12 +67,17 @@ async function clickNav(page: Page, label: string) {
     return;
   }
 
-  const route = MOBILE_NAV_A11Y[desktopName];
-  if (!route) throw new Error(`No mobile nav route for "${desktopName}"`);
-  await page.getByRole("button", { name: route.top }).click();
-  if (route.sub) {
-    await page.getByRole("button", { name: route.sub }).click();
+  // Mobile: the chamber switcher lists all eight chambers by their canonical
+  // name (the same `label` passed in, e.g. "Materials", "Performance").
+  const trigger = page.locator(".tr-chamber-switcher__trigger");
+  if (await trigger.isVisible()) {
+    await trigger.click();
+    await page.getByRole("option", { name: new RegExp(`\\b${label}`) }).click();
+    return;
   }
+
+  // Short landscape: compact scrollable rail instead of the collapsed switcher.
+  await page.locator(".tr-chamber-rail__btn", { hasText: label }).click();
 }
 
 test("a11y — shell (no panel active)", async ({ page }) => {
@@ -138,4 +133,81 @@ test("a11y — Archive panel", async ({ page }) => {
   await clickNav(page, "Archive");
   await injectAxe(page);
   await runAxe(page, "Archive");
+});
+
+// ── T05: non-default states (selected, editing, in-progress) ────────────────
+// The checks above only exercise each panel's neutral default state; several
+// real violations (e.g. the SHELL-09 nested-interactive card bug) were only
+// found by auditing a panel mid-interaction.
+
+test("a11y — Materials panel with a sample selected (mobile card state)", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await goto(page);
+  await clickNav(page, "Materials");
+  await page.waitForTimeout(150);
+  const firstCard = page.locator(".tr-mat-card__select").first();
+  await expect(firstCard).toBeVisible({ timeout: 5_000 });
+  await firstCard.click();
+  await injectAxe(page);
+  await runAxe(page, "Materials (sample selected, mobile card)");
+});
+
+test("a11y — Forms panel with the before/after bench open", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Materials");
+  await page.locator(".tr-mat-table__literal, .tr-mat-card__literal").first().click();
+  await clickNav(page, "Forms");
+  await page.waitForTimeout(150);
+  await expect(page.locator("[data-form-override]").first()).toBeVisible({ timeout: 3_000 });
+  await injectAxe(page);
+  await runAxe(page, "Forms (bench open)");
+});
+
+test("a11y — Archive panel with preview built (READY badge, iframe present)", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Archive");
+  await page.getByRole("button", { name: /generate preview of exported artifact/i }).click();
+  await expect(page.locator("[data-preview-lifecycle]").first()).toHaveAttribute("data-preview-lifecycle", "ready", { timeout: 5_000 });
+  await injectAxe(page);
+  await runAxe(page, "Archive (preview ready)");
+});
+
+test("a11y — Composition panel with a slot's Actions menu open", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Composition");
+  await page.getByRole("button", { name: /^Actions for slot /i }).first().click();
+  await injectAxe(page);
+  await runAxe(page, "Composition (Actions menu open)");
+});
+
+test("a11y — Automation panel with a trigger's editor and condition preview open", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Automation");
+  // No trigger exists by default — add one, then open its editor.
+  await page.getByLabel("New trigger name").fill("a11y test trigger");
+  await page.getByRole("button", { name: "+ Trigger" }).click();
+  await page.locator(".tr-trigger__select-btn").first().click();
+  await expect(page.locator(".tr-trigger__preview")).toBeVisible();
+  await injectAxe(page);
+  await runAxe(page, "Automation (editor + condition preview open)");
+});
+
+test("a11y — Archive panel with the import preflight replacement warning open", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Archive");
+  const validProject = JSON.stringify({
+    schemaVersion: "7.8",
+    project: { title: "a11y-preflight-test", author: "" },
+    materials: { trays: {}, bankMeta: {} },
+    forms: { casePolicy: "source" },
+    lineDevices: [], stanzaPatterns: [], flowScenes: [], triggers: [], meta: {},
+  });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "a11y-preflight.taroke.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(validProject),
+  });
+  await expect(page.getByRole("alertdialog", { name: /confirm import/i })).toBeVisible({ timeout: 3000 });
+  await injectAxe(page);
+  await runAxe(page, "Archive (import preflight open)");
 });

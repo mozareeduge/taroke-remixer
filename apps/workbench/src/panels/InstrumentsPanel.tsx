@@ -1,26 +1,21 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectDevice, selectRoute } from "../store/selectionSlice.js";
 import {
-  addLineDevice, removeLineDevice, toggleDeviceEnabled,
+  addLineDevice, toggleDeviceEnabled,
   addRoute, removeRoute, updateRouteTemplate, setRouteWeight,
   addDeviceInput, removeDeviceInput, updateDeviceInput,
+  safeRemoveLineDevice, isBlocked,
 } from "../store/commands.js";
-import { uid } from "@taroke/core";
+import { uid, renderDeviceEvent } from "@taroke/core";
+import type { LineEvent } from "@taroke/schema";
+import { formsForRole } from "../shell/formRoles.js";
+import { validateRouteTemplate, type TemplateIssue } from "../shell/templateValidation.js";
 
-// Forms available per bank role — unknown roles degrade to ["literal"].
-// { key } matches the token form identifier; { label } is the user-visible name.
-const ROLE_FORMS: Record<string, { key: string; label: string }[]> = {
-  noun:      [{ key: "literal", label: "Literal" }, { key: "singular", label: "Singular" }, { key: "plural", label: "Plural" }],
-  verb:      [{ key: "literal", label: "Literal" }, { key: "thirdSingular", label: "3rd singular" }, { key: "imperative", label: "Imperative" }],
-  adjective: [{ key: "literal", label: "Literal" }],
-  adverb:    [{ key: "literal", label: "Literal" }],
-  mixed:     [{ key: "literal", label: "Literal" }],
-};
-const DEFAULT_FORMS: { key: string; label: string }[] = [{ key: "literal", label: "Literal" }];
+const ROUTES_DISCLOSURE_LIMIT = 8;
+const INPUTS_DISCLOSURE_LIMIT = 6;
 
-// Canonical bank role vocabulary — used to constrain the Role input to a <select>.
 const BANK_ROLES = ["noun", "verb", "adjective", "adverb", "mixed", "literal"] as const;
 
 interface PaletteEntry { variable: string; slot: string; form: string; available: boolean; }
@@ -34,19 +29,18 @@ interface VariablePaletteProps {
   onInsert: (text: string, routeId: string) => void;
 }
 
-function VariablePalette({ deviceId, routeId, routeTemplate, templateRef, onClose, onInsert }: VariablePaletteProps) {
+function VariablePalette({ deviceId, routeId, templateRef, onClose, onInsert }: VariablePaletteProps) {
   const project = useAppSelector((s) => s.project.present);
   const device = project.lineDevices.find((d) => d.id === deviceId);
   const [query, setQuery] = useState("");
   const [focusIdx, setFocusIdx] = useState(0);
-  const searchRef = useRef<HTMLInputElement>(null);
 
   const entries: PaletteEntry[] = [];
   if (device) {
     for (const inp of device.inputs) {
       const bankMeta = project.materials.bankMeta[inp.tray];
       const role = bankMeta?.role ?? inp.role ?? "literal";
-      const forms = ROLE_FORMS[role] ?? DEFAULT_FORMS;
+      const forms = formsForRole(role);
       const available = Object.keys(project.materials.trays).includes(inp.tray);
       for (const { key, label } of forms) {
         entries.push({ variable: `{${inp.slot}:${key}}`, slot: inp.slot, form: label, available });
@@ -81,7 +75,6 @@ function VariablePalette({ deviceId, routeId, routeTemplate, templateRef, onClos
     >
       <div className="tr-palette__header">
         <input
-          ref={searchRef}
           autoFocus
           className="tr-palette__search tr-input tr-input--sm"
           placeholder="Search variables…"
@@ -90,7 +83,7 @@ function VariablePalette({ deviceId, routeId, routeTemplate, templateRef, onClos
           aria-label="Search variables"
           aria-controls="tr-palette-list"
         />
-        <button className="tr-btn tr-btn--ghost tr-btn--sm" onClick={onClose} aria-label="Close variable palette">✕</button>
+        <button className="tr-btn tr-btn--ghost tr-btn--sm" onClick={onClose} aria-label="Close variable palette">Close</button>
       </div>
       <ul
         id="tr-palette-list"
@@ -126,6 +119,7 @@ function VariablePalette({ deviceId, routeId, routeTemplate, templateRef, onClos
 export function InstrumentsPanel() {
   const dispatch = useAppDispatch();
   const project = useAppSelector((s) => s.project.present);
+  const runState = useAppSelector((s) => s.runtime.runState);
   const primary = useAppSelector((s) => s.selection.primary);
 
   const devices = project.lineDevices ?? [];
@@ -137,7 +131,75 @@ export function InstrumentsPanel() {
 
   const [newDeviceName, setNewDeviceName] = useState("");
   const [openPaletteForRoute, setOpenPaletteForRoute] = useState<string | null>(null);
+  const [cueResult, setCueResult] = useState<LineEvent | null>(null);
+  const [cueError, setCueError] = useState<string | null>(null);
+  const [routeCue, setRouteCue] = useState<Record<string, { surface?: string; error?: string }>>({});
+  const [removeDeviceError, setRemoveDeviceError] = useState<string | null>(null);
+  const [advancedOpenFor, setAdvancedOpenFor] = useState<Record<string, boolean>>({});
+  const [routesExpanded, setRoutesExpanded] = useState(false);
+  const [inputsExpanded, setInputsExpanded] = useState(false);
   const templateRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+
+  // E3: switching devices collapses any >8-route/>6-input disclosure back
+  // to its default closed state rather than carrying it over.
+  useEffect(() => {
+    setRoutesExpanded(false);
+    setInputsExpanded(false);
+  }, [activeDeviceId]);
+
+  // INS-01/DS-INS-03: every route card shows a readable rendered example by
+  // default, not only after an explicit "Test route" click — recomputed
+  // whenever this device's routes change (weight/template edits, upstream
+  // Forms/Materials changes reflected through renderDeviceEvent) so the
+  // example stays causally current (DS-INS-13).
+  useEffect(() => {
+    if (!activeDevice) return;
+    const localRunState = { ...runState, queue: [...runState.queue] };
+    setRouteCue((prev) => {
+      const next = { ...prev };
+      for (const rt of activeDevice.routes) {
+        const ev = renderDeviceEvent(
+          project, activeDevice.id, { type: "device", deviceId: activeDevice.id }, localRunState, Math.random, rt.id
+        );
+        next[rt.id] = ev.type === "line" ? { surface: (ev as LineEvent).surface } : { error: (ev as { error?: string }).error ?? "error" };
+      }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDevice]);
+
+  function doCue() {
+    if (!activeDevice) return;
+    const localRunState = { ...runState, queue: [...runState.queue] };
+    const ev = renderDeviceEvent(project, activeDevice.id, { type: "device", deviceId: activeDevice.id }, localRunState);
+    if (ev.type === "line") {
+      setCueResult(ev as LineEvent);
+      setCueError(null);
+    } else {
+      setCueResult(null);
+      setCueError((ev as { error?: string }).error ?? "error");
+    }
+  }
+
+  // Testing beside the specific route being edited (INST-04) — the device
+  // Cue above only exercises the device's normal weighted route pick, which
+  // may never land on the route a user is actively authoring.
+  function doCueRoute(routeId: string) {
+    if (!activeDevice) return;
+    const localRunState = { ...runState, queue: [...runState.queue] };
+    const ev = renderDeviceEvent(
+      project, activeDevice.id, { type: "device", deviceId: activeDevice.id }, localRunState, Math.random, routeId
+    );
+    setRouteCue((prev) => ({
+      ...prev,
+      [routeId]: ev.type === "line" ? { surface: (ev as LineEvent).surface } : { error: (ev as { error?: string }).error ?? "error" },
+    }));
+  }
+
+  const selectedRouteId =
+    primary?.type === "route" && primary.deviceId === activeDevice?.id
+      ? primary.routeId
+      : activeDevice?.routes[0]?.id ?? null;
 
   function doAddDevice() {
     const name = newDeviceName.trim().toUpperCase();
@@ -203,6 +265,11 @@ export function InstrumentsPanel() {
       </div>
 
       <div className="tr-panel__main">
+        {/* E4: weight distinction — stated once, at the top of the chamber,
+            not repeated per-route. */}
+        <p className="tr-mat-weight-hint">
+          Sample weight chooses a sample inside a bank. Route weight chooses which route this device uses.
+        </p>
         {activeDevice ? (
           <>
             <div className="tr-panel__section-head">
@@ -216,11 +283,22 @@ export function InstrumentsPanel() {
               </button>
               <button
                 className="tr-btn tr-btn--ghost tr-btn--sm"
-                onClick={() => dispatch(mutateProject(removeLineDevice(project, activeDevice.id)))}
+                onClick={() => {
+                  const result = safeRemoveLineDevice(project, activeDevice.id);
+                  if (isBlocked(result)) {
+                    setRemoveDeviceError(`Cannot remove: ${result.reason} (${result.dependents.join(", ")})`);
+                  } else {
+                    setRemoveDeviceError(null);
+                    dispatch(mutateProject(result));
+                  }
+                }}
                 aria-label="Remove device"
               >
-                Remove
+                Remove device
               </button>
+              {removeDeviceError && (
+                <span className="tr-error" role="alert">{removeDeviceError}</span>
+              )}
             </div>
 
             <div className="tr-panel__subsection-head">INPUTS</div>
@@ -234,7 +312,9 @@ export function InstrumentsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {activeDevice.inputs.map((inp) => (
+                {/* E3: more than 6 inputs collapses to a progressive
+                    disclosure rather than a plain, ever-growing list. */}
+                {(inputsExpanded ? activeDevice.inputs : activeDevice.inputs.slice(0, INPUTS_DISCLOSURE_LIMIT)).map((inp) => (
                   <tr key={inp.id} className="tr-table__row">
                     <td className="tr-table__td">
                       <input
@@ -270,15 +350,26 @@ export function InstrumentsPanel() {
                     </td>
                     <td className="tr-table__td tr-table__td--action">
                       <button
-                        className="tr-btn tr-btn--icon"
+                        className="tr-btn tr-btn--ghost tr-btn--sm"
                         aria-label={`Remove input ${inp.slot}`}
                         onClick={() => dispatch(mutateProject(removeDeviceInput(project, activeDevice.id, inp.id)))}
-                      >✕</button>
+                      >Remove</button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {activeDevice.inputs.length > INPUTS_DISCLOSURE_LIMIT && !inputsExpanded && (
+              <div className="tr-panel__add-row">
+                <button
+                  type="button"
+                  className="tr-btn tr-btn--ghost tr-btn--sm"
+                  onClick={() => setInputsExpanded(true)}
+                >
+                  Show all inputs ({activeDevice.inputs.length})
+                </button>
+              </div>
+            )}
             <div className="tr-panel__add-row">
               <button
                 className="tr-btn tr-btn--ghost"
@@ -292,99 +383,176 @@ export function InstrumentsPanel() {
 
             <div className="tr-panel__subsection-head">ROUTES</div>
             <div className="tr-routes">
-              {activeDevice.routes.map((rt) => (
-                <div
-                  key={rt.id}
-                  className={["tr-route", primary?.type === "route" && primary.routeId === rt.id ? "tr-route--selected" : ""].filter(Boolean).join(" ")}
-                >
-                  <div className="tr-route__header">
-                    <button
-                      className="tr-btn tr-btn--ghost tr-route__select-btn"
-                      aria-pressed={primary?.type === "route" && primary.routeId === rt.id}
-                      onClick={() => dispatch(selectRoute({ deviceId: activeDevice.id, routeId: rt.id }))}
-                    >
-                      <span className="tr-route__name">{rt.name}</span>
-                    </button>
-                    <input
-                      type="number"
-                      className="tr-input tr-input--num"
-                      value={rt.weight}
-                      min={0}
-                      max={999}
-                      onChange={(e) => dispatch(mutateProject(setRouteWeight(project, activeDevice.id, rt.id, Number(e.target.value))))}
-                      aria-label={`Weight for route ${rt.name}`}
-                    />
-                    <button
-                      className="tr-btn tr-btn--icon"
-                      aria-label={`Remove route ${rt.name}`}
-                      onClick={() => dispatch(mutateProject(removeRoute(project, activeDevice.id, rt.id)))}
-                    >✕</button>
-                  </div>
-                  <div className="tr-route__editor">
-                    <textarea
-                      ref={(el) => { templateRefs.current[rt.id] = el; }}
-                      className="tr-route__template"
-                      value={rt.template}
-                      rows={2}
-                      onChange={(e) => dispatch(mutateProject(updateRouteTemplate(project, activeDevice.id, rt.id, e.target.value)))}
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label={`Template for route ${rt.name}`}
-                      spellCheck={false}
-                      data-route-template={rt.id}
-                    />
-                    {activeDevice.inputs.length > 0 && (
-                      <div className="tr-route__palette-row">
-                        {/* Quick chip palette — role-aware forms */}
-                        {activeDevice.inputs.map((inp) => {
-                          const bankMeta = project.materials.bankMeta[inp.tray];
-                          const role = bankMeta?.role ?? inp.role ?? "literal";
-                          const forms = ROLE_FORMS[role] ?? DEFAULT_FORMS;
-                          return forms.map(({ key, label }) => (
-                            <button
-                              key={`${inp.slot}:${key}`}
-                              className="tr-btn tr-btn--chip"
-                              aria-label={`Insert ${inp.slot}:${key} variable`}
-                              title={`${inp.slot} — ${label}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleInsert(`{${inp.slot}:${key}}`, rt.id);
-                              }}
-                            >
-                              <span className="tr-chip__var">{`{${inp.slot}:`}</span>
-                              <span className="tr-chip__label">{label}</span>
-                              <span className="tr-chip__var">{"}"}</span>
-                            </button>
-                          ));
-                        })}
+              {activeDevice.routes.length === 0 && (
+                <p className="tr-panel__empty">No routes yet. Add a route to make this device speak.</p>
+              )}
+              {/* E3: more than 8 routes collapses to a progressive disclosure;
+                  the currently selected route always stays visible even if
+                  it would otherwise fall past the fold. */}
+              {(routesExpanded || activeDevice.routes.length <= ROUTES_DISCLOSURE_LIMIT
+                ? activeDevice.routes
+                : (() => {
+                    const head = activeDevice.routes.slice(0, ROUTES_DISCLOSURE_LIMIT);
+                    if (selectedRouteId && !head.some((r) => r.id === selectedRouteId)) {
+                      const sel = activeDevice.routes.find((r) => r.id === selectedRouteId);
+                      if (sel) return [...head, sel];
+                    }
+                    return head;
+                  })()
+              ).map((rt) => {
+                const isSelected = rt.id === selectedRouteId;
+                const templateIssues = validateRouteTemplate(rt.template, activeDevice, project);
+                return (
+                  <div
+                    key={rt.id}
+                    className={["tr-route", isSelected ? "tr-route--selected" : ""].filter(Boolean).join(" ")}
+                  >
+                    <div className="tr-route__header">
+                      <button
+                        className="tr-btn tr-btn--ghost tr-route__select-btn"
+                        aria-pressed={isSelected}
+                        onClick={() => dispatch(selectRoute({ deviceId: activeDevice.id, routeId: rt.id }))}
+                      >
+                        <span className="tr-route__name">{rt.name}</span>
+                      </button>
+                      <span className="tr-route__weight-label">wt</span>
+                      <input
+                        type="number"
+                        className="tr-input tr-input--num"
+                        value={rt.weight}
+                        min={0}
+                        max={999}
+                        onChange={(e) => dispatch(mutateProject(setRouteWeight(project, activeDevice.id, rt.id, Number(e.target.value))))}
+                        aria-label={`Weight for route ${rt.name}`}
+                      />
+                      <button
+                        className="tr-btn tr-btn--ghost tr-btn--sm"
+                        aria-label={`Remove route ${rt.name}`}
+                        onClick={() => dispatch(mutateProject(removeRoute(project, activeDevice.id, rt.id)))}
+                      >Remove</button>
+                    </div>
+
+                    {/* INS-01/DS-INS-03: readable example is the primary,
+                        always-visible surface for every route card — raw
+                        syntax lives under Advanced below, only when selected. */}
+                    {routeCue[rt.id]?.error && (
+                      <p className="tr-cue-device__error" role="alert">{routeCue[rt.id]!.error}</p>
+                    )}
+                    {routeCue[rt.id]?.surface && (
+                      <p className="tr-route__example" aria-live="off">
+                        <span className="tr-route__example-label">renders like</span> {routeCue[rt.id]!.surface}
+                      </p>
+                    )}
+
+                    {isSelected && (
+                      <div className="tr-route__editor">
                         <button
                           className="tr-btn tr-btn--ghost tr-btn--sm"
-                          aria-label="Open variable palette"
-                          aria-haspopup="dialog"
-                          onClick={(e) => { e.stopPropagation(); setOpenPaletteForRoute(openPaletteForRoute === rt.id ? null : rt.id); }}
+                          onClick={(e) => { e.stopPropagation(); doCueRoute(rt.id); }}
+                          disabled={templateIssues.length > 0}
+                          aria-label={`Audition this route, ${rt.name} (private, not recorded)${templateIssues.length > 0 ? " — blocked by template errors" : ""}`}
                         >
-                          {openPaletteForRoute === rt.id ? "Close palette" : "Insert variable…"}
+                          Audition this route
                         </button>
+
+                        <div className="tr-route__advanced">
+                          <button
+                            type="button"
+                            className="tr-btn tr-btn--ghost tr-btn--sm"
+                            aria-expanded={Boolean(advancedOpenFor[rt.id])}
+                            aria-controls={`tr-route-advanced-${rt.id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAdvancedOpenFor((prev) => ({ ...prev, [rt.id]: !prev[rt.id] }));
+                            }}
+                          >
+                            {advancedOpenFor[rt.id] ? "Hide advanced: raw template" : "Advanced: edit raw template"}
+                          </button>
+                          {advancedOpenFor[rt.id] && (
+                            <div id={`tr-route-advanced-${rt.id}`} className="tr-route__advanced-body">
+                              <textarea
+                                ref={(el) => { templateRefs.current[rt.id] = el; }}
+                                className="tr-route__template"
+                                value={rt.template}
+                                rows={2}
+                                onChange={(e) => dispatch(mutateProject(updateRouteTemplate(project, activeDevice.id, rt.id, e.target.value)))}
+                                onClick={(e) => e.stopPropagation()}
+                                aria-label={`Template for route ${rt.name}`}
+                                spellCheck={false}
+                                data-route-template={rt.id}
+                                aria-invalid={templateIssues.length > 0}
+                                aria-describedby={templateIssues.length > 0 ? `tr-route-template-errors-${rt.id}` : undefined}
+                              />
+                              {templateIssues.length > 0 && (
+                                <ul id={`tr-route-template-errors-${rt.id}`} className="tr-route__template-errors" role="alert">
+                                  {templateIssues.map((issue, i) => (
+                                    <li key={i} className="tr-route__template-error">{issue.message}</li>
+                                  ))}
+                                </ul>
+                              )}
+                              <div className="tr-route__palette-row">
+                                {activeDevice.inputs.length > 0 && (
+                                  <button
+                                    className="tr-btn tr-btn--ghost tr-btn--sm"
+                                    aria-label="Insert variable…"
+                                    aria-haspopup="dialog"
+                                    onClick={(e) => { e.stopPropagation(); setOpenPaletteForRoute(openPaletteForRoute === rt.id ? null : rt.id); }}
+                                  >
+                                    {openPaletteForRoute === rt.id ? "Close palette" : "Insert variable…"}
+                                  </button>
+                                )}
+                              </div>
+                              {openPaletteForRoute === rt.id && (
+                                <VariablePalette
+                                  deviceId={activeDevice.id}
+                                  routeId={rt.id}
+                                  routeTemplate={rt.template}
+                                  templateRef={{ current: templateRefs.current[rt.id] ?? null }}
+                                  onClose={() => setOpenPaletteForRoute(null)}
+                                  onInsert={handleInsert}
+                                />
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
-                    {openPaletteForRoute === rt.id && (
-                      <VariablePalette
-                        deviceId={activeDevice.id}
-                        routeId={rt.id}
-                        routeTemplate={rt.template}
-                        templateRef={{ current: templateRefs.current[rt.id] ?? null }}
-                        onClose={() => setOpenPaletteForRoute(null)}
-                        onInsert={handleInsert}
-                      />
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
+              {!routesExpanded && activeDevice.routes.length > ROUTES_DISCLOSURE_LIMIT && (
+                <button
+                  type="button"
+                  className="tr-btn tr-btn--ghost tr-btn--sm"
+                  onClick={() => setRoutesExpanded(true)}
+                >
+                  Show all {activeDevice.routes.length} routes
+                </button>
+              )}
               <button
                 className="tr-btn tr-btn--ghost"
                 onClick={() => dispatch(mutateProject(addRoute(project, activeDevice.id, { id: uid("rt"), name: "new route", weight: 10, template: "" })))}
               >
                 + Route
               </button>
+            </div>
+            <div className="tr-panel__subsection-head">CUE</div>
+            <div className="tr-cue-device">
+              <button
+                className="tr-btn tr-btn--ghost tr-cue-device__btn"
+                onClick={doCue}
+                aria-label={`Audition device ${activeDevice.name} (private, not recorded)`}
+              >
+                Cue
+              </button>
+              {cueError && (
+                <p className="tr-cue-device__error" role="alert">{cueError}</p>
+              )}
+              {cueResult && (
+                <div className="tr-cue-device__output" aria-live="polite" aria-atomic="true">
+                  <p className="tr-cue-device__line">{cueResult.surface}</p>
+                </div>
+              )}
             </div>
           </>
         ) : (
