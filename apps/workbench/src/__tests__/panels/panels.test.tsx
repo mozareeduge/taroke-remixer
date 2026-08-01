@@ -79,6 +79,15 @@ describe("SourcePanel — lineage (T03)", () => {
     fireEvent.change(screen.getByLabelText("Source URL"), { target: { value: "" } });
     expect(screen.queryByRole("link", { name: /view origin text/i })).not.toBeInTheDocument();
   });
+
+  // DS-SRC-03: the Lineage link must apply the same http(s)-only validation
+  // as the editable Source URL field, not render a non-http(s) URL as a live link.
+  it("does not render the Lineage link for a non-http(s) source URL", () => {
+    const store = makeStore();
+    wrap(<SourcePanel />, store);
+    fireEvent.change(screen.getByLabelText("Source URL"), { target: { value: "javascript:alert(1)" } });
+    expect(screen.queryByRole("link", { name: /view origin text/i })).not.toBeInTheDocument();
+  });
 });
 
 // ── MaterialsPanel ─────────────────────────────────────────────────────────────

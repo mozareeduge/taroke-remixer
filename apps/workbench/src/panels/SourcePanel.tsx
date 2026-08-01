@@ -41,7 +41,7 @@ export function SourcePanel() {
         <div className="tr-panel__section-head">LINEAGE</div>
         <div className="tr-source__lineage" role="note" aria-label="Source lineage">
           <p className="tr-source__lineage-text">{lineageText}</p>
-          {hasSource && info.sourceUrl && (
+          {hasSource && info.sourceUrl && isValidHttpUrl(info.sourceUrl) && (
             <a
               className="tr-source__lineage-link"
               href={info.sourceUrl}
