@@ -171,3 +171,43 @@ test("a11y — Archive panel with preview built (READY badge, iframe present)", 
   await injectAxe(page);
   await runAxe(page, "Archive (preview ready)");
 });
+
+test("a11y — Composition panel with a slot's Actions menu open", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Composition");
+  await page.getByRole("button", { name: /^Actions for slot /i }).first().click();
+  await injectAxe(page);
+  await runAxe(page, "Composition (Actions menu open)");
+});
+
+test("a11y — Automation panel with a trigger's editor and condition preview open", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Automation");
+  // No trigger exists by default — add one, then open its editor.
+  await page.getByLabel("New trigger name").fill("a11y test trigger");
+  await page.getByRole("button", { name: "+ Trigger" }).click();
+  await page.locator(".tr-trigger__select-btn").first().click();
+  await expect(page.locator(".tr-trigger__preview")).toBeVisible();
+  await injectAxe(page);
+  await runAxe(page, "Automation (editor + condition preview open)");
+});
+
+test("a11y — Archive panel with the import preflight replacement warning open", async ({ page }) => {
+  await goto(page);
+  await clickNav(page, "Archive");
+  const validProject = JSON.stringify({
+    schemaVersion: "7.8",
+    project: { title: "a11y-preflight-test", author: "" },
+    materials: { trays: {}, bankMeta: {} },
+    forms: { casePolicy: "source" },
+    lineDevices: [], stanzaPatterns: [], flowScenes: [], triggers: [], meta: {},
+  });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "a11y-preflight.taroke.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(validProject),
+  });
+  await expect(page.getByRole("alertdialog", { name: /confirm import/i })).toBeVisible({ timeout: 3000 });
+  await injectAxe(page);
+  await runAxe(page, "Archive (import preflight open)");
+});
