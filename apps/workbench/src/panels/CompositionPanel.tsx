@@ -1,21 +1,31 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectStanza, selectScene } from "../store/selectionSlice.js";
 import { announce } from "../store/feedbackSlice.js";
+import { ConfirmInline } from "../shell/ConfirmInline.js";
+import { useMediaQuery } from "../shell/useMediaQuery.js";
 import {
   addStanzaPattern, toggleStanzaEnabled,
   addStanzaSlot, removeStanzaSlot, reorderStanzaSlots, setSlotChance, setSlotRepeat,
   addFlowScene, removeFlowScene, toggleSceneEnabled, setSceneChance,
   safeRemoveStanzaPattern, isBlocked,
 } from "../store/commands.js";
+import { expandStanza } from "@taroke/core";
 import { uid } from "@taroke/core";
-import type { StanzaSlot } from "@taroke/schema";
+import type { StanzaSlot, QueueEntry } from "@taroke/schema";
+
+/** Below this width a slot row (drag grip, index, label, chance, repeat,
+ * actions) cannot carry touch-sized controls without compressing itself
+ * into an unreadable strip — slots become cards instead, mirroring the
+ * Materials sample-card treatment (SHELL-09). */
+const COMPACT_QUERY = "(max-width: 699px)";
 
 export function CompositionPanel() {
   const dispatch = useAppDispatch();
   const project = useAppSelector((s) => s.project.present);
   const primary = useAppSelector((s) => s.selection.primary);
+  const isCompact = useMediaQuery(COMPACT_QUERY);
 
   const stanzas = project.stanzaPatterns ?? [];
   const scenes = project.flowScenes ?? [];
@@ -26,34 +36,18 @@ export function CompositionPanel() {
 
   const [newStanzaName, setNewStanzaName] = useState("");
   const [newSceneName, setNewSceneName] = useState("");
-  const [openMoveMenuId, setOpenMoveMenuId] = useState<string | null>(null);
+  const [actionsMenuFor, setActionsMenuFor] = useState<string | null>(null);
+  const [pendingRemoveSlotId, setPendingRemoveSlotId] = useState<string | null>(null);
+  const [pendingRemovePattern, setPendingRemovePattern] = useState(false);
+  const [pendingRemoveSceneId, setPendingRemoveSceneId] = useState<string | null>(null);
   const [removePatternError, setRemovePatternError] = useState<string | null>(null);
+  const [resolution, setResolution] = useState<QueueEntry[] | null>(null);
 
-  // ── HTML5 pointer drag state ──────────────────────────────────────────────────
+  // ── Pointer drag state (desktop rows only — the Actions menu below is the
+  // single keyboard/touch-safe reorder path, so drag and menu never compete
+  // for the same gesture). ─────────────────────────────────────────────────
   const [dragFromIdx, setDragFromIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-
-  // ── Keyboard pickup/move/drop state ──────────────────────────────────────────
-  // When pickedUpId is set, the slot is "in the air"; localOrder is the preview.
-  const [pickedUpId, setPickedUpId] = useState<string | null>(null);
-  const [localOrder, setLocalOrder] = useState<string[] | null>(null);
-
-  // ── Touch drag state ──────────────────────────────────────────────────────────
-  const [touchDragId, setTouchDragId] = useState<string | null>(null);
-  const [touchOverId, setTouchOverId] = useState<string | null>(null);
-  const slotsListRef = useRef<HTMLDivElement>(null);
-
-  // Attach a non-passive touchmove listener so preventDefault() actually works on
-  // iOS/Chrome — React synthetic events are passive by default and silently ignore it.
-  useEffect(() => {
-    const el = slotsListRef.current;
-    if (!el) return;
-    function handleNativeTouchMove(e: TouchEvent) {
-      if (touchDragId) e.preventDefault();
-    }
-    el.addEventListener("touchmove", handleNativeTouchMove, { passive: false });
-    return () => el.removeEventListener("touchmove", handleNativeTouchMove);
-  }, [touchDragId]);
 
   const trimmedStanzaName = newStanzaName.trim();
   const canAddStanza = trimmedStanzaName.length > 0;
@@ -69,6 +63,7 @@ export function CompositionPanel() {
       slots: [],
     };
     dispatch(mutateProject(addStanzaPattern(project, stanza)));
+    dispatch(selectStanza(stanza.id));
     dispatch(announce(`Added pattern "${trimmedStanzaName}".`));
     setNewStanzaName("");
   }
@@ -96,6 +91,18 @@ export function CompositionPanel() {
     setNewSceneName("");
   }
 
+  function doAddBreathSlot() {
+    if (!activeStanzaId) return;
+    dispatch(mutateProject(addStanzaSlot(project, activeStanzaId, { id: uid("slot"), type: "breath", label: "BREATH", repeat: "once", chance: 100 })));
+    setResolution(null);
+  }
+
+  function doAddDeviceSlot(deviceId: string, deviceName: string) {
+    if (!activeStanzaId) return;
+    dispatch(mutateProject(addStanzaSlot(project, activeStanzaId, { id: uid("slot"), type: "device", deviceId, label: deviceName, repeat: "once", chance: 100 })));
+    setResolution(null);
+  }
+
   function moveSlotTo(slotId: string, toIndex: number) {
     if (!activeStanza) return;
     const ids = activeStanza.slots.map((s) => s.id);
@@ -106,31 +113,20 @@ export function CompositionPanel() {
     ids.splice(fromIdx, 1);
     ids.splice(clamped, 0, slotId);
     dispatch(mutateProject(reorderStanzaSlots(project, activeStanza.id, ids)));
-    setOpenMoveMenuId(null);
+    setActionsMenuFor(null);
+    setResolution(null);
   }
 
-  function doAddBreathSlot() {
-    if (!activeStanzaId) return;
-    dispatch(mutateProject(addStanzaSlot(project, activeStanzaId, { id: uid("slot"), type: "breath", label: "BREATH", repeat: "once", chance: 100 })));
-  }
-
-  function doAddDeviceSlot(deviceId: string, deviceName: string) {
-    if (!activeStanzaId) return;
-    dispatch(mutateProject(addStanzaSlot(project, activeStanzaId, { id: uid("slot"), type: "device", deviceId, label: deviceName, repeat: "once", chance: 100 })));
-  }
-
-  // ── Pointer drag handlers ─────────────────────────────────────────────────────
+  // ── Pointer drag handlers (desktop direct manipulation) ──────────────────
 
   function onDragStart(i: number) {
     setDragFromIdx(i);
-    cancelPickup();
+    setActionsMenuFor(null);
   }
-
   function onDragOver(e: React.DragEvent, i: number) {
     e.preventDefault();
     setDragOverIdx(i);
   }
-
   function onDrop(e: React.DragEvent, i: number) {
     e.preventDefault();
     if (dragFromIdx === null || dragFromIdx === i || !activeStanza) {
@@ -146,105 +142,97 @@ export function CompositionPanel() {
     dispatch(mutateProject(reorderStanzaSlots(project, activeStanza.id, ids)));
     setDragFromIdx(null);
     setDragOverIdx(null);
+    setResolution(null);
   }
-
   function onDragEnd() {
     setDragFromIdx(null);
     setDragOverIdx(null);
   }
 
-  // ── Touch drag handlers ───────────────────────────────────────────────────────
-
-  function onTouchStart(slotId: string) {
-    cancelPickup();
-    setTouchDragId(slotId);
-    setTouchOverId(null);
+  function requestRemoveSlot(slotId: string) {
+    setActionsMenuFor(null);
+    setPendingRemoveSlotId(slotId);
   }
-
-  function onTouchMove(e: React.TouchEvent) {
-    if (!touchDragId) return;
-    const touch = e.touches[0];
-    if (!touch) return;
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const row = el?.closest("[data-slot-id]");
-    const overId = row?.getAttribute("data-slot-id") ?? null;
-    setTouchOverId(overId !== touchDragId ? overId : null);
-  }
-
-  function onTouchEnd() {
-    if (touchDragId && touchOverId && activeStanza) {
-      const ids = activeStanza.slots.map((s) => s.id);
-      const fromIdx = ids.indexOf(touchDragId);
-      const toIdx = ids.indexOf(touchOverId);
-      if (fromIdx >= 0 && toIdx >= 0 && fromIdx !== toIdx) {
-        ids.splice(fromIdx, 1);
-        ids.splice(toIdx, 0, touchDragId);
-        dispatch(mutateProject(reorderStanzaSlots(project, activeStanza.id, ids)));
-      }
-    }
-    setTouchDragId(null);
-    setTouchOverId(null);
-  }
-
-  // OS-level cancel (call, notification, system gesture) — never commit; only clear state.
-  function onTouchCancel() {
-    setTouchDragId(null);
-    setTouchOverId(null);
-  }
-
-  // ── Keyboard pickup/move/drop handlers ───────────────────────────────────────
-
-  function startPickup(slotId: string) {
+  function confirmRemoveSlot(slotId: string, label: string) {
     if (!activeStanza) return;
-    setPickedUpId(slotId);
-    setLocalOrder(activeStanza.slots.map((s) => s.id));
+    dispatch(mutateProject(removeStanzaSlot(project, activeStanza.id, slotId)));
+    dispatch(announce(`Removed slot "${label}".`));
+    setPendingRemoveSlotId(null);
+    setResolution(null);
   }
 
-  function movePickedUp(delta: number) {
-    if (!pickedUpId || !localOrder) return;
-    const idx = localOrder.indexOf(pickedUpId);
-    const newIdx = idx + delta;
-    if (newIdx < 0 || newIdx >= localOrder.length) return;
-    const next = [...localOrder];
-    next.splice(idx, 1);
-    next.splice(newIdx, 0, pickedUpId);
-    setLocalOrder(next);
+  function requestRemoveScene(sceneId: string) {
+    setPendingRemoveSceneId(sceneId);
+  }
+  function confirmRemoveScene(sceneId: string, name: string) {
+    dispatch(mutateProject(removeFlowScene(project, sceneId)));
+    dispatch(announce(`Removed scene "${name}".`));
+    setPendingRemoveSceneId(null);
   }
 
-  function commitPickup() {
-    if (!pickedUpId || !localOrder || !activeStanza) { cancelPickup(); return; }
-    dispatch(mutateProject(reorderStanzaSlots(project, activeStanza.id, localOrder)));
-    setPickedUpId(null);
-    setLocalOrder(null);
+  function doRemovePattern() {
+    if (!activeStanza) return;
+    const result = safeRemoveStanzaPattern(project, activeStanza.id);
+    if (isBlocked(result)) {
+      setRemovePatternError(`Cannot remove: ${result.reason} (${result.dependents.join(", ")})`);
+      setPendingRemovePattern(false);
+    } else {
+      setRemovePatternError(null);
+      dispatch(mutateProject(result));
+      dispatch(announce(`Removed pattern "${activeStanza.name}".`));
+      setPendingRemovePattern(false);
+    }
   }
 
-  function cancelPickup() {
-    setPickedUpId(null);
-    setLocalOrder(null);
+  function doPreviewResolution() {
+    if (!activeStanza) return;
+    setResolution(expandStanza(project, activeStanza.id, Math.random));
   }
 
-  const handleDragHandleKeyDown = useCallback(
-    (e: React.KeyboardEvent, slotId: string) => {
-      if (pickedUpId === null) {
-        if (e.key === " ") { e.preventDefault(); startPickup(slotId); }
-        return;
-      }
-      if (pickedUpId !== slotId) return; // Only the picked-up handle reacts
-      if (e.key === "ArrowUp")   { e.preventDefault(); movePickedUp(-1); }
-      if (e.key === "ArrowDown") { e.preventDefault(); movePickedUp(1); }
-      if (e.key === " " || e.key === "Enter") { e.preventDefault(); commitPickup(); }
-      if (e.key === "Escape")    { e.preventDefault(); cancelPickup(); }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pickedUpId, localOrder, activeStanza, project],
-  );
+  const displaySlots: StanzaSlot[] = activeStanza ? activeStanza.slots : [];
+  const activeScenes = activeStanza ? scenes.filter((sc) => sc.stanzaId === activeStanza.id) : [];
 
-  // Display order: use localOrder during keyboard pickup, otherwise follow Redux
-  const displaySlots: StanzaSlot[] = activeStanza
-    ? localOrder
-      ? localOrder.map((id) => activeStanza.slots.find((s) => s.id === id)!).filter(Boolean)
-      : activeStanza.slots
-    : [];
+  function renderSlotActionsMenu(slot: StanzaSlot, idx: number) {
+    return (
+      <div className="tr-move-menu-wrap">
+        <button
+          className="tr-btn tr-btn--ghost tr-btn--sm"
+          aria-label={`Actions for slot ${slot.label}`}
+          aria-haspopup="true"
+          aria-expanded={actionsMenuFor === slot.id}
+          onClick={() => setActionsMenuFor(actionsMenuFor === slot.id ? null : slot.id)}
+        >
+          Actions ···
+        </button>
+        {actionsMenuFor === slot.id && (
+          <div className="tr-move-menu" role="menu" aria-label={`Actions for slot ${slot.label}`}>
+            <button role="menuitem" className="tr-move-menu__item" disabled={idx === 0}
+              onClick={() => moveSlotTo(slot.id, 0)}>Move to start</button>
+            <button role="menuitem" className="tr-move-menu__item" disabled={idx === 0}
+              onClick={() => moveSlotTo(slot.id, idx - 1)}>Move earlier</button>
+            <button role="menuitem" className="tr-move-menu__item" disabled={idx === displaySlots.length - 1}
+              onClick={() => moveSlotTo(slot.id, idx + 1)}>Move later</button>
+            <button role="menuitem" className="tr-move-menu__item" disabled={idx === displaySlots.length - 1}
+              onClick={() => moveSlotTo(slot.id, displaySlots.length - 1)}>Move to end</button>
+            <div className="tr-move-menu__sep" role="separator" />
+            <button role="menuitem" className="tr-move-menu__item tr-move-menu__item--danger"
+              onClick={() => requestRemoveSlot(slot.id)}>Remove slot</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderConfirmRemoveSlot(slot: StanzaSlot) {
+    if (pendingRemoveSlotId !== slot.id) return null;
+    return (
+      <ConfirmInline
+        message={`Remove slot "${slot.label}" from this pattern?`}
+        onCancel={() => setPendingRemoveSlotId(null)}
+        onConfirm={() => confirmRemoveSlot(slot.id, slot.label)}
+      />
+    );
+  }
 
   return (
     <div className="tr-panel tr-panel--composition">
@@ -299,48 +287,107 @@ export function CompositionPanel() {
               >
                 {activeStanza.enabled ? "Enabled" : "Disabled"}
               </button>
-              <button
-                className="tr-btn tr-btn--ghost tr-btn--sm"
-                onClick={() => {
-                  const result = safeRemoveStanzaPattern(project, activeStanza.id);
-                  if (isBlocked(result)) {
-                    setRemovePatternError(`Cannot remove: ${result.reason} (${result.dependents.join(", ")})`);
-                  } else {
-                    setRemovePatternError(null);
-                    dispatch(mutateProject(result));
-                  }
-                }}
-                aria-label={`Remove ${activeStanza.name}`}
-              >
-                Remove
-              </button>
+              {!pendingRemovePattern ? (
+                <button
+                  className="tr-btn tr-btn--ghost tr-btn--sm"
+                  onClick={() => setPendingRemovePattern(true)}
+                  aria-label={`Remove ${activeStanza.name}`}
+                >
+                  Remove
+                </button>
+              ) : (
+                <ConfirmInline
+                  message={`Remove pattern "${activeStanza.name}"?`}
+                  onCancel={() => setPendingRemovePattern(false)}
+                  onConfirm={doRemovePattern}
+                />
+              )}
               {removePatternError && (
                 <span className="tr-error" role="alert">{removePatternError}</span>
               )}
             </div>
 
-            <div className="tr-panel__subsection-head">SLOTS</div>
-            <div
-              className="tr-slots"
-              role="list"
-              aria-label="Pattern slots"
-              ref={slotsListRef}
-            >
-              {displaySlots.map((slot, i) => {
-                const realIdx = activeStanza.slots.findIndex((s) => s.id === slot.id);
-                const isPickedUp = pickedUpId === slot.id;
+            <div className="tr-panel__section-head tr-panel__subsection-head">
+              PATTERN SCORE
+              <span className="tr-panel__section-meta">the authored slot sequence — what plays, in what order</span>
+              <div className="tr-panel__section-actions">
+                <button
+                  className="tr-btn tr-btn--ghost tr-btn--sm"
+                  onClick={doPreviewResolution}
+                  disabled={displaySlots.length === 0}
+                  aria-disabled={displaySlots.length === 0}
+                  aria-label="Preview one resolution of this pattern's chance and repeat rules"
+                >
+                  Preview resolution
+                </button>
+              </div>
+            </div>
 
-                function moveSlot(delta: number) {
-                  const ids = activeStanza!.slots.map((s) => s.id);
-                  const newIdx = realIdx + delta;
-                  if (newIdx < 0 || newIdx >= ids.length) return;
-                  ids.splice(realIdx, 1);
-                  ids.splice(newIdx, 0, slot.id);
-                  dispatch(mutateProject(reorderStanzaSlots(project, activeStanza!.id, ids)));
-                }
+            {resolution && (
+              <div className="tr-score-preview" role="status" aria-label="Pattern resolution preview">
+                <p className="tr-score-preview__note">
+                  One possible resolution — chance and repeat are re-rolled each time this pattern plays.
+                </p>
+                {resolution.length === 0 ? (
+                  <p className="tr-panel__empty">Every slot rolled below its chance this time — nothing resolved.</p>
+                ) : (
+                  <ol className="tr-score-preview__list">
+                    {resolution.map((entry, i) => (
+                      <li key={i} className="tr-score-preview__item">
+                        {entry.type === "breath" ? "BREATH" : entry.label}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            )}
 
-                const isTouchOver = touchOverId === slot.id;
-                return (
+            {displaySlots.length === 0 ? (
+              <p className="tr-panel__empty">No slots yet — add BREATH or a device below to begin the pattern.</p>
+            ) : isCompact ? (
+              <ul className="tr-slots tr-slots--cards" aria-label="Pattern slots">
+                {displaySlots.map((slot, i) => (
+                  <li key={slot.id} className="tr-slot tr-slot--card" data-slot-id={slot.id}>
+                    <div className="tr-slot__card-main">
+                      <span className="tr-slot__index">{i + 1}</span>
+                      <span className="tr-slot__type">{slot.type === "breath" ? "BREATH" : slot.label}</span>
+                    </div>
+                    <div className="tr-slot__card-fields">
+                      <label className="tr-slot__field-label">
+                        Chance
+                        <input
+                          type="number"
+                          className="tr-input tr-input--num"
+                          value={slot.chance}
+                          min={0}
+                          max={100}
+                          onChange={(e) => dispatch(mutateProject(setSlotChance(project, activeStanza!.id, slot.id, Number(e.target.value))))}
+                          aria-label={`Chance for slot ${slot.label}`}
+                        />
+                      </label>
+                      <label className="tr-slot__field-label">
+                        Repeat
+                        <select
+                          className="tr-select tr-select--sm"
+                          value={slot.repeat}
+                          onChange={(e) => dispatch(mutateProject(setSlotRepeat(project, activeStanza!.id, slot.id, e.target.value as "once" | "loop")))}
+                          aria-label={`Repeat for slot ${slot.label}`}
+                        >
+                          <option value="once">once</option>
+                          <option value="loop">loop</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div className="tr-slot__card-actions">
+                      {renderSlotActionsMenu(slot, i)}
+                    </div>
+                    {renderConfirmRemoveSlot(slot)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="tr-slots" role="list" aria-label="Pattern slots">
+                {displaySlots.map((slot, i) => (
                   <div
                     key={slot.id}
                     role="listitem"
@@ -349,35 +396,14 @@ export function CompositionPanel() {
                       "tr-slot",
                       dragFromIdx === i ? "tr-slot--dragging" : "",
                       dragOverIdx === i ? "tr-slot--drag-over" : "",
-                      isPickedUp ? "tr-slot--picked-up" : "",
-                      touchDragId === slot.id ? "tr-slot--dragging" : "",
-                      isTouchOver ? "tr-slot--drag-over" : "",
                     ].filter(Boolean).join(" ")}
                     draggable
                     onDragStart={() => onDragStart(i)}
                     onDragOver={(e) => onDragOver(e, i)}
                     onDrop={(e) => onDrop(e, i)}
                     onDragEnd={onDragEnd}
-                    aria-grabbed={isPickedUp ? true : undefined}
                   >
-                    {/* Drag handle — keyboard pickup entry point + touch drag */}
-                    <button
-                      className="tr-btn tr-btn--icon tr-slot__drag-handle"
-                      aria-label={
-                        isPickedUp
-                          ? `Slot ${slot.label} picked up — use arrow keys to move, Space to drop, Escape to cancel`
-                          : `Reorder slot ${slot.label} — press Space to pick up`
-                      }
-                      aria-pressed={isPickedUp}
-                      onKeyDown={(e) => handleDragHandleKeyDown(e, slot.id)}
-                      onTouchStart={() => onTouchStart(slot.id)}
-                      onTouchMove={onTouchMove}
-                      onTouchEnd={onTouchEnd}
-                      onTouchCancel={onTouchCancel}
-                      tabIndex={0}
-                    >
-                      ⣿
-                    </button>
+                    <span className="tr-slot__drag-handle" aria-hidden="true" title="Drag to reorder">⣿</span>
                     <span className="tr-slot__index">{i + 1}</span>
                     <span className="tr-slot__type">{slot.type === "breath" ? "BREATH" : slot.label}</span>
                     <input
@@ -399,36 +425,12 @@ export function CompositionPanel() {
                       <option value="once">once</option>
                       <option value="loop">loop</option>
                     </select>
-                    <div className="tr-slot__move-menu-wrap">
-                      <button
-                        className="tr-btn tr-btn--ghost tr-btn--sm"
-                        aria-label={`Move slot ${slot.label}`}
-                        aria-haspopup="menu"
-                        aria-expanded={openMoveMenuId === slot.id}
-                        onClick={() => setOpenMoveMenuId(openMoveMenuId === slot.id ? null : slot.id)}
-                      >
-                        Move
-                      </button>
-                      {openMoveMenuId === slot.id && (
-                        <div className="tr-slot__move-menu" role="menu" aria-label={`Move slot ${slot.label}`}>
-                          <button role="menuitem" className="tr-btn tr-btn--ghost tr-btn--sm" onClick={() => moveSlotTo(slot.id, 0)}>To start</button>
-                          <button role="menuitem" className="tr-btn tr-btn--ghost tr-btn--sm" onClick={() => moveSlotTo(slot.id, realIdx - 1)}>Earlier</button>
-                          <button role="menuitem" className="tr-btn tr-btn--ghost tr-btn--sm" onClick={() => moveSlotTo(slot.id, realIdx + 1)}>Later</button>
-                          <button role="menuitem" className="tr-btn tr-btn--ghost tr-btn--sm" onClick={() => moveSlotTo(slot.id, activeStanza!.slots.length - 1)}>To end</button>
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      className="tr-btn tr-btn--ghost tr-btn--sm"
-                      aria-label={`Remove slot ${slot.label}`}
-                      onClick={() => dispatch(mutateProject(removeStanzaSlot(project, activeStanza!.id, slot.id)))}
-                    >
-                      Remove slot
-                    </button>
+                    {renderSlotActionsMenu(slot, i)}
+                    {renderConfirmRemoveSlot(slot)}
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
             <div className="tr-slots__actions">
               <button className="tr-btn tr-btn--ghost" onClick={doAddBreathSlot}>+ Breath</button>
               {devices.map((dev) => (
@@ -442,68 +444,85 @@ export function CompositionPanel() {
               ))}
             </div>
 
-            <div className="tr-panel__subsection-head">SCENES</div>
-            <div className="tr-scenes">
-              {scenes.filter((sc) => sc.stanzaId === activeStanza.id).map((sc) => (
-                <div
-                  key={sc.id}
-                  className={["tr-scene", primary?.type === "scene" && primary.sceneId === sc.id ? "tr-scene--selected" : ""].filter(Boolean).join(" ")}
-                >
-                  <button
-                    className="tr-btn tr-btn--ghost tr-scene__select-btn"
-                    aria-pressed={primary?.type === "scene" && primary.sceneId === sc.id}
-                    onClick={() => dispatch(selectScene(sc.id))}
+            <div className="tr-panel__section-head tr-panel__subsection-head">
+              FLOW SCORE
+              <span className="tr-panel__section-meta">which scenes choose this pattern to play, and how often</span>
+            </div>
+
+            {activeScenes.length === 0 ? (
+              <p className="tr-panel__empty">No scenes yet — add one below to let this pattern play during a run.</p>
+            ) : (
+              <div className={["tr-scenes", isCompact ? "tr-scenes--cards" : ""].filter(Boolean).join(" ")}>
+                {activeScenes.map((sc) => (
+                  <div
+                    key={sc.id}
+                    className={["tr-scene", primary?.type === "scene" && primary.sceneId === sc.id ? "tr-scene--selected" : ""].filter(Boolean).join(" ")}
                   >
-                    <span className="tr-scene__name">{sc.name}</span>
-                  </button>
-                  <input
-                    type="number"
-                    className="tr-input tr-input--num"
-                    value={sc.chance}
-                    min={0}
-                    max={100}
-                    onChange={(e) => dispatch(mutateProject(setSceneChance(project, sc.id, Number(e.target.value))))}
-                    aria-label={`Chance for scene ${sc.name}`}
-                  />
-                  <span className="tr-scene__mode">{sc.mode}</span>
-                  <button
-                    className={["tr-btn tr-btn--ghost tr-btn--sm", sc.enabled ? "" : "tr-btn--dim"].filter(Boolean).join(" ")}
-                    onClick={() => dispatch(mutateProject(toggleSceneEnabled(project, sc.id)))}
-                  >
-                    {sc.enabled ? "ON" : "OFF"}
-                  </button>
-                  <button
-                    className="tr-btn tr-btn--ghost tr-btn--sm"
-                    aria-label={`Remove scene ${sc.name}`}
-                    onClick={() => dispatch(mutateProject(removeFlowScene(project, sc.id)))}
-                  >
-                    Remove scene
-                  </button>
-                </div>
-              ))}
-              <div className="tr-panel__add-row">
-                <input
-                  className="tr-input tr-input--sm"
-                  placeholder="Scene name"
-                  value={newSceneName}
-                  onChange={(e) => setNewSceneName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") doAddScene(); }}
-                  aria-label="New scene name"
-                />
-                <button
-                  className="tr-btn tr-btn--ghost"
-                  onClick={doAddScene}
-                  disabled={!canAddScene}
-                  aria-disabled={!canAddScene}
-                  title={addSceneReason || undefined}
-                >
-                  + Scene
-                </button>
+                    <button
+                      className="tr-btn tr-btn--ghost tr-scene__select-btn"
+                      aria-pressed={primary?.type === "scene" && primary.sceneId === sc.id}
+                      onClick={() => dispatch(selectScene(sc.id))}
+                    >
+                      <span className="tr-scene__name">{sc.name}</span>
+                      <span className="tr-scene__link" aria-hidden="true">→ {activeStanza.name}</span>
+                    </button>
+                    <input
+                      type="number"
+                      className="tr-input tr-input--num"
+                      value={sc.chance}
+                      min={0}
+                      max={100}
+                      onChange={(e) => dispatch(mutateProject(setSceneChance(project, sc.id, Number(e.target.value))))}
+                      aria-label={`Chance for scene ${sc.name}`}
+                    />
+                    <span className="tr-scene__mode">{sc.mode}</span>
+                    <button
+                      className={["tr-btn tr-btn--ghost tr-btn--sm", sc.enabled ? "" : "tr-btn--dim"].filter(Boolean).join(" ")}
+                      onClick={() => dispatch(mutateProject(toggleSceneEnabled(project, sc.id)))}
+                    >
+                      {sc.enabled ? "ON" : "OFF"}
+                    </button>
+                    {pendingRemoveSceneId === sc.id ? (
+                      <ConfirmInline
+                        message={`Remove scene "${sc.name}"?`}
+                        onCancel={() => setPendingRemoveSceneId(null)}
+                        onConfirm={() => confirmRemoveScene(sc.id, sc.name)}
+                      />
+                    ) : (
+                      <button
+                        className="tr-btn tr-btn--ghost tr-btn--sm"
+                        aria-label={`Remove scene ${sc.name}`}
+                        onClick={() => requestRemoveScene(sc.id)}
+                      >
+                        Remove scene
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
+            )}
+            <div className="tr-panel__add-row">
+              <input
+                className="tr-input tr-input--sm"
+                placeholder="Scene name"
+                value={newSceneName}
+                onChange={(e) => setNewSceneName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") doAddScene(); }}
+                aria-label="New scene name"
+              />
+              <button
+                className="tr-btn tr-btn--ghost"
+                onClick={doAddScene}
+                disabled={!canAddScene}
+                aria-disabled={!canAddScene}
+                title={addSceneReason || undefined}
+              >
+                + Scene
+              </button>
             </div>
           </>
         ) : (
-          <p className="tr-panel__empty">Select a pattern to view its slots.</p>
+          <p className="tr-panel__empty">Select a pattern to view its Pattern Score and Flow Score.</p>
         )}
       </div>
     </div>

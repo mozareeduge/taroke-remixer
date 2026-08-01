@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectTrigger } from "../store/selectionSlice.js";
 import { announce } from "../store/feedbackSlice.js";
+import { ConfirmInline } from "../shell/ConfirmInline.js";
 import {
   addTrigger, removeTrigger, toggleTriggerEnabled,
   setTriggerCondition, setTriggerChance, setTriggerAction,
@@ -19,6 +20,7 @@ export function AutomationPanel() {
 
   const [newTriggerName, setNewTriggerName] = useState("");
   const [newTray, setNewTray] = useState(banks[0] ?? "");
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
 
   const trimmedTriggerName = newTriggerName.trim();
   const canAddTrigger = trimmedTriggerName.length > 0;
@@ -55,6 +57,25 @@ export function AutomationPanel() {
     dispatch(mutateProject(toggleTriggerEnabled(project, triggerId)));
   }
 
+  function requestRemove(triggerId: string) {
+    setPendingRemoveId(triggerId);
+  }
+  function confirmRemove(triggerId: string, name: string) {
+    dispatch(mutateProject(removeTrigger(project, triggerId)));
+    dispatch(announce(`Removed trigger "${name}".`));
+    setPendingRemoveId(null);
+  }
+
+  // Condition preview/test (ACT/AUTO): shows which samples in the chosen
+  // bank would actually satisfy WHEN right now, so chance/THEN aren't the
+  // only legible parts of a rule — the match itself is inspectable.
+  function matchingSamples(tray: string, term: string): string[] {
+    const tokens = project.materials.trays[tray] ?? [];
+    const literals = tokens.map((t) => t.literal);
+    if (!term.trim()) return literals;
+    return literals.filter((l) => l.toLowerCase() === term.trim().toLowerCase());
+  }
+
   return (
     <div className="tr-panel tr-panel--automation">
       <div className="tr-panel__main">
@@ -69,6 +90,7 @@ export function AutomationPanel() {
             const summary = `WHEN ${bankLabel} ${termDisplay} → ${tr.chance}% → THEN ${tr.action.type} ${actionDisplay}`;
             const pillState = !complete ? "draft" : tr.enabled ? "on" : "off";
             const pillText = !complete ? "DRAFT" : tr.enabled ? "ON" : "OFF";
+            const matches = matchingSamples(tr.condition.tray, tr.condition.term);
 
             return (
               <div
@@ -89,16 +111,21 @@ export function AutomationPanel() {
                     <span className="tr-trigger__name">{tr.name}</span>
                     <span className="tr-trigger__summary-text">{summary}</span>
                   </button>
-                  <button
-                    className="tr-btn tr-btn--ghost tr-btn--sm"
-                    aria-label={`Remove trigger ${tr.name}`}
-                    onClick={() => {
-                      dispatch(mutateProject(removeTrigger(project, tr.id)));
-                      dispatch(announce(`Removed trigger "${tr.name}".`));
-                    }}
-                  >
-                    Remove trigger
-                  </button>
+                  {pendingRemoveId === tr.id ? (
+                    <ConfirmInline
+                      message={`Remove trigger "${tr.name}"?`}
+                      onCancel={() => setPendingRemoveId(null)}
+                      onConfirm={() => confirmRemove(tr.id, tr.name)}
+                    />
+                  ) : (
+                    <button
+                      className="tr-btn tr-btn--ghost tr-btn--sm"
+                      aria-label={`Remove trigger ${tr.name}`}
+                      onClick={() => requestRemove(tr.id)}
+                    >
+                      Remove trigger
+                    </button>
+                  )}
                 </div>
 
                 {isSelected && (
@@ -122,6 +149,20 @@ export function AutomationPanel() {
                         onChange={(e) => dispatch(mutateProject(setTriggerCondition(project, tr.id, tr.condition.tray, e.target.value)))}
                         aria-label="Condition term"
                       />
+                    </div>
+
+                    <div className="tr-trigger__preview" role="status" aria-label="Condition preview: currently matching samples">
+                      {matches.length === 0 ? (
+                        <span className="tr-trigger__preview-empty">No sample in this bank currently matches — the rule cannot fire yet.</span>
+                      ) : (
+                        <>
+                          <span className="tr-trigger__preview-label">Matches now:</span>
+                          <span className="tr-trigger__preview-samples">
+                            {matches.slice(0, 6).join(", ")}
+                            {matches.length > 6 ? ` +${matches.length - 6} more` : ""}
+                          </span>
+                        </>
+                      )}
                     </div>
 
                     <div className="tr-trigger__row">
@@ -179,6 +220,10 @@ export function AutomationPanel() {
               </div>
             );
           })}
+
+          {triggers.length === 0 && (
+            <p className="tr-panel__empty">No triggers yet — add one below. It starts as a Draft until WHEN, chance, and THEN are all set.</p>
+          )}
 
           <div className="tr-panel__add-row">
             <input

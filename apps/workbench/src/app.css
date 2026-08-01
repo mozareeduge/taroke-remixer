@@ -2790,6 +2790,102 @@ details[open] > .tr-forms__bank-label::before {
   flex-shrink: 0;
 }
 
+.tr-scene__link {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+  margin-left: var(--tr-sp-2);
+}
+
+/* Pattern Score resolution preview — a rolled sample of the authored
+   chance/repeat rules, not the final generated text (that lives in
+   Performance). Distinct from the destructive/danger palette. */
+.tr-score-preview {
+  margin: 0 0 var(--tr-sp-3);
+  padding: var(--tr-sp-3);
+  background: var(--tr-plate);
+  border: 1px solid var(--tr-line-soft);
+  border-radius: var(--tr-radius-sm);
+}
+.tr-score-preview__note {
+  margin: 0 0 var(--tr-sp-2);
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+}
+.tr-score-preview__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tr-sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tr-score-preview__item {
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-text);
+  padding: 2px var(--tr-sp-2);
+  background: var(--tr-raised);
+  border-radius: var(--tr-radius-sm);
+}
+.tr-score-preview__item::before { content: "→ "; color: var(--tr-muted-min); }
+.tr-score-preview__item:first-child::before { content: ""; }
+
+/* Mobile-native Pattern Score cards — replaces the desktop row grid below
+   a width where drag handle + index + type + chance + repeat + actions
+   cannot carry touch-sized targets (SHELL-09 pattern, applied to Composition). */
+.tr-slots--cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tr-slot--card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-2);
+  padding: var(--tr-sp-3);
+  border: 1px solid var(--tr-line-soft);
+  border-radius: var(--tr-radius-sm);
+  background: var(--tr-plate);
+  position: relative;
+}
+.tr-slot__card-main {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+  font-size: var(--tr-font-size);
+  color: var(--tr-text);
+}
+.tr-slot__card-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tr-sp-3);
+}
+.tr-slot__field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--tr-font-size-sm);
+  color: var(--tr-muted-min);
+}
+.tr-slot__card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tr-scenes--cards {
+  gap: var(--tr-sp-2);
+}
+.tr-scenes--cards .tr-scene {
+  height: auto;
+  flex-wrap: wrap;
+  padding: var(--tr-sp-3);
+  border: 1px solid var(--tr-line-soft);
+  border-radius: var(--tr-radius-sm);
+  margin-bottom: var(--tr-sp-2);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    20. ARCHIVE PANEL — actual component classes
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -3547,6 +3643,29 @@ details[open] > .tr-forms__bank-label::before {
   padding: var(--tr-sp-1) 0 var(--tr-sp-2);
 }
 
+/* Condition preview/test path (ACT/AUTO): shows the actual match state
+   of WHEN right now, so the rule's causal consequence is inspectable
+   before Chance/THEN even come into play. */
+.tr-trigger__preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tr-sp-1) var(--tr-sp-2);
+  margin: var(--tr-sp-1) 0;
+  padding: var(--tr-sp-2);
+  font-size: var(--tr-font-size-sm);
+  background: var(--tr-plate);
+  border-radius: var(--tr-radius-sm);
+}
+.tr-trigger__preview-label {
+  color: var(--tr-muted-min);
+}
+.tr-trigger__preview-samples {
+  color: var(--tr-text);
+}
+.tr-trigger__preview-empty {
+  color: var(--tr-warning);
+}
+
 .tr-trigger__row--controls {
   padding-top: var(--tr-sp-1);
 }
@@ -3562,26 +3681,53 @@ details[open] > .tr-forms__bank-label::before {
 
 .tr-monitor {
   display: flex;
-  align-items: center;
-  gap: var(--tr-sp-2);
-  padding: 0 var(--tr-sp-4);
-  height: 30px;
+  flex-direction: column;
   flex-shrink: 0;
   border-bottom: 1px solid var(--tr-line-soft);
   background: var(--tr-plate);
   font-size: var(--tr-font-size-sm);
   color: var(--tr-muted);
+}
+
+.tr-monitor__header {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+  padding: var(--tr-sp-1) var(--tr-sp-4);
+}
+
+.tr-monitor__title {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--tr-text);
+  margin-right: auto;
+}
+
+.tr-monitor__compact {
+  display: flex;
+  align-items: center;
+  gap: var(--tr-sp-2);
+  padding: 0 var(--tr-sp-4) var(--tr-sp-1);
   overflow-x: auto;
   scrollbar-width: none;
 }
-.tr-monitor::-webkit-scrollbar { display: none; }
+.tr-monitor__compact::-webkit-scrollbar { display: none; }
 
 .tr-monitor__item { white-space: nowrap; }
 .tr-monitor__item strong { color: var(--tr-text); font-weight: normal; }
 
+.tr-monitor__item--mode {
+  color: var(--tr-text);
+  font-weight: 600;
+}
+
 .tr-monitor__sep {
   color: var(--tr-line);
   flex-shrink: 0;
+}
+
+.tr-monitor__detail {
+  padding: 0 var(--tr-sp-4) var(--tr-sp-2);
 }
 
 .tr-monitor__follow {

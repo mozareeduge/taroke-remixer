@@ -5,7 +5,7 @@ import { render, screen, fireEvent, waitFor, act, within } from "@testing-librar
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import projectReducer, { mutateProject } from "../../store/projectSlice.js";
-import selectionReducer, { selectBank, selectDevice, selectTrigger, selectToken } from "../../store/selectionSlice.js";
+import selectionReducer, { selectBank, selectDevice, selectTrigger, selectToken, selectStanza } from "../../store/selectionSlice.js";
 import editorReducer from "../../store/editorSlice.js";
 import runtimeReducer from "../../store/runtimeSlice.js";
 import historyReducer from "../../store/historySlice.js";
@@ -308,32 +308,47 @@ describe("CompositionPanel", () => {
     expect(screen.getAllByText(/Taroko scene/i).length).toBeGreaterThan(0);
   });
 
-  it("shows slots for selected stanza", () => {
+  it("shows Pattern Score slots for selected stanza", () => {
     wrap(<CompositionPanel />);
-    expect(screen.getByText("SLOTS")).toBeInTheDocument();
+    expect(screen.getByText("PATTERN SCORE")).toBeInTheDocument();
     const slotRows = document.querySelectorAll(".tr-slot");
     expect(slotRows.length).toBeGreaterThan(0);
   });
 
-  // R3: No 4-arrow clusters in slots
-  it("R3: no 4-arrow reorder cluster in slots", () => {
+  it("shows Flow Score scenes for selected stanza", () => {
+    wrap(<CompositionPanel />);
+    expect(screen.getByText("FLOW SCORE")).toBeInTheDocument();
+  });
+
+  // R3: one coherent reorder model — desktop drag rows + a single keyboard/
+  // touch-safe Actions menu, not four competing affordances (pointer-drag,
+  // touch-drag, keyboard-pickup, and a separate Move menu all at once).
+  it("R3: no 4-arrow reorder cluster in slots — a single Actions menu instead", () => {
     wrap(<CompositionPanel />);
     // Arrow cluster buttons must not exist
     expect(screen.queryAllByRole("button", { name: /move slot .+ up/i }).length).toBe(0);
     expect(screen.queryAllByRole("button", { name: /move slot .+ down/i }).length).toBe(0);
     expect(screen.queryAllByRole("button", { name: /move slot .+ to start/i }).length).toBe(0);
-    // Drag handles should exist instead
+    // Decorative drag grip should exist (desktop direct manipulation)...
     const handles = document.querySelectorAll(".tr-slot__drag-handle");
     expect(handles.length).toBeGreaterThan(0);
+    // ...and exactly one Actions menu per slot (the keyboard/touch-safe path)
+    const actionsBtns = screen.queryAllByRole("button", { name: /^Actions for slot /i });
+    expect(actionsBtns.length).toBe(handles.length);
   });
 
-  // R6: No bare ✕ in slots
-  it("R6: slot remove buttons use written text not bare ✕", () => {
+  // R6: No bare ✕ in slots — removal lives behind the Actions menu with an
+  // inline confirm, mirroring the Materials/Instruments removal contract.
+  it("R6: slot remove requires opening Actions and confirming, uses written text not bare ✕", () => {
     wrap(<CompositionPanel />);
     const xButtons = screen.queryAllByRole("button", { name: /^✕$/ });
     expect(xButtons.length).toBe(0);
-    const removeBtns = screen.queryAllByRole("button", { name: /remove slot/i });
+    const actionsBtn = screen.getAllByRole("button", { name: /^Actions for slot /i })[0]!;
+    fireEvent.click(actionsBtn);
+    const removeBtns = screen.queryAllByRole("menuitem", { name: /remove slot/i });
     expect(removeBtns.length).toBeGreaterThan(0);
+    fireEvent.click(removeBtns[0]!);
+    expect(screen.getByRole("group", { name: "Confirm removal" })).toBeInTheDocument();
   });
 
   // R6: No bare ✕ in scenes
@@ -364,6 +379,50 @@ describe("CompositionPanel", () => {
     expect(addSceneBtn).toBeDisabled();
     fireEvent.change(screen.getByLabelText("New scene name"), { target: { value: "New scene" } });
     expect(addSceneBtn).not.toBeDisabled();
+  });
+
+  // Runtime preview/test path near the authored structure — a rolled
+  // resolution of the pattern's chance/repeat rules, distinct from the
+  // final generated Surface text (that only exists in Performance).
+  it("Preview resolution shows a rolled resolution of the pattern's slots", () => {
+    wrap(<CompositionPanel />, makeStoreWithFixture());
+    fireEvent.click(screen.getByRole("button", { name: /preview one resolution/i }));
+    expect(screen.getByRole("status", { name: /pattern resolution preview/i })).toBeInTheDocument();
+  });
+
+  it("Preview resolution is disabled when the pattern has no slots", () => {
+    const store = makeStoreWithFixture();
+    store.dispatch(mutateProject({
+      present: {
+        ...store.getState().project.present,
+        stanzaPatterns: [{ id: "st_empty", name: "Empty Pattern", enabled: true, description: "", slots: [] }],
+      },
+      patches: [], inversePatches: [], label: "test setup",
+    }));
+    store.dispatch(selectStanza("st_empty"));
+    wrap(<CompositionPanel />, store);
+    expect(screen.getByText(/No slots yet/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /preview one resolution/i })).toBeDisabled();
+  });
+
+  it("shows a dependency-blocked error when removing a pattern with scenes", () => {
+    const store = makeStoreWithFixture();
+    wrap(<CompositionPanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: "Remove Test Pattern" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/Cannot remove/i);
+    // Pattern must still exist — the blocked result is not applied.
+    expect(store.getState().project.present.stanzaPatterns.some((s) => s.id === "st_test1")).toBe(true);
+  });
+
+  it("empty state guides the user when no pattern is selected", () => {
+    const store = makeStore();
+    store.dispatch(mutateProject({
+      present: { ...store.getState().project.present, stanzaPatterns: [] },
+      patches: [], inversePatches: [], label: "test setup",
+    }));
+    wrap(<CompositionPanel />, store);
+    expect(screen.getByText(/Select a pattern/)).toBeInTheDocument();
   });
 });
 
@@ -459,6 +518,45 @@ describe("AutomationPanel", () => {
     fireEvent.click(toggleBtn);
     expect(store.getState().project.present.triggers.find((t) => t.id === "trig_1")?.enabled).toBe(false);
   });
+
+  // Condition preview/test path: the WHEN match is inspectable, not just
+  // the chance/THEN parts of the rule.
+  it("condition preview shows the sample that currently matches WHEN", () => {
+    const store = makeStoreWithFixture();
+    store.dispatch(selectTrigger("trig_1"));
+    wrap(<AutomationPanel />, store);
+    expect(screen.getByRole("status", { name: /condition preview/i })).toHaveTextContent(/river/);
+  });
+
+  it("condition preview shows no-match state when the term matches nothing in the bank", () => {
+    const store = makeStoreWithFixture();
+    store.dispatch(selectTrigger("trig_1"));
+    wrap(<AutomationPanel />, store);
+    fireEvent.change(screen.getByLabelText("Condition term"), { target: { value: "nonexistent-sample" } });
+    expect(screen.getByRole("status", { name: /condition preview/i })).toHaveTextContent(/cannot fire yet/i);
+  });
+
+  // Removal follows the shared confirmation/undo contract (Materials/
+  // Instruments/Composition all use the same inline confirm, not window.confirm).
+  it("removing a trigger requires inline confirmation, not window.confirm", () => {
+    const store = makeStoreWithFixture();
+    wrap(<AutomationPanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: /remove trigger/i }));
+    expect(store.getState().project.present.triggers.length).toBe(1);
+    expect(screen.getByRole("group", { name: "Confirm removal" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(store.getState().project.present.triggers.length).toBe(0);
+  });
+
+  it("empty state guides the user when there are no triggers", () => {
+    const store = makeStore();
+    store.dispatch(mutateProject({
+      present: { ...store.getState().project.present, triggers: [] },
+      patches: [], inversePatches: [], label: "test setup",
+    }));
+    wrap(<AutomationPanel />, store);
+    expect(screen.getByText(/No triggers yet/)).toBeInTheDocument();
+  });
 });
 
 // ── PerformancePanel ───────────────────────────────────────────────────────────
@@ -532,6 +630,44 @@ describe("PerformancePanel", () => {
   it("R4: TAKES section heading is present", () => {
     wrap(<PerformancePanel />);
     expect(screen.getByText("TAKES")).toBeInTheDocument();
+  });
+
+  // REGRESSION: UNMIX must open only through explicit user selection of a
+  // Surface line — never automatically just because a line was generated
+  // (the previous behavior auto-selected the newest record on every Step).
+  it("REGRESSION: Step does not auto-open UNMIX", () => {
+    wrap(<PerformancePanel />, makeStoreWithFixture());
+    for (let i = 0; i < 5; i++) {
+      fireEvent.click(screen.getByRole("button", { name: /Surface: generate/i }));
+    }
+    expect(screen.queryByText("UNMIX")).toBeNull();
+  });
+
+  it("clicking a Surface line explicitly opens UNMIX for that line", () => {
+    wrap(<PerformancePanel />, makeStoreWithFixture());
+    fireEvent.click(screen.getByRole("button", { name: /Surface: generate/i }));
+    const line = document.querySelector(".tr-surface__line");
+    expect(line).not.toBeNull();
+    fireEvent.click(line!);
+    expect(screen.getByText("UNMIX")).toBeInTheDocument();
+  });
+
+  // Reset clarifies the Stop/Reset/Clear distinction: it clears runtime
+  // tick/queue but must not touch Surface history or Takes.
+  it("Reset clears the tick but leaves Surface history and Takes untouched", () => {
+    const store = makeStoreWithFixture();
+    wrap(<PerformancePanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: /Surface: generate/i }));
+    const before = store.getState().surface.records.length;
+    fireEvent.click(screen.getByRole("button", { name: /^Reset runtime/i }));
+    expect(store.getState().runtime.runState.tick).toBe(0);
+    expect(store.getState().surface.records.length).toBe(before);
+  });
+
+  it("Monitor shows a human-readable run mode instead of only raw counters", () => {
+    wrap(<PerformancePanel />);
+    const monitor = document.querySelector(".tr-monitor__compact");
+    expect(monitor!.textContent).toMatch(/Stopped|Paused|Running continuously/);
   });
 });
 

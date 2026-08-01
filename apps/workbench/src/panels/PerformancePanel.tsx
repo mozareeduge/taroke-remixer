@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
-import { recordEvent, start, pause, stop } from "../store/runtimeSlice.js";
+import { announce } from "../store/feedbackSlice.js";
+import { recordEvent, resetRunState } from "../store/runtimeSlice.js";
 import {
   captureTake, clearTakes, removeTake,
   keepTake, markRepair, clearRepair, pinTake, unpinTake, setTakeAnnotation,
@@ -87,12 +88,11 @@ export function PerformancePanel() {
         } : {}),
       };
       dispatch(appendSurfaceRecord(rec));
-      // Auto-select the newly generated record so UNMIX appears immediately
-      const nextIndex = records.length >= retention ? retention - 1 : records.length;
-      dispatch(selectLine(nextIndex));
+      // UNMIX opens only through explicit user selection of a Surface line —
+      // never auto-opened just because a line was generated.
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project, runState, dispatch, records.length, retention]);
+  }, [project, runState, dispatch]);
 
   function doCueAudition() {
     const state: Partial<RunState> = { ...runState, queue: safeQueue(cueQueueRef.current) };
@@ -164,14 +164,35 @@ export function PerformancePanel() {
   const currentStanza = runState.currentStanza
     ? (project.stanzaPatterns.find((s) => s.id === runState.currentStanza)?.name ?? runState.currentStanza)
     : "—";
+  const runModeLabel =
+    status === "running" ? "Running continuously"
+    : status === "paused" ? "Paused"
+    : "Stopped";
+
+  function doReset() {
+    dispatch(resetRunState());
+    surfaceQueueRef.current = [];
+    cueQueueRef.current = [];
+    dispatch(announce("Runtime reset — tick, scene, and queue cleared. Surface history and Takes are untouched.", "info"));
+  }
 
   return (
     <div className="tr-panel tr-panel--performance">
 
-      {/* Unified MONITOR — heading + compact state + expandable detail in one element */}
+      {/* Unified MONITOR — heading + compact human-readable state + expandable
+          implementation detail (tick/queue counts) in one element. The compact
+          band leads with plain-language run mode, not raw counters. */}
       <div className="tr-monitor" role="status" aria-label="Runtime state">
         <div className="tr-monitor__header">
           <span className="tr-monitor__title">MONITOR</span>
+          <button
+            className="tr-btn tr-btn--ghost tr-btn--sm"
+            onClick={doReset}
+            aria-label="Reset runtime — clears tick, scene, and queue; keeps Surface history and Takes"
+            title="Reset runtime (keeps Surface and Takes)"
+          >
+            Reset
+          </button>
           <button
             className="tr-btn tr-btn--ghost tr-btn--sm"
             aria-controls="tr-monitor-body"
@@ -183,15 +204,15 @@ export function PerformancePanel() {
           </button>
         </div>
         <div className="tr-monitor__compact">
-          <span className="tr-monitor__item">tick <strong>{runState.tick}</strong></span>
+          <span className="tr-monitor__item tr-monitor__item--mode">{runModeLabel}</span>
           <span className="tr-monitor__sep" aria-hidden="true">·</span>
           <span className="tr-monitor__item">scene <strong>{currentScene}</strong></span>
           <span className="tr-monitor__sep" aria-hidden="true">·</span>
           <span className="tr-monitor__item">pattern <strong>{currentStanza}</strong></span>
           <span className="tr-monitor__sep" aria-hidden="true">·</span>
-          <span className="tr-monitor__item">queue <strong>{surfaceQueueRef.current.length}</strong></span>
+          <span className="tr-monitor__item">{followActive ? "following live" : "follow suspended"}</span>
           <span className="tr-monitor__sep" aria-hidden="true">·</span>
-          <span className="tr-monitor__item">follow <strong>{followActive ? "on" : "suspended"}</strong></span>
+          <span className="tr-monitor__item">tick <strong>{runState.tick}</strong></span>
         </div>
         {monitorOpen && (
           <div id="tr-monitor-body" className="tr-monitor__detail">
@@ -233,18 +254,25 @@ export function PerformancePanel() {
         <section className="tr-perf__surface-col" aria-labelledby="surface-head">
           <div className="tr-panel__section-head" id="surface-head">
             SURFACE
+            <span className="tr-panel__section-meta">
+              {runModeLabel === "Running continuously"
+                ? "Running continuously — Step still records one more event on top."
+                : "Step records one event now. Use Play (header) to run continuously instead."}
+            </span>
             <div className="tr-panel__section-actions">
               <button
                 className="tr-btn tr-btn--primary tr-surface__generate"
                 onClick={doSurfaceGenerate}
                 aria-label="Surface: generate and record next event"
+                title="Step once and record to Surface"
               >
-                Generate
+                Step
               </button>
               <button
                 className="tr-btn tr-btn--ghost tr-btn--sm"
                 onClick={() => dispatch(clearSurface())}
                 aria-label="Clear surface history"
+                title="Clear Surface history (does not affect Takes or runtime tick)"
               >
                 Clear
               </button>
