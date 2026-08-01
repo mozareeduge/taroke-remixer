@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
-import { selectStanza, selectScene } from "../store/selectionSlice.js";
+import { selectStanza, selectScene, selectDevice } from "../store/selectionSlice.js";
+import { setActivePanel } from "../store/editorSlice.js";
 import { announce } from "../store/feedbackSlice.js";
 import { ConfirmInline } from "../shell/ConfirmInline.js";
 import { useMediaQuery } from "../shell/useMediaQuery.js";
@@ -223,6 +224,31 @@ export function CompositionPanel() {
     );
   }
 
+  // E5/DS-INS-09: a slot referencing a disabled device is a silent no-op at
+  // runtime unless the disabled state is surfaced right where it's authored.
+  function goEnableDevice(deviceId: string) {
+    dispatch(selectDevice(deviceId));
+    dispatch(setActivePanel("instruments"));
+  }
+
+  function renderDeviceOffBadge(slot: StanzaSlot) {
+    if (slot.type !== "device" || !slot.deviceId) return null;
+    const device = devices.find((d) => d.id === slot.deviceId);
+    if (!device || device.enabled) return null;
+    return (
+      <span className="tr-slot__device-off">
+        <span className="tr-badge tr-badge--warn" aria-label={`${slot.label}: device off`}>DEVICE OFF</span>
+        <button
+          type="button"
+          className="tr-btn tr-btn--ghost tr-btn--sm"
+          onClick={() => goEnableDevice(slot.deviceId!)}
+        >
+          Enable in Instruments
+        </button>
+      </span>
+    );
+  }
+
   function renderConfirmRemoveSlot(slot: StanzaSlot) {
     if (pendingRemoveSlotId !== slot.id) return null;
     return (
@@ -351,6 +377,7 @@ export function CompositionPanel() {
                     <div className="tr-slot__card-main">
                       <span className="tr-slot__index">{i + 1}</span>
                       <span className="tr-slot__type">{slot.type === "breath" ? "BREATH" : slot.label}</span>
+                      {renderDeviceOffBadge(slot)}
                     </div>
                     <div className="tr-slot__card-fields">
                       <label className="tr-slot__field-label">
@@ -406,6 +433,7 @@ export function CompositionPanel() {
                     <span className="tr-slot__drag-handle" aria-hidden="true" title="Drag to reorder">⣿</span>
                     <span className="tr-slot__index">{i + 1}</span>
                     <span className="tr-slot__type">{slot.type === "breath" ? "BREATH" : slot.label}</span>
+                    {renderDeviceOffBadge(slot)}
                     <input
                       type="number"
                       className="tr-input tr-input--num"

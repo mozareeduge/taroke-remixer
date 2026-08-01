@@ -39,7 +39,13 @@ export interface SurfaceState {
   lines: string[];           // backward-compat display array
   records: SurfaceRecord[];  // provenance-backed records
   retention: number;
-  selectedIndex: number | null;
+  // DS-PERF-10: identity, not position. selectedIndex used to be a plain
+  // array index into `records`; appendSurfaceRecord's retention trim shifts
+  // every existing index down by one once the list is at cap, so a running
+  // generator would silently drift UNMIX onto a different record than the
+  // one the user had open. selectedRecordId is stable across trimming —
+  // the index is derived from it only for rendering/keyboard movement.
+  selectedRecordId: string | null;
   followActive: boolean;
   followPolicy: boolean;
 }
@@ -48,7 +54,7 @@ const initialState: SurfaceState = {
   lines: [],
   records: [],
   retention: 28,
-  selectedIndex: null,
+  selectedRecordId: null,
   followActive: true,
   followPolicy: true,
 };
@@ -78,7 +84,7 @@ const surfaceSlice = createSlice({
     clearSurface(state) {
       state.lines = [];
       state.records = [];
-      state.selectedIndex = null;
+      state.selectedRecordId = null;
     },
     setRetention(state, action: PayloadAction<number>) {
       const n = Math.max(1, action.payload);
@@ -86,8 +92,8 @@ const surfaceSlice = createSlice({
       state.lines = enforceRetention(state.lines, n);
       state.records = enforceRetention(state.records, n);
     },
-    selectLine(state, action: PayloadAction<number | null>) {
-      state.selectedIndex = action.payload;
+    selectLine(state, action: PayloadAction<string | null>) {
+      state.selectedRecordId = action.payload;
     },
     setFollowActive(state, action: PayloadAction<boolean>) {
       state.followActive = action.payload;

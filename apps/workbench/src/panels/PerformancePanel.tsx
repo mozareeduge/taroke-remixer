@@ -24,7 +24,7 @@ export function PerformancePanel() {
   const status = useAppSelector((s) => s.runtime.status);
   const takes = useAppSelector((s) => s.takes.takes);
   const records = useAppSelector((s) => s.surface.records);
-  const selectedIndex = useAppSelector((s) => s.surface.selectedIndex);
+  const selectedRecordId = useAppSelector((s) => s.surface.selectedRecordId);
   const followActive = useAppSelector((s) => s.surface.followActive);
 
   const [cueEvent, setCueEvent] = useState<TarokeEvent | null>(null);
@@ -156,7 +156,18 @@ export function PerformancePanel() {
   }
 
   const cueLineEvent = cueEvent?.type === "line" ? (cueEvent as LineEvent) : null;
-  const selectedRecord = selectedIndex !== null ? (records[selectedIndex] ?? null) : null;
+  const selectedRecord = selectedRecordId !== null ? (records.find((r) => r.id === selectedRecordId) ?? null) : null;
+
+  // DS-PERF-10: if the inspected record was evicted by retention trimming
+  // (during an active run or a retention-size change), close UNMIX and
+  // announce it — never silently re-point at whatever record now occupies
+  // the old index.
+  useEffect(() => {
+    if (selectedRecordId === null) return;
+    if (records.some((r) => r.id === selectedRecordId)) return;
+    dispatch(selectLine(null));
+    dispatch(announce("The inspected line left the retained Surface history.", "info"));
+  }, [records, selectedRecordId, dispatch]);
 
   const currentScene = runState.currentScene
     ? (project.flowScenes.find((s) => s.id === runState.currentScene)?.name ?? runState.currentScene)
@@ -300,18 +311,18 @@ export function PerformancePanel() {
             {records.length === 0 ? (
               <li className="tr-panel__empty" role="listitem">Generate events to see surface output.</li>
             ) : (
-              records.map((rec, i) => (
+              records.map((rec) => (
                 <li
                   key={rec.id}
-                  className={["tr-surface__line", selectedIndex === i ? "tr-surface__line--selected" : ""].filter(Boolean).join(" ")}
-                  onClick={() => dispatch(selectLine(selectedIndex === i ? null : i))}
-                  aria-selected={selectedIndex === i}
+                  className={["tr-surface__line", selectedRecordId === rec.id ? "tr-surface__line--selected" : ""].filter(Boolean).join(" ")}
+                  onClick={() => dispatch(selectLine(selectedRecordId === rec.id ? null : rec.id))}
+                  aria-selected={selectedRecordId === rec.id}
                   role="option"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      dispatch(selectLine(selectedIndex === i ? null : i));
+                      dispatch(selectLine(selectedRecordId === rec.id ? null : rec.id));
                     }
                   }}
                 >

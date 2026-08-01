@@ -15,6 +15,7 @@ import takesReducer from "../../store/takesSlice.js";
 import surfaceReducer from "../../store/surfaceSlice.js";
 import feedbackReducer from "../../store/feedbackSlice.js";
 import { selectionIntegrityMiddleware } from "../../store/selectionIntegrityMiddleware.js";
+import { toggleDeviceEnabled } from "../../store/commands.js";
 import { PHASE_A_NEUTRAL_TEST_FIXTURE } from "../neutral-test-fixture.js";
 import { SourcePanel } from "../../panels/SourcePanel.js";
 import { MaterialsPanel } from "../../panels/MaterialsPanel.js";
@@ -109,6 +110,18 @@ describe("MaterialsPanel", () => {
     wrap(<MaterialsPanel />, store);
     // Sample column header should be visible
     expect(screen.getByText("Sample")).toBeInTheDocument();
+  });
+
+  // C4: the weight/share explanation gets an adjacent route-weight
+  // distinction link into Instruments.
+  it("C4: weight hint has an adjacent link to route weight in Instruments", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.getByText(/Sample weight chooses material inside this bank\./)).toBeInTheDocument();
+    const link = screen.getByRole("button", { name: "Route weight is configured in Instruments." });
+    fireEvent.click(link);
+    expect(store.getState().editor.activePanel).toBe("instruments");
   });
 
   // ACT-02: exactly one primary add-sample affordance, not one in the
@@ -325,6 +338,99 @@ describe("InstrumentsPanel", () => {
     fireEvent.click(testBtn);
     expect(document.querySelector(".tr-route__example")).not.toBeNull();
   });
+
+  // E4: weight distinction is stated once, at the top of the chamber.
+  it("E4: shows the sample-weight-vs-route-weight distinction at the top of the chamber", () => {
+    wrap(<InstrumentsPanel />);
+    expect(screen.getByText(/Sample weight chooses a sample inside a bank\. Route weight chooses which route this device uses\./)).toBeInTheDocument();
+  });
+
+  // E3: a device with no routes shows the empty-state guidance instead of a bare list.
+  it("E3: shows 'No routes yet' guidance when a device has zero routes", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    // Remove every existing route on this device.
+    let removeBtns = screen.queryAllByRole("button", { name: /^Remove route/i });
+    while (removeBtns.length > 0) {
+      fireEvent.click(removeBtns[0]!);
+      removeBtns = screen.queryAllByRole("button", { name: /^Remove route/i });
+    }
+    expect(screen.getByText("No routes yet. Add a route to make this device speak.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ Route" })).toBeInTheDocument();
+  });
+
+  // E3: more than 8 routes collapses to a progressive disclosure.
+  it("E3: more than 8 routes shows 8 plus a 'Show all' disclosure", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    const addRouteBtn = screen.getByRole("button", { name: "+ Route" });
+    // ld_path starts with at least one route; add enough to exceed 8.
+    for (let i = 0; i < 10; i++) fireEvent.click(addRouteBtn);
+    expect(document.querySelectorAll(".tr-route").length).toBe(8);
+    const showAll = screen.getByRole("button", { name: /Show all \d+ routes/ });
+    fireEvent.click(showAll);
+    expect(document.querySelectorAll(".tr-route").length).toBeGreaterThan(8);
+  });
+
+  // E3: more than 6 inputs collapses to a progressive disclosure.
+  it("E3: more than 6 inputs shows 6 plus a 'Show all inputs' disclosure", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    const addInputBtn = screen.getByRole("button", { name: "+ Input" });
+    for (let i = 0; i < 8; i++) fireEvent.click(addInputBtn);
+    expect(screen.getAllByLabelText("Slot name").length).toBe(6);
+    fireEvent.click(screen.getByRole("button", { name: /Show all inputs \(\d+\)/ }));
+    expect(screen.getAllByLabelText("Slot name").length).toBeGreaterThan(6);
+  });
+
+  // E2: an unknown-slot token in the raw template blocks audition and shows
+  // a local error naming the exact token, without rewriting the user's text.
+  describe("E2: route template validation", () => {
+    function openAdvancedForFirstRoute(store: ReturnType<typeof makeStore>) {
+      wrap(<InstrumentsPanel />, store);
+      fireEvent.click(screen.getAllByRole("button", { name: /Advanced: edit raw template/i })[0]!);
+      return screen.getAllByLabelText(/^Template for route/i)[0]!;
+    }
+
+    it("shows an unknown-slot error and disables Audition, preserving the invalid text", () => {
+      const store = makeStore();
+      store.dispatch(selectDevice("ld_path"));
+      const textarea = openAdvancedForFirstRoute(store);
+      fireEvent.change(textarea, { target: { value: "the {ghost:literal} walks" } });
+      expect(screen.getByText(/references slot "ghost", which this device does not have/)).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: /audition this route/i })[0]).toBeDisabled();
+      expect((textarea as HTMLTextAreaElement).value).toBe("the {ghost:literal} walks");
+    });
+
+    it("shows an unmatched-brace error for a stray opening brace", () => {
+      const store = makeStore();
+      store.dispatch(selectDevice("ld_path"));
+      const textarea = openAdvancedForFirstRoute(store);
+      fireEvent.change(textarea, { target: { value: "broken {above template" } });
+      expect(screen.getByText(/is missing its closing "\}"/)).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: /audition this route/i })[0]).toBeDisabled();
+    });
+
+    it("shows an unknown-form error for a valid slot with an invalid form", () => {
+      const store = makeStore();
+      store.dispatch(selectDevice("ld_path"));
+      const textarea = openAdvancedForFirstRoute(store);
+      fireEvent.change(textarea, { target: { value: "{subject:nonsenseform}" } });
+      expect(screen.getByText(/uses form "nonsenseform", which is not valid/)).toBeInTheDocument();
+    });
+
+    it("valid template shows no errors and leaves Audition enabled", () => {
+      const store = makeStore();
+      store.dispatch(selectDevice("ld_path"));
+      const textarea = openAdvancedForFirstRoute(store);
+      fireEvent.change(textarea, { target: { value: "{subject:literal} plain text" } });
+      expect(document.querySelector(".tr-route__template-errors")).toBeNull();
+      expect(screen.getAllByRole("button", { name: /audition this route/i })[0]).not.toBeDisabled();
+    });
+  });
 });
 
 // ── CompositionPanel ───────────────────────────────────────────────────────────
@@ -381,6 +487,25 @@ describe("CompositionPanel", () => {
     expect(removeBtns.length).toBeGreaterThan(0);
     fireEvent.click(removeBtns[0]!);
     expect(screen.getByRole("group", { name: "Confirm removal" })).toBeInTheDocument();
+  });
+
+  // E5/DS-INS-09: a slot referencing a disabled device is a runtime no-op
+  // unless that's surfaced directly where the slot is authored.
+  it("E5: a slot referencing a disabled device shows DEVICE OFF and an Enable-in-Instruments action", () => {
+    const store = makeStore();
+    store.dispatch(mutateProject(toggleDeviceEnabled(store.getState().project.present, "ld_path")));
+    wrap(<CompositionPanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: /^\+ PATH$/ }));
+    expect(screen.getAllByText("DEVICE OFF").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole("button", { name: "Enable in Instruments" })[0]!);
+    expect(store.getState().editor.activePanel).toBe("instruments");
+    expect(store.getState().selection.primary).toEqual({ type: "device", deviceId: "ld_path" });
+  });
+
+  it("E5: no DEVICE OFF badge for a slot whose device is enabled", () => {
+    wrap(<CompositionPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /^\+ PATH$/ }));
+    expect(screen.queryByText("DEVICE OFF")).not.toBeInTheDocument();
   });
 
   // R6: No bare ✕ in scenes

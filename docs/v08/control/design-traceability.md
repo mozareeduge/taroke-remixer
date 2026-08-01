@@ -1,18 +1,22 @@
 # Design scenario traceability — working copy
 
-Audited against exact head on `claude/taroke-final-experience-elzkea-zzgowx`
-(PR #20) after this round's `MAT-01/02/03/06` and `ARCH-03` commits, against
-the 138-scenario matrix in `16_COMPLETE_DESIGN_SCENARIO_AND_ACCEPTANCE_MATRIX.md`
-(Design Head Authority Amendment). This is a working audit snapshot, not a
-tracked application source file and not executable instruction.
+Audited against starting head `5400dbd65e71162d3631774cc6800a71ece9fb3d` on
+`claude/taroke-final-experience-elzkea-zzgowx` (PR #20) after this round's
+`DS-PERF-10` fix, `DS-G-08` affordance, and Instruments validation/disclosure/
+weight-distinction work, against the 138-scenario matrix in
+`16_COMPLETE_DESIGN_SCENARIO_AND_ACCEPTANCE_MATRIX.md` (Design Head Authority
+Amendment). This is a working audit snapshot, not a tracked application
+source file and not executable instruction — it is evidence only, per
+`authority/AUTHORITY_MAP.md` in the Phase A workload package.
 
 Method: cross-referenced against the source reading already performed for
-`TRACEABILITY_AUDIT.md` (the 77-item register) in this same round, plus
-targeted re-checks of specific scenario claims (e.g. Undo affordance,
-Source link validation, Surface selection stability under retention
-trimming) that the 77-item register did not cover at this granularity.
-Two concrete correctness/consistency issues were found this way and are
-flagged below rather than silently left as PARTIAL polish items.
+`TRACEABILITY_AUDIT.md` (the register) in this same round, plus targeted
+re-checks of specific scenario claims (Undo affordance, Source link
+validation, Surface selection stability under retention trimming) that the
+register did not cover at this granularity. This round also corrected
+several rows that were stale from the *previous* round (`DS-SRC-03`,
+`DS-INS-01/03/05` had already been fixed on `5400dbd` but were left marked
+open here).
 
 Legend: R = RESOLVED, P = PARTIAL, U = UNRESOLVED, N/A = not applicable.
 
@@ -27,7 +31,7 @@ Legend: R = RESOLVED, P = PARTIAL, U = UNRESOLVED, N/A = not applicable.
 | DS-G-05 | R | Mobile sheet: backdrop, `inert` background, focus trap, single close action (axe-tested). |
 | DS-G-06 | R | Dirty state is a small `StatusLamp`, not a banner. |
 | DS-G-07 | P | `DraftRecoveryBanner` functional and tested; visual compactness/dominance relative to chamber content not verified without a screenshot pass (same gap as `REC-01`). |
-| DS-G-08 | **U** | Transport shows global `RUNNING`/`PAUSED`/`STOPPED` text but there is no `Running to Surface · View` action that navigates to Performance from another chamber, as this spec explicitly requires. |
+| DS-G-08 | **R (this round)** | Outside Performance, Transport shows `Running to Surface · View` (running) or `Paused on Surface · View` (paused); stopped shows neither. `View` dispatches `setActivePanel("performance")` only — it does not touch runtime status or Surface selection. |
 | DS-G-09 | R | `ChamberSwitcher` short-landscape rail; 844×390 covered in `breakpoints.spec.ts`. |
 | DS-G-10 | U | Long project/chamber/object name truncation with accessible full name not implemented or tested. |
 | DS-G-11 | P | Individual controls are keyboard-operable; no dedicated full-tour keyboard test exists. |
@@ -47,7 +51,7 @@ Legend: R = RESOLVED, P = PARTIAL, U = UNRESOLVED, N/A = not applicable.
 |---|---|---|
 | DS-SRC-01 | R | One ledger: LINEAGE, WORK IDENTITY, SOURCE PROVENANCE, TEXT; no unrelated Inspector. |
 | DS-SRC-02 | R | Editable identity fields are visually separated from the "stable" Source Provenance section by distinct section heads and meta text. |
-| DS-SRC-03 | **P — found this round** | The LINEAGE block's "View origin text ↗" link renders `href={info.sourceUrl}` directly without the same `http(s)`-only validation `ArchivePanel`'s `safeLink()` applies to its own source-URL row. A non-`http(s)` URL (e.g. `javascript:`) saved into the field could render as a live link in Lineage while Archive would correctly refuse to render it. Not a regression introduced this round — pre-existing inconsistency found while cross-checking `DS-SRC-03`. |
+| DS-SRC-03 | R | The LINEAGE block's "View origin text ↗" link is gated by `isValidHttpUrl(info.sourceUrl)`, the same `http(s)`-only validation `ArchivePanel`'s `safeLink()` applies. Fixed on `5400dbd` (prior round); this audit file had not been updated to reflect it. |
 | DS-SRC-04 | P | Statement/Credits are `<textarea class="tr-input tr-input--textarea">`, which inherits the apparatus/mono UI font, not the literary serif register the design authority specifies for reading content. |
 | DS-SRC-05 | P | Same as `DS-G-07`. |
 | DS-SRC-06 | U | No test distinguishes imported identity vs. preserved lineage after import. |
@@ -96,15 +100,15 @@ Legend: R = RESOLVED, P = PARTIAL, U = UNRESOLVED, N/A = not applicable.
 
 | ID | Status | Note |
 |---|---|---|
-| DS-INS-01 | **U** | Same as `INS-01`: raw `{slot:form}` template remains the only editing surface. |
-| DS-INS-02 | P | "Select a device to view its routes" empty state exists at the device level; no dedicated empty state for a device with zero routes. |
-| DS-INS-03 | P | Route name is plain readable text; share/rendered-example are not shown by default, only after "Test route". |
+| DS-INS-01 | R | The readable "renders like" example is the always-visible primary route surface; raw `{slot:form}` template syntax lives behind a closed-by-default "Advanced: edit raw template" disclosure. Fixed on `5400dbd` (prior round); this audit file had not been updated to reflect it. |
+| DS-INS-02 | **R (this round)** | Zero-route devices show "No routes yet. Add a route to make this device speak." plus one Add-route action. |
+| DS-INS-03 | R | The readable example renders by default for every route without requiring a click (same fix as `DS-INS-01`, `5400dbd`, prior round). |
 | DS-INS-04 | R | `INS-04` — per-route Cue explicitly labelled private. |
-| DS-INS-05 | **U** | There is no "Advanced" disclosure at all — the raw template textarea is always shown, not gated behind a disclosure as the design authority requires. |
-| DS-INS-06 | P | Route weight has `min`/`max` on its number input; the template itself has no parse-time validation UI. |
-| DS-INS-07 | P | Sample weight (Materials/Inspector) and route weight (Instruments) are labelled in their own contexts but there is no explicit side-by-side explanation of the two roles. |
-| DS-INS-08 | U | No progressive disclosure for devices with many inputs/routes — plain list only. |
-| DS-INS-09 | P | `toggleDeviceEnabled` works; no explicit surfaced consequence for Composition slots referencing a disabled device. |
+| DS-INS-05 | R | The Advanced disclosure exists and defaults closed. Fixed on `5400dbd` (prior round); this audit file had not been updated to reflect it. |
+| DS-INS-06 | **R (this round)** | `validateRouteTemplate()` gives structured parse-time validation (`unknown-slot`/`unknown-form`/`unmatched-brace`) shown as a local error list below the raw template, naming the exact token and allowed alternatives; blocking issues disable "Audition this route" without rewriting the user's text. |
+| DS-INS-07 | **R (this round)** | A standing "Sample weight chooses a sample inside a bank. Route weight chooses which route this device uses." line sits at the top of the Instruments chamber; Materials' weight/share hint links directly into Instruments for the route-weight half. |
+| DS-INS-08 | **R (this round)** | More than 8 routes collapse to 8 plus "Show all {N} routes" (the selected route always stays visible even past the fold); more than 6 inputs collapse to 6 plus "Show all inputs ({N})". |
+| DS-INS-09 | **R (this round)** | Composition slots referencing a disabled device show an amber `DEVICE OFF` badge and a direct "Enable in Instruments" action that selects the device and switches chambers. |
 | DS-INS-10 | N/A | Routes have no external references outside their own device (Composition slots reference `deviceId`, not a specific `routeId`), so a dependency-block for single-route removal is not structurally needed. Device removal is already dependency-blocked (`safeRemoveLineDevice`). |
 | DS-INS-11 | **U** | Mobile route editing reflows the same DOM; no dedicated card/lane layout as `05_RESPONSIVE_AND_SHELL_SPEC.md` and `07_CHAMBER_RECONSTRUCTION_SPEC.md` both call for. |
 | DS-INS-12 | P | Long bank/route name handling not specifically tested. |
@@ -162,7 +166,7 @@ Legend: R = RESOLVED, P = PARTIAL, U = UNRESOLVED, N/A = not applicable.
 | DS-PERF-07 | R | Clear has an explicit "(does not affect Takes or runtime tick)" tooltip. |
 | DS-PERF-08 | R | Audition writes only to Cue, never to Surface. |
 | DS-PERF-09 | R | UNMIX opens only on explicit Surface-line selection (`PERF-01`). |
-| DS-PERF-10 | **P — found this round, needs engineering follow-up** | `selectedIndex` is a plain array index into `surface.records`. `appendSurfaceRecord` trims the list to `retention` (default 26). If Run continuously is active while UNMIX is open and the list is already at the retention cap, each new record shifts every existing index down by one — `selectedIndex` would then point at a *different* record than the one the user had open, silently. This is a plausible correctness bug against `DS-PERF-10`'s "current inspection stable" requirement, not just a polish gap; flagged for the next round rather than fixed speculatively without a reproduction test in hand. |
+| DS-PERF-10 | **R (this round)** | `surface.selectedIndex` (array index) replaced with `surface.selectedRecordId: string \| null`; the index is derived only for rendering/keyboard highlighting. A reproduction test confirms the old bug (selection silently drifting under retention trimming) and the fix: eviction now closes UNMIX and announces "The inspected line left the retained Surface history." instead of re-pointing at a different record (`surface-retention.test.ts`, `final-horizon-performance.test.tsx` "DS-PERF-10" describe blocks). |
 | DS-PERF-11 | R | Selecting the same index again closes UNMIX; selecting another opens it fresh — deliberate, not leaked global Inspector state. |
 | DS-PERF-12 | R | "Resume follow ↓" + explicit following/suspended text. |
 | DS-PERF-13 | R | Captured Take appears immediately in the Takes list. |
@@ -210,20 +214,19 @@ requires. All 12 are carried forward as open work.
 ## Totals
 
 - 138 scenarios classified.
-- RESOLVED: 84
-- PARTIAL: 33
-- UNRESOLVED: 19
+- RESOLVED: 95
+- PARTIAL: 26
+- UNRESOLVED: 15
 - N/A: 2
-- Resolved this round (design-scenario framing): DS-MAT-02/03/04/12/13, DS-ARCH-01/09 (7 scenarios; same underlying commits as `MAT-01/02/03/06` and `ARCH-03` in the issue register).
-- Found this round, not yet fixed: `DS-SRC-03` (Source lineage link skips the URL-scheme validation Archive applies), `DS-PERF-10` (possible UNMIX selection-index drift under retention trimming during an active run — needs a reproduction test before a fix is written, not a speculative patch).
+- Resolved this round: `DS-G-08`, `DS-INS-02/06/07/08/09`, `DS-PERF-10` (7 scenarios newly fixed and tested this round).
+- Also confirmed resolved this round but already fixed on `5400dbd` in a
+  prior round (this file was stale and had not been updated to reflect
+  them): `DS-SRC-03`, `DS-INS-01/03/05`.
 
 ## What blocks the terminal `READY_FOR_GPT_AND_MOHAMMAD_REVIEW` status
 
-Same structural gaps as `TRACEABILITY_AUDIT.md`, now confirmed at the scenario
-level:
-
-1. **Chamber geometry** (`DS-INS-01/02/05/08/11`, `DS-FORM-10`, `DS-PERF-18`, `DS-COMP-06`) — Instruments in particular has no "Advanced" disclosure at all; raw template syntax is the only editing surface. This is the largest concrete implementation gap, not just a subjective polish item.
-2. **`DS-G-08`** — no cross-chamber "Running to Surface · View" affordance.
-3. **Two found-not-fixed correctness items** — `DS-SRC-03`, `DS-PERF-10` — should be resolved with a reproduction/regression test before the evidence atlas is generated, since evidence built against a live bug would misrepresent the candidate.
-4. **Full evidence atlas and mandatory high-risk combination journeys** — not generated this round.
-5. **T05** — no dedicated exact-head cross-browser verification or `/next/` redeploy pass beyond ordinary CI.
+1. **Chamber geometry** (`DS-VIS-02`-equivalent structural gaps: `DS-FORM-10`, `DS-PERF-18`, `DS-COMP-06`, `DS-INS-11`) — full responsive/geometry rewrites for Materials/Forms/Composition/Automation/Performance/Archive per `authority/DECISIONS.md` B–I are the largest remaining implementation gap; not attempted this round beyond Instruments' disclosure/validation/weight-distinction work.
+2. **Full evidence atlas and mandatory high-risk combination journeys** — not generated this round.
+3. **T05** — no dedicated exact-head cross-browser verification or `/next/` redeploy pass beyond ordinary CI.
+4. **Visible Undo affordance at point of action** (`DS-G-17`/`ACT-11`) — destructive actions confirm inline, but Undo is still reachable only via the global Ctrl+Z shortcut.
+5. **Remaining global shell items** — long-name/200%-zoom truncation (`DS-G-10`/`DS-G-19`), full keyboard-tour and grayscale/colour-blind audits (`DS-G-11`/`DS-G-20`) — not attempted this round.

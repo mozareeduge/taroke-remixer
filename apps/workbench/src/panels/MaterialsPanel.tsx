@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectBank, selectToken } from "../store/selectionSlice.js";
 import { announce } from "../store/feedbackSlice.js";
+import { setActivePanel } from "../store/editorSlice.js";
 import { ConfirmInline } from "../shell/ConfirmInline.js";
 import { useMediaQuery } from "../shell/useMediaQuery.js";
 import { bankTaxonomy, TAXONOMY_LABEL, TAXONOMY_HINT } from "../shell/bankTaxonomy.js";
@@ -449,7 +450,17 @@ export function MaterialsPanel() {
               />
             </div>
             <p className="tr-mat-weight-hint">
-              Weight sets a sample's relative pick probability within this bank; Share shows that as a % of the bank's total weight.
+              Weight sets a sample's relative pick probability within this bank; Share shows that as a % of the bank's total weight.{" "}
+              <span className="tr-mat-weight-hint__route-note">
+                Sample weight chooses material inside this bank.{" "}
+                <button
+                  type="button"
+                  className="tr-btn tr-btn--ghost tr-btn--sm"
+                  onClick={() => dispatch(setActivePanel("instruments"))}
+                >
+                  Route weight is configured in Instruments.
+                </button>
+              </span>
             </p>
 
             {isCompiledBank && !showRawList ? (

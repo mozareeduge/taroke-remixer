@@ -11,6 +11,10 @@ import {
 import { uid, renderDeviceEvent } from "@taroke/core";
 import type { LineEvent } from "@taroke/schema";
 import { formsForRole } from "../shell/formRoles.js";
+import { validateRouteTemplate, type TemplateIssue } from "../shell/templateValidation.js";
+
+const ROUTES_DISCLOSURE_LIMIT = 8;
+const INPUTS_DISCLOSURE_LIMIT = 6;
 
 const BANK_ROLES = ["noun", "verb", "adjective", "adverb", "mixed", "literal"] as const;
 
@@ -132,7 +136,16 @@ export function InstrumentsPanel() {
   const [routeCue, setRouteCue] = useState<Record<string, { surface?: string; error?: string }>>({});
   const [removeDeviceError, setRemoveDeviceError] = useState<string | null>(null);
   const [advancedOpenFor, setAdvancedOpenFor] = useState<Record<string, boolean>>({});
+  const [routesExpanded, setRoutesExpanded] = useState(false);
+  const [inputsExpanded, setInputsExpanded] = useState(false);
   const templateRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+
+  // E3: switching devices collapses any >8-route/>6-input disclosure back
+  // to its default closed state rather than carrying it over.
+  useEffect(() => {
+    setRoutesExpanded(false);
+    setInputsExpanded(false);
+  }, [activeDeviceId]);
 
   // INS-01/DS-INS-03: every route card shows a readable rendered example by
   // default, not only after an explicit "Test route" click — recomputed
@@ -252,6 +265,11 @@ export function InstrumentsPanel() {
       </div>
 
       <div className="tr-panel__main">
+        {/* E4: weight distinction — stated once, at the top of the chamber,
+            not repeated per-route. */}
+        <p className="tr-mat-weight-hint">
+          Sample weight chooses a sample inside a bank. Route weight chooses which route this device uses.
+        </p>
         {activeDevice ? (
           <>
             <div className="tr-panel__section-head">
@@ -294,7 +312,9 @@ export function InstrumentsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {activeDevice.inputs.map((inp) => (
+                {/* E3: more than 6 inputs collapses to a progressive
+                    disclosure rather than a plain, ever-growing list. */}
+                {(inputsExpanded ? activeDevice.inputs : activeDevice.inputs.slice(0, INPUTS_DISCLOSURE_LIMIT)).map((inp) => (
                   <tr key={inp.id} className="tr-table__row">
                     <td className="tr-table__td">
                       <input
@@ -339,6 +359,17 @@ export function InstrumentsPanel() {
                 ))}
               </tbody>
             </table>
+            {activeDevice.inputs.length > INPUTS_DISCLOSURE_LIMIT && !inputsExpanded && (
+              <div className="tr-panel__add-row">
+                <button
+                  type="button"
+                  className="tr-btn tr-btn--ghost tr-btn--sm"
+                  onClick={() => setInputsExpanded(true)}
+                >
+                  Show all inputs ({activeDevice.inputs.length})
+                </button>
+              </div>
+            )}
             <div className="tr-panel__add-row">
               <button
                 className="tr-btn tr-btn--ghost"
@@ -352,8 +383,25 @@ export function InstrumentsPanel() {
 
             <div className="tr-panel__subsection-head">ROUTES</div>
             <div className="tr-routes">
-              {activeDevice.routes.map((rt) => {
+              {activeDevice.routes.length === 0 && (
+                <p className="tr-panel__empty">No routes yet. Add a route to make this device speak.</p>
+              )}
+              {/* E3: more than 8 routes collapses to a progressive disclosure;
+                  the currently selected route always stays visible even if
+                  it would otherwise fall past the fold. */}
+              {(routesExpanded || activeDevice.routes.length <= ROUTES_DISCLOSURE_LIMIT
+                ? activeDevice.routes
+                : (() => {
+                    const head = activeDevice.routes.slice(0, ROUTES_DISCLOSURE_LIMIT);
+                    if (selectedRouteId && !head.some((r) => r.id === selectedRouteId)) {
+                      const sel = activeDevice.routes.find((r) => r.id === selectedRouteId);
+                      if (sel) return [...head, sel];
+                    }
+                    return head;
+                  })()
+              ).map((rt) => {
                 const isSelected = rt.id === selectedRouteId;
+                const templateIssues = validateRouteTemplate(rt.template, activeDevice, project);
                 return (
                   <div
                     key={rt.id}
@@ -401,7 +449,8 @@ export function InstrumentsPanel() {
                         <button
                           className="tr-btn tr-btn--ghost tr-btn--sm"
                           onClick={(e) => { e.stopPropagation(); doCueRoute(rt.id); }}
-                          aria-label={`Audition this route, ${rt.name} (private, not recorded)`}
+                          disabled={templateIssues.length > 0}
+                          aria-label={`Audition this route, ${rt.name} (private, not recorded)${templateIssues.length > 0 ? " — blocked by template errors" : ""}`}
                         >
                           Audition this route
                         </button>
@@ -431,7 +480,16 @@ export function InstrumentsPanel() {
                                 aria-label={`Template for route ${rt.name}`}
                                 spellCheck={false}
                                 data-route-template={rt.id}
+                                aria-invalid={templateIssues.length > 0}
+                                aria-describedby={templateIssues.length > 0 ? `tr-route-template-errors-${rt.id}` : undefined}
                               />
+                              {templateIssues.length > 0 && (
+                                <ul id={`tr-route-template-errors-${rt.id}`} className="tr-route__template-errors" role="alert">
+                                  {templateIssues.map((issue, i) => (
+                                    <li key={i} className="tr-route__template-error">{issue.message}</li>
+                                  ))}
+                                </ul>
+                              )}
                               <div className="tr-route__palette-row">
                                 {activeDevice.inputs.length > 0 && (
                                   <button
@@ -462,6 +520,15 @@ export function InstrumentsPanel() {
                   </div>
                 );
               })}
+              {!routesExpanded && activeDevice.routes.length > ROUTES_DISCLOSURE_LIMIT && (
+                <button
+                  type="button"
+                  className="tr-btn tr-btn--ghost tr-btn--sm"
+                  onClick={() => setRoutesExpanded(true)}
+                >
+                  Show all {activeDevice.routes.length} routes
+                </button>
+              )}
               <button
                 className="tr-btn tr-btn--ghost"
                 onClick={() => dispatch(mutateProject(addRoute(project, activeDevice.id, { id: uid("rt"), name: "new route", weight: 10, template: "" })))}

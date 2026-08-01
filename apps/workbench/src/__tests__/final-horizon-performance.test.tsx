@@ -6,10 +6,11 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
-import projectReducer from "../store/projectSlice.js";
+import { enablePatches } from "immer";
+import projectReducer, { mutateProject } from "../store/projectSlice.js";
 import selectionReducer from "../store/selectionSlice.js";
 import editorReducer from "../store/editorSlice.js";
 import runtimeReducer from "../store/runtimeSlice.js";
@@ -20,7 +21,10 @@ import surfaceReducer, {
   appendSurfaceRecord, selectLine, setFollowActive,
   type SurfaceRecord,
 } from "../store/surfaceSlice.js";
+import { setSurfaceRetention } from "../store/commands.js";
 import { PerformancePanel } from "../panels/PerformancePanel.js";
+
+enablePatches();
 
 function makeStore() {
   return configureStore({
@@ -176,15 +180,58 @@ describe("PerformancePanel: line selection (T03)", () => {
     const line = screen.getByText("graves carry the floor");
     fireEvent.click(line);
     fireEvent.click(line);
-    expect(store.getState().surface.selectedIndex).toBeNull();
+    expect(store.getState().surface.selectedRecordId).toBeNull();
   });
 
   it("selectLine dispatches correctly from store", () => {
     const store = makeStore();
-    store.dispatch(selectLine(2));
-    expect(store.getState().surface.selectedIndex).toBe(2);
+    store.dispatch(selectLine("sl_002"));
+    expect(store.getState().surface.selectedRecordId).toBe("sl_002");
     store.dispatch(selectLine(null));
-    expect(store.getState().surface.selectedIndex).toBeNull();
+    expect(store.getState().surface.selectedRecordId).toBeNull();
+  });
+});
+
+// ── DS-PERF-10: stable UNMIX identity under retention trimming ────────────────
+
+describe("PerformancePanel: DS-PERF-10 stable UNMIX identity", () => {
+  it("closes UNMIX and clears selection when the inspected record is evicted by retention", () => {
+    const store = makeStore();
+    store.dispatch(mutateProject(setSurfaceRetention(store.getState().project.present, 3)));
+    store.dispatch(appendSurfaceRecord({ id: "sl_a", tick: 0, surface: "line a" }));
+    store.dispatch(appendSurfaceRecord({ id: "sl_b", tick: 1, surface: "line b" }));
+    store.dispatch(appendSurfaceRecord({ id: "sl_c", tick: 2, surface: "line c" }));
+    store.dispatch(selectLine("sl_a"));
+    wrap(<PerformancePanel />, store);
+    expect(screen.getByText("UNMIX")).toBeInTheDocument();
+
+    // Two more events push sl_a out of the retained window (cap 3).
+    act(() => {
+      store.dispatch(appendSurfaceRecord({ id: "sl_d", tick: 3, surface: "line d" }));
+      store.dispatch(appendSurfaceRecord({ id: "sl_e", tick: 4, surface: "line e" }));
+    });
+
+    expect(store.getState().surface.selectedRecordId).toBeNull();
+    expect(screen.queryByText("UNMIX")).not.toBeInTheDocument();
+  });
+
+  it("keeps UNMIX open on the exact same record when it survives retention trimming", () => {
+    const store = makeStore();
+    store.dispatch(mutateProject(setSurfaceRetention(store.getState().project.present, 3)));
+    store.dispatch(appendSurfaceRecord({ id: "sl_a", tick: 0, surface: "line a" }));
+    store.dispatch(appendSurfaceRecord({ id: "sl_b", tick: 1, surface: "line b" }));
+    store.dispatch(appendSurfaceRecord({ id: "sl_c", tick: 2, surface: "line c" }));
+    store.dispatch(selectLine("sl_c"));
+    wrap(<PerformancePanel />, store);
+    expect(screen.getByText("UNMIX")).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(appendSurfaceRecord({ id: "sl_d", tick: 3, surface: "line d" }));
+    });
+    // records now sl_b, sl_c, sl_d — sl_c is still retained, identity holds.
+    expect(store.getState().surface.selectedRecordId).toBe("sl_c");
+    expect(screen.getByText("UNMIX")).toBeInTheDocument();
+    expect(screen.getAllByText("line c").length).toBeGreaterThan(0);
   });
 });
 
@@ -229,7 +276,7 @@ describe("PerformancePanel: UNMIX for selected line (T03)", () => {
   it("UNMIX section appears when a line is selected", () => {
     const store = makeStore();
     store.dispatch(appendSurfaceRecord(SAMPLE_RECORD));
-    store.dispatch(selectLine(0));
+    store.dispatch(selectLine(SAMPLE_RECORD.id));
     wrap(<PerformancePanel />, store);
     expect(screen.getByText("UNMIX")).toBeInTheDocument();
   });
@@ -244,7 +291,7 @@ describe("PerformancePanel: UNMIX for selected line (T03)", () => {
   it("UNMIX shows Device and Route from provenance", () => {
     const store = makeStore();
     store.dispatch(appendSurfaceRecord(SAMPLE_RECORD));
-    store.dispatch(selectLine(0));
+    store.dispatch(selectLine(SAMPLE_RECORD.id));
     wrap(<PerformancePanel />, store);
     expect(screen.getByText("Device")).toBeInTheDocument();
     expect(screen.getByText("PATH")).toBeInTheDocument();
@@ -255,7 +302,7 @@ describe("PerformancePanel: UNMIX for selected line (T03)", () => {
   it("UNMIX shows consumed slot/tray rows", () => {
     const store = makeStore();
     store.dispatch(appendSurfaceRecord(SAMPLE_RECORD));
-    store.dispatch(selectLine(0));
+    store.dispatch(selectLine(SAMPLE_RECORD.id));
     wrap(<PerformancePanel />, store);
     expect(screen.getByText(/above.*above/i)).toBeInTheDocument();
     expect(screen.getByText("grave")).toBeInTheDocument();
@@ -264,7 +311,7 @@ describe("PerformancePanel: UNMIX for selected line (T03)", () => {
   it("UNMIX shows Capture Take button", () => {
     const store = makeStore();
     store.dispatch(appendSurfaceRecord(SAMPLE_RECORD));
-    store.dispatch(selectLine(0));
+    store.dispatch(selectLine(SAMPLE_RECORD.id));
     wrap(<PerformancePanel />, store);
     expect(screen.getByRole("button", { name: /Capture.*Take/i })).toBeInTheDocument();
   });
@@ -272,7 +319,7 @@ describe("PerformancePanel: UNMIX for selected line (T03)", () => {
   it("Capture Take button dispatches to takes store", () => {
     const store = makeStore();
     store.dispatch(appendSurfaceRecord(SAMPLE_RECORD));
-    store.dispatch(selectLine(0));
+    store.dispatch(selectLine(SAMPLE_RECORD.id));
     wrap(<PerformancePanel />, store);
     fireEvent.click(screen.getByRole("button", { name: /Capture.*Take/i }));
     expect(store.getState().takes.takes.length).toBe(1);

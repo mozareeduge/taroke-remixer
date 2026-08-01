@@ -4,8 +4,8 @@ import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import projectReducer from "../../store/projectSlice.js";
 import selectionReducer, { selectBank } from "../../store/selectionSlice.js";
-import editorReducer, { toggleSidebar, toggleInspector } from "../../store/editorSlice.js";
-import runtimeReducer from "../../store/runtimeSlice.js";
+import editorReducer, { toggleSidebar, toggleInspector, setActivePanel } from "../../store/editorSlice.js";
+import runtimeReducer, { start, pause, stop } from "../../store/runtimeSlice.js";
 import historyReducer from "../../store/historySlice.js";
 import takesReducer from "../../store/takesSlice.js";
 import importReceiptReducer from "../../store/importReceiptSlice.js";
@@ -74,6 +74,57 @@ describe("Transport", () => {
     const toggle = screen.getByLabelText("Show inspector");
     fireEvent.click(toggle);
     expect(screen.getByLabelText("Hide inspector")).toBeInTheDocument();
+  });
+});
+
+// ── Transport: DS-G-08 Running to Surface · View affordance ─────────────────────
+
+describe("Transport: DS-G-08 Running to Surface · View affordance", () => {
+  it("shows no Surface jump while stopped", () => {
+    const store = makeStore();
+    wrap(<Transport />, store);
+    expect(screen.queryByText(/Running to Surface|Paused on Surface/)).not.toBeInTheDocument();
+  });
+
+  it("shows 'Running to Surface · View' outside Performance while running", () => {
+    const store = makeStore();
+    store.dispatch(start());
+    wrap(<Transport />, store);
+    expect(screen.getByText("Running to Surface ·")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Running to Surface · View/ })).toBeInTheDocument();
+  });
+
+  it("shows 'Paused on Surface · View' outside Performance while paused", () => {
+    const store = makeStore();
+    store.dispatch(start());
+    store.dispatch(pause());
+    wrap(<Transport />, store);
+    expect(screen.getByText("Paused on Surface ·")).toBeInTheDocument();
+  });
+
+  it("hides the affordance while already on Performance", () => {
+    const store = makeStore();
+    store.dispatch(start());
+    store.dispatch(setActivePanel("performance"));
+    wrap(<Transport />, store);
+    expect(screen.queryByText(/Running to Surface/)).not.toBeInTheDocument();
+  });
+
+  it("View navigates to Performance without changing runtime status", () => {
+    const store = makeStore();
+    store.dispatch(start());
+    wrap(<Transport />, store);
+    fireEvent.click(screen.getByRole("button", { name: /Running to Surface · View/ }));
+    expect(store.getState().editor.activePanel).toBe("performance");
+    expect(store.getState().runtime.status).toBe("running");
+  });
+
+  it("clears with Stop", () => {
+    const store = makeStore();
+    store.dispatch(start());
+    store.dispatch(stop());
+    wrap(<Transport />, store);
+    expect(screen.queryByText(/Running to Surface|Paused on Surface/)).not.toBeInTheDocument();
   });
 });
 

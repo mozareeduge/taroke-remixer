@@ -1,11 +1,15 @@
 # Traceability audit — working copy
 
-Audited against exact head `a4144e3fd872922384ebfbe517b370628e936a77` plus
+Audited against starting head `5400dbd65e71162d3631774cc6800a71ece9fb3d` plus
 this round's commits on `claude/taroke-final-experience-elzkea-zzgowx`
 (PR #20), against the 77-item register supplied in
-`TAROKE_RIMIXER_FINAL_CONVERGENCE_INPUT_v1.0_20260801.zip`. This file is a
-working audit snapshot, not a tracked application source file, and is not
-executable instruction — it records evidence and status for one round.
+`TAROKE_RIMIXER_FINAL_CONVERGENCE_INPUT_v1.0_20260801.zip` plus four items
+(INS-05..08) added this round for concrete work the original register didn't
+name. This file is a working audit snapshot, not a tracked application
+source file, and is not executable instruction — it records evidence and
+status for one round. It is evidence only, per `authority/AUTHORITY_MAP.md`
+in the Phase A workload package; it does not override that package's
+decisions.
 
 Method: read every panel/shell/store source file directly and cross-checked
 against unit and E2E test coverage; did not infer completion from commit
@@ -37,7 +41,7 @@ Legend: R = RESOLVED, P = PARTIAL, U = UNRESOLVED, N/A = not applicable.
 | ACT-04 | R | `CompositionPanel` disables Add Pattern/Scene with a dependency reason (`"Select a pattern first"`). |
 | ACT-05 | R | New triggers are created `enabled:false`; `doToggleTrigger` blocks enabling until THEN text is non-empty. |
 | ACT-06 | R | `ArchivePanel` preview lifecycle gated on an iframe `postMessage` handshake with a 4s timeout → error. |
-| ACT-07 | P | Transport shows global `RUNNING`/`PAUSED`/`STOPPED` status on every chamber, but there is no explicit "View output" jump action from a non-Performance chamber — the user must know to navigate to Performance manually. |
+| ACT-07 | **R (this round)** | Outside Performance, Transport shows `Running to Surface · View` / `Paused on Surface · View` (stopped shows neither); `View` navigates to Performance without changing runtime status or Surface selection (`shell.test.tsx` "DS-G-08" describe block). |
 | ACT-08 | R | Run (Transport Play), Step (Surface "Step"), Audition (Cue "Audition") are separately labelled with distinct handlers and tests. |
 | ACT-09 | R | Inspector header always names the selected object's type; empty state reads "Select an item to inspect." |
 | ACT-10 | R | Actions menu separates ordinal reorder (Move to top/up/down/bottom) from "Move to bank" behind a visible separator. |
@@ -99,10 +103,14 @@ Legend: R = RESOLVED, P = PARTIAL, U = UNRESOLVED, N/A = not applicable.
 
 | ID | Status | Evidence |
 |---|---|---|
-| INS-01 | U | The route `<textarea>` with raw `{slot:form}` template syntax remains the only editing surface — no readable-card / Advanced-syntax split implemented. |
-| INS-02 | P | Inputs table sits above Routes, and "Test route" renders output inline, but there is no explicit visual lane grouping Input → Route → Example. |
+| INS-01 | R | The readable "renders like" example is the always-visible primary surface for every route card; raw `{slot:form}` template syntax lives behind a closed-by-default "Advanced: edit raw template" disclosure. Resolved on `5400dbd` (prior round); this audit file had not been updated to reflect it. |
+| INS-02 | P | Inputs table sits above Routes, and the readable example renders inline by default, but there is no explicit visual lane grouping Input → Route → Example. |
 | INS-03 | P | Route names are plain readable text for the canonical example (`plural`, `singular`, `literal rough`); user-created routes default to `"new route"` with no guided rename prompt. |
-| INS-04 | R | Per-route "Test route" and device-level "Cue" are both explicitly labelled "(private, not recorded)" (prior work). |
+| INS-04 | R | Per-route "Audition this route" and device-level "Cue" are both explicitly labelled "(private, not recorded)" (prior work). |
+| INS-05 | **R (this round)** | Route templates now get structured validation (`unknown-slot`/`unknown-form`/`unmatched-brace`), shown as a local error list below the raw template that names the exact token and allowed alternatives; blocking issues disable "Audition this route" without rewriting the user's text (`templateValidation.ts`, `InstrumentsPanel.tsx` "E2: route template validation" tests). |
+| INS-06 | **R (this round)** | Zero-route devices show "No routes yet. Add a route to make this device speak." plus one Add-route action; more than 8 routes collapse to 8 plus "Show all {N} routes" (selected route always stays visible); more than 6 inputs collapse to 6 plus "Show all inputs ({N})". |
+| INS-07 | **R (this round)** | A standing "Sample weight chooses a sample inside a bank. Route weight chooses which route this device uses." line sits at the top of the Instruments chamber; Materials' existing weight/share hint now links directly to Instruments for the route-weight half. |
+| INS-08 | **R (this round)** | Composition slots referencing a disabled device show an amber `DEVICE OFF` badge and a direct "Enable in Instruments" action that selects the device and switches chambers. |
 
 ## Composition
 
@@ -165,16 +173,17 @@ Legend: R = RESOLVED, P = PARTIAL, U = UNRESOLVED, N/A = not applicable.
 
 ## Totals
 
-- RESOLVED: 55
-- PARTIAL: 16
-- UNRESOLVED: 6
-- Total: 77
-- Resolved this round: MAT-01, MAT-02, MAT-03, MAT-06, ARCH-03 (5 items moved to RESOLVED; all others carried forward from before this round)
+- RESOLVED: 61
+- PARTIAL: 15
+- UNRESOLVED: 5
+- Total: 81 (INS-05/06/07/08 added this round for newly-resolved concrete work not covered by the original 77-item register)
+- Resolved this round: ACT-07, INS-01 (already fixed on `5400dbd`, prior round — this audit file was stale and had not been updated), INS-05, INS-06, INS-07, INS-08.
+- Also fixed this round, tracked only in `design-traceability.md` (not part of the original 77-item register): `DS-PERF-10` (stable UNMIX identity — `selectedRecordId` replaces the raw `selectedIndex`, with a reproduction test and eviction close/announce).
 
 ## What blocks the terminal `READY_FOR_GPT_AND_MOHAMMAD_REVIEW` status
 
-1. **T03 structural visual calibration** (VIS-02/03/05, PERF-02, COMP-05, INS-01/02) — the biggest remaining gap. This is a full design pass across 8 chambers, not a token swap, and was not attempted at that level this round.
-2. **INS-01** — route editing is still raw-syntax-first.
-3. **FORM-03** — case/compound policy options lack inline explanation.
-4. **T04 evidence atlas** (EVID-01/02) — current CI capture is a small smoke set, not the required matrix, and has no fail-closed gate for missing coverage.
-5. **T05** — no exact-head cross-browser/full-matrix verification or `/next/` redeploy performed this round beyond what CI already runs on every push.
+1. **T03 structural visual calibration** (VIS-02/03/05, PERF-02, COMP-05, INS-02) — the biggest remaining gap. This is a full design pass across 8 chambers, not a token swap, and was not attempted at that level this round.
+2. **FORM-03** — case/compound policy options lack inline explanation.
+3. **T04 evidence atlas** (EVID-01/02) — current CI capture is a small smoke set, not the required matrix, and has no fail-closed gate for missing coverage.
+4. **T05** — no exact-head cross-browser/full-matrix verification or `/next/` redeploy performed this round beyond what CI already runs on every push.
+5. **Remaining Phase A decisions not attempted this round** — full chamber-geometry rewrites (Materials/Forms/Composition/Automation/Performance/Archive responsive layouts per `authority/DECISIONS.md` B–I), the 12 mandatory high-risk combination journeys, and the visible-Undo-at-point-of-action affordance (`ACT-11`/`DS-G-17`) remain open. See the PR body for the current round's honest boundary.
