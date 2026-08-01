@@ -2903,6 +2903,27 @@ details[open] > .tr-forms__bank-label::before {
   padding: 0 0 var(--tr-sp-3);
 }
 
+/* ARCH-03: Save Project and Publish Artifact are visually distinct cards —
+   an editable-data action and a standalone-artifact action must not look
+   equivalent, since their consequences differ. */
+.tr-archive__card {
+  padding: var(--tr-sp-4);
+  margin: 0 0 var(--tr-sp-4);
+  border: 1px solid var(--tr-line);
+  border-left-width: 3px;
+  background: var(--tr-plate-2);
+}
+
+.tr-archive__card--save { border-left-color: var(--tr-focus); }
+.tr-archive__card--publish { border-left-color: var(--tr-active); }
+
+.tr-archive__card-kicker {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--tr-muted-min);
+  margin: 0 0 var(--tr-sp-2);
+}
+
 .tr-archive__desc {
   font-size: var(--tr-font-size-sm);
   color: var(--tr-muted-min);
@@ -3197,6 +3218,79 @@ details[open] > .tr-forms__bank-label::before {
   padding: var(--tr-sp-2) var(--tr-sp-3);
   border-bottom: 1px solid var(--tr-line-soft);
   flex-shrink: 0;
+}
+
+/* MAT-03: bank taxonomy chip — origin visible at a glance, restrained to
+   text + border (no reliance on colour alone, A11Y-04). */
+.tr-taxonomy-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  border-radius: 2px;
+  border: 1px solid var(--tr-line);
+  color: var(--tr-muted);
+  background: var(--tr-raised);
+  white-space: nowrap;
+}
+.tr-taxonomy-chip--canonical { border-color: var(--tr-focus); color: var(--tr-focus); }
+.tr-taxonomy-chip--compiled  { border-color: var(--tr-warning); color: var(--tr-warning); }
+
+.tr-list__taxonomy {
+  margin-left: var(--tr-sp-2);
+}
+
+/* MAT-01: compiled-bank summary — a concise, provenance-rich landing view
+   instead of an initial raw table of hundreds of rows. */
+.tr-mat-compiled-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-3);
+  padding: var(--tr-sp-4);
+  margin: 0 var(--tr-sp-4) var(--tr-sp-4);
+  border: 1px solid var(--tr-line);
+  background: var(--tr-plate-2);
+}
+
+.tr-mat-compiled-summary__desc {
+  color: var(--tr-muted);
+  font-size: var(--tr-font-size-sm);
+}
+
+.tr-mat-compiled-summary__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tr-sp-5);
+}
+
+.tr-mat-compiled-summary__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tr-mat-compiled-summary__stat-value {
+  font-size: var(--tr-font-size-lg);
+  color: var(--tr-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-mat-compiled-summary__stat-label {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--tr-muted-min);
+}
+
+.tr-mat-sample-search {
+  padding: 0 var(--tr-sp-4) var(--tr-sp-3);
+  flex-shrink: 0;
+}
+
+.tr-mat-weight-hint {
+  padding: 0 var(--tr-sp-4) var(--tr-sp-2);
+  color: var(--tr-muted);
+  font-size: var(--tr-font-size-sm);
 }
 
 .tr-mat-add-row {

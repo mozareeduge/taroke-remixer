@@ -1,10 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectBank, selectToken } from "../store/selectionSlice.js";
 import { announce } from "../store/feedbackSlice.js";
 import { ConfirmInline } from "../shell/ConfirmInline.js";
 import { useMediaQuery } from "../shell/useMediaQuery.js";
+import { bankTaxonomy, TAXONOMY_LABEL, TAXONOMY_HINT } from "../shell/bankTaxonomy.js";
 import {
   addToken, removeToken, setTokenWeight, updateTokenLiteral,
   addBank, reorderTokens, moveBetweenBanks,
@@ -16,6 +17,14 @@ import type { Token } from "@taroke/schema";
  * without compressing itself into an unusable strip — samples become cards
  * instead (SHELL-09). */
 const COMPACT_TABLE_QUERY = "(max-width: 599px)";
+
+function TaxonomyChip({ taxonomy }: { taxonomy: ReturnType<typeof bankTaxonomy> }) {
+  return (
+    <span className={`tr-taxonomy-chip tr-taxonomy-chip--${taxonomy}`} title={TAXONOMY_HINT[taxonomy]}>
+      {TAXONOMY_LABEL[taxonomy]}
+    </span>
+  );
+}
 
 export function MaterialsPanel() {
   const dispatch = useAppDispatch();
@@ -40,13 +49,39 @@ export function MaterialsPanel() {
   const [moveToBankTarget, setMoveToBankTarget] = useState("");
   const [bankSearch, setBankSearch] = useState("");
   const [pendingRemoveTokenId, setPendingRemoveTokenId] = useState<string | null>(null);
+  const [sampleSearch, setSampleSearch] = useState("");
+  const [showFullList, setShowFullList] = useState(false);
   const addRef = useRef<HTMLInputElement>(null);
   const isCompact = useMediaQuery(COMPACT_TABLE_QUERY);
+
+  // Reset the local per-bank view state (search/expansion) when the active
+  // bank changes, so switching banks never carries over a stale filter or a
+  // stuck-open full list (MAT-01/MAT-02).
+  useEffect(() => {
+    setSampleSearch("");
+    setShowFullList(false);
+  }, [activeBank]);
 
   const tokens = activeBank ? (project.materials.trays[activeBank] ?? []) : [];
   const bankMeta = activeBank ? project.materials.bankMeta[activeBank] : null;
   const bankRole = bankMeta?.role ?? "literal";
   const totalWeight = tokens.reduce((s, t) => s + (t.weight || 0), 0);
+  const activeTaxonomy = activeBank ? bankTaxonomy(bankMeta?.desc, tokens.length) : null;
+  const isCompiledBank = activeTaxonomy === "compiled";
+
+  // MAT-02: sample search within the active bank, independent of the
+  // sidebar's bank search. Matching indices are re-resolved against the
+  // full `tokens` array (not the filtered position) so reorder/actions stay
+  // correct while a filter is active.
+  const trimmedSampleSearch = sampleSearch.trim().toLowerCase();
+  const searchedTokens = trimmedSampleSearch
+    ? tokens.filter((t) => t.literal.toLowerCase().includes(trimmedSampleSearch))
+    : tokens;
+
+  // MAT-01: a compiled bank's initial view is a concise summary, not a raw
+  // table of hundreds of rows. Searching or explicitly expanding reveals
+  // the real list.
+  const showRawList = !isCompiledBank || showFullList || trimmedSampleSearch.length > 0;
 
   const selectedTokenId =
     primary?.type === "token" && primary.bankName === activeBank ? primary.tokenId : null;
@@ -266,18 +301,23 @@ export function MaterialsPanel() {
           />
         </div>
         <ul className="tr-list" role="list">
-          {filteredBanks.map((b) => (
-            <li key={b} className="tr-list__item">
-              <button
-                className={["tr-list__btn", activeBank === b ? "tr-list__btn--active" : ""].filter(Boolean).join(" ")}
-                onClick={() => dispatch(selectBank(b))}
-                aria-current={activeBank === b ? "true" : undefined}
-              >
-                <span className="tr-list__label">{project.materials.bankMeta[b]?.label ?? b.toUpperCase()}</span>
-                <span className="tr-list__count">{project.materials.trays[b]?.length ?? 0}</span>
-              </button>
-            </li>
-          ))}
+          {filteredBanks.map((b) => {
+            const bCount = project.materials.trays[b]?.length ?? 0;
+            const bTaxonomy = bankTaxonomy(project.materials.bankMeta[b]?.desc, bCount);
+            return (
+              <li key={b} className="tr-list__item">
+                <button
+                  className={["tr-list__btn", activeBank === b ? "tr-list__btn--active" : ""].filter(Boolean).join(" ")}
+                  onClick={() => dispatch(selectBank(b))}
+                  aria-current={activeBank === b ? "true" : undefined}
+                >
+                  <span className="tr-list__label">{project.materials.bankMeta[b]?.label ?? b.toUpperCase()}</span>
+                  <span className="tr-list__taxonomy"><TaxonomyChip taxonomy={bTaxonomy} /></span>
+                  <span className="tr-list__count">{bCount}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
         <div className="tr-panel__add-row tr-panel__add-row--bank">
           <input
@@ -316,6 +356,7 @@ export function MaterialsPanel() {
               BANKS &amp; SAMPLES
               <span className="tr-panel__section-meta">
                 {bankMeta?.label ?? activeBank.toUpperCase()} · {bankRole}
+                {activeTaxonomy && <TaxonomyChip taxonomy={activeTaxonomy} />}
               </span>
               <div className="tr-panel__section-actions">
                 <button
@@ -398,9 +439,47 @@ export function MaterialsPanel() {
               </button>
             </div>
 
-            {isCompact ? (
+            <div className="tr-mat-sample-search">
+              <input
+                className="tr-input tr-input--sm"
+                placeholder={`Search ${tokens.length} sample${tokens.length !== 1 ? "s" : ""}…`}
+                value={sampleSearch}
+                onChange={(e) => setSampleSearch(e.target.value)}
+                aria-label="Search samples in this bank"
+              />
+            </div>
+            <p className="tr-mat-weight-hint">
+              Weight sets a sample's relative pick probability within this bank; Share shows that as a % of the bank's total weight.
+            </p>
+
+            {isCompiledBank && !showRawList ? (
+              <div className="tr-mat-compiled-summary" role="region" aria-label={`${bankMeta?.label ?? activeBank} summary`}>
+                <p className="tr-mat-compiled-summary__desc">{bankMeta?.desc ?? "Compiled bank — generated from other banks."}</p>
+                <div className="tr-mat-compiled-summary__stats">
+                  <div className="tr-mat-compiled-summary__stat">
+                    <span className="tr-mat-compiled-summary__stat-value">{tokens.length.toLocaleString()}</span>
+                    <span className="tr-mat-compiled-summary__stat-label">SAMPLES</span>
+                  </div>
+                  <div className="tr-mat-compiled-summary__stat">
+                    <span className="tr-mat-compiled-summary__stat-value">{Math.round(totalWeight).toLocaleString()}</span>
+                    <span className="tr-mat-compiled-summary__stat-label">TOTAL WEIGHT</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="tr-btn tr-btn--ghost tr-btn--sm"
+                  onClick={() => setShowFullList(true)}
+                >
+                  Show full list ({tokens.length})
+                </button>
+              </div>
+            ) : searchedTokens.length === 0 && trimmedSampleSearch.length > 0 ? (
+              <p className="tr-panel__empty">No sample matches &ldquo;{sampleSearch.trim()}&rdquo;.</p>
+            ) : isCompact ? (
               <ul className="tr-mat-cards" aria-label={`Samples in ${bankMeta?.label ?? activeBank}`}>
-                {tokens.map((tok, idx) => (
+                {searchedTokens.map((tok) => {
+                  const idx = tokens.indexOf(tok);
+                  return (
                   <li
                     key={tok.id}
                     className={["tr-mat-card", selectedTokenId === tok.id ? "tr-mat-card--selected" : ""].filter(Boolean).join(" ")}
@@ -434,7 +513,8 @@ export function MaterialsPanel() {
                     </div>
                     {renderConfirmRemove(tok)}
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             ) : (
               <table className="tr-table tr-mat-table">
@@ -448,7 +528,9 @@ export function MaterialsPanel() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tokens.map((tok, idx) => (
+                  {searchedTokens.map((tok) => {
+                    const idx = tokens.indexOf(tok);
+                    return (
                     <tr
                       key={tok.id}
                       className={[
@@ -480,7 +562,8 @@ export function MaterialsPanel() {
                         {renderConfirmRemove(tok)}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             )}

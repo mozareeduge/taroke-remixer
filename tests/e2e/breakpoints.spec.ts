@@ -5,7 +5,7 @@
  *  - the document never scrolls horizontally (no clipped/blown-out content);
  *  - on mobile widths, the primary Transport controls meet the 44x44
  *    minimum touch target (SHELL-05);
- *  - the last control in a representative chamber (Archive's Export HTML
+ *  - the last control in a representative chamber (Archive's Publish HTML
  *    button) is actually reachable by scrolling, not hidden behind
  *    persistent UI (SHELL-08).
  *
@@ -71,9 +71,9 @@ for (const vp of VIEWPORTS) {
     await gotoChamber(page, vp.width, "Archive", "Import & Export");
     await page.waitForTimeout(200);
 
-    const exportBtn = page.getByRole("button", { name: /Export HTML/i });
+    const exportBtn = page.getByRole("button", { name: /Publish HTML/i });
     await exportBtn.scrollIntoViewIfNeeded();
-    await expect(exportBtn, `${vp.name}: last Archive control (Export HTML) not reachable`).toBeVisible();
+    await expect(exportBtn, `${vp.name}: last Archive control (Publish HTML) not reachable`).toBeVisible();
 
     const overflowAfterNav = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

@@ -91,7 +91,7 @@ describe("Materials: bank search (T02)", () => {
     const store = makeStore();
     store.dispatch(selectBank("above"));
     wrap(<MaterialsPanel />, store);
-    expect(screen.getByText(/Weight/i)).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Weight" })).toBeInTheDocument();
   });
 });
 

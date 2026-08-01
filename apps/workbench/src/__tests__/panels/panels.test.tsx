@@ -674,19 +674,22 @@ describe("PerformancePanel", () => {
 // ── ArchivePanel ───────────────────────────────────────────────────────────────
 
 describe("ArchivePanel", () => {
-  it("renders EXPORT section heading", () => {
+  // ARCH-03: Save Project and Publish Artifact are distinct sections/cards,
+  // not one undifferentiated EXPORT list.
+  it("renders SAVE PROJECT and PUBLISH ARTIFACT as distinct section headings", () => {
     wrap(<ArchivePanel />);
-    expect(screen.getByText("EXPORT")).toBeInTheDocument();
+    expect(screen.getByText("SAVE PROJECT")).toBeInTheDocument();
+    expect(screen.getByText("PUBLISH ARTIFACT")).toBeInTheDocument();
   });
 
-  it("renders JSON export button", () => {
+  it("renders JSON save button", () => {
     wrap(<ArchivePanel />);
-    expect(screen.getByText(/Export JSON/)).toBeInTheDocument();
+    expect(screen.getByText(/Save JSON/)).toBeInTheDocument();
   });
 
-  it("renders HTML export button", () => {
+  it("renders HTML publish button", () => {
     wrap(<ArchivePanel />);
-    expect(screen.getByText(/Export HTML/)).toBeInTheDocument();
+    expect(screen.getByText(/Publish HTML/)).toBeInTheDocument();
   });
 
   it("renders import button", () => {
@@ -700,18 +703,21 @@ describe("ArchivePanel", () => {
     expect(screen.getByText("Taroko Gorge")).toBeInTheDocument();
   });
 
-  // R5: EXPORT first, IMPORT second, PREVIEW third
-  it("R5: EXPORT appears before IMPORT, IMPORT before PREVIEW", () => {
+  // ARCH-03: Save Project, Publish Artifact, Import, Preview — in that order,
+  // each a distinct step in the hierarchy.
+  it("R5: SAVE PROJECT, then PUBLISH ARTIFACT, then IMPORT, then PREVIEW", () => {
     const { container } = wrap(<ArchivePanel />);
     const heads = Array.from(container.querySelectorAll(".tr-panel__section-head"));
-    const texts = heads.map((h) => (h as HTMLElement).innerText ?? h.textContent ?? "");
-    const exportIdx = heads.findIndex((h) => h.textContent?.includes("EXPORT"));
+    const saveIdx = heads.findIndex((h) => h.textContent?.includes("SAVE PROJECT"));
+    const publishIdx = heads.findIndex((h) => h.textContent?.includes("PUBLISH ARTIFACT"));
     const importIdx = heads.findIndex((h) => h.textContent?.includes("IMPORT"));
     const previewIdx = heads.findIndex((h) => h.textContent?.includes("PREVIEW"));
-    expect(exportIdx).toBeGreaterThanOrEqual(0);
+    expect(saveIdx).toBeGreaterThanOrEqual(0);
+    expect(publishIdx).toBeGreaterThanOrEqual(0);
     expect(importIdx).toBeGreaterThanOrEqual(0);
     expect(previewIdx).toBeGreaterThanOrEqual(0);
-    expect(exportIdx).toBeLessThan(importIdx);
+    expect(saveIdx).toBeLessThan(publishIdx);
+    expect(publishIdx).toBeLessThan(importIdx);
     expect(importIdx).toBeLessThan(previewIdx);
   });
 
@@ -827,19 +833,19 @@ describe("ArchivePanel", () => {
       URL.revokeObjectURL = originalRevokeObjectURL;
     });
 
-    it("shows a receipt with filename, time, and checksum after exporting JSON", () => {
+    it("shows a receipt with filename, time, and checksum after saving JSON", () => {
       wrap(<ArchivePanel />);
-      fireEvent.click(screen.getByText(/Export JSON/));
-      const receipt = screen.getByText(/Exported/i);
+      fireEvent.click(screen.getByText(/Save JSON/));
+      const receipt = screen.getByText(/Saved/i);
       expect(receipt.textContent).toMatch(/\.taroke\.json/);
       expect(receipt.textContent).toMatch(/#[0-9a-f]{8}/);
       expect(receipt.textContent).toMatch(/bytes/);
     });
 
-    it("shows a fresh receipt after exporting HTML", () => {
+    it("shows a fresh receipt after publishing HTML", () => {
       wrap(<ArchivePanel />);
-      fireEvent.click(screen.getByText(/Export HTML/));
-      const receipt = screen.getByText(/Exported/i);
+      fireEvent.click(screen.getByText(/Publish HTML/));
+      const receipt = screen.getByText(/Published/i);
       expect(receipt.textContent).toMatch(/\.taroke\.html/);
     });
   });
@@ -997,6 +1003,91 @@ describe("MaterialsPanel — share column", () => {
     const pctCells = document.querySelectorAll(".tr-table__td--share");
     expect(pctCells.length).toBeGreaterThan(0);
     expect(pctCells[0]!.textContent).toMatch(/%/);
+  });
+
+  it("shows a Weight/Share explanation", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.getByText(/relative pick probability/i)).toBeInTheDocument();
+  });
+});
+
+// ── MaterialsPanel — bank taxonomy (MAT-03) ────────────────────────────────────
+
+describe("MaterialsPanel — bank taxonomy", () => {
+  it("labels a source bank Canonical", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.getAllByText("Canonical").length).toBeGreaterThan(0);
+  });
+
+  it("labels the large derived cave_phrases bank Compiled", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("cave_phrases"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.getAllByText("Compiled").length).toBeGreaterThan(0);
+  });
+});
+
+// ── MaterialsPanel — compiled-bank summary (MAT-01) ─────────────────────────────
+
+describe("MaterialsPanel — compiled-bank summary", () => {
+  it("shows a summary, not a raw table, for a compiled bank by default", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("cave_phrases"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.queryByRole("columnheader", { name: "Sample" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Show full list/i })).toBeInTheDocument();
+  });
+
+  it("does not show a compiled-bank summary for a small canonical bank", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    expect(screen.queryByRole("button", { name: /Show full list/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Sample" })).toBeInTheDocument();
+  });
+
+  it("Show full list reveals the raw table for a compiled bank", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("cave_phrases"));
+    wrap(<MaterialsPanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: /Show full list/i }));
+    expect(screen.getByRole("columnheader", { name: "Sample" })).toBeInTheDocument();
+  });
+});
+
+// ── MaterialsPanel — sample search within active bank (MAT-02) ─────────────────
+
+describe("MaterialsPanel — sample search", () => {
+  it("filters samples in a normal bank by literal", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    const before = document.querySelectorAll(".tr-mat-table__literal").length;
+    fireEvent.change(screen.getByLabelText("Search samples in this bank"), { target: { value: "stone" } });
+    const after = document.querySelectorAll(".tr-mat-table__literal").length;
+    expect(after).toBeGreaterThan(0);
+    expect(after).toBeLessThan(before);
+  });
+
+  it("reveals matching entries in a compiled bank without expanding the full list", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("cave_phrases"));
+    wrap(<MaterialsPanel />, store);
+    fireEvent.change(screen.getByLabelText("Search samples in this bank"), { target: { value: "cool" } });
+    expect(screen.getByRole("columnheader", { name: "Sample" })).toBeInTheDocument();
+    expect(document.querySelectorAll(".tr-mat-table__literal").length).toBeGreaterThan(0);
+  });
+
+  it("shows a no-match message for a search with no results", () => {
+    const store = makeStore();
+    store.dispatch(selectBank("above"));
+    wrap(<MaterialsPanel />, store);
+    fireEvent.change(screen.getByLabelText("Search samples in this bank"), { target: { value: "zzzznomatch" } });
+    expect(screen.getByText(/no sample matches/i)).toBeInTheDocument();
   });
 });
 

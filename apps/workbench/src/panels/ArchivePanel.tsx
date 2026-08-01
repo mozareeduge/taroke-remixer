@@ -186,21 +186,37 @@ export function ArchivePanel() {
   return (
     <div className="tr-panel tr-panel--archive">
       <div className="tr-panel__main">
-        <div className="tr-panel__section-head">EXPORT</div>
-        <div className="tr-archive__actions">
+        {/* ARCH-03: Save Project and Publish Artifact are separate cards with
+            distinct framing — editing this project's data vs. producing a
+            standalone shareable file are different consequences and must
+            not look like two buttons in the same undifferentiated list. */}
+        <div className="tr-panel__section-head">SAVE PROJECT</div>
+        <div className="tr-archive__card tr-archive__card--save">
+          <p className="tr-archive__card-kicker">EDITABLE · re-open here to keep working</p>
           <button className="tr-btn tr-btn--ghost" onClick={doExportJson}>
-            Export JSON (.taroke.json)
+            Save JSON (.taroke.json)
           </button>
           <p className="tr-archive__desc">Project data for editing in another session.</p>
+          {exportReceipt?.filename.endsWith(".taroke.json") && (
+            <p className="tr-archive__export-receipt" role="status">
+              Saved <strong>{exportReceipt.filename}</strong> at{" "}
+              {new Date(exportReceipt.timestamp).toLocaleString(undefined, { dateStyle: "short", timeStyle: "medium" })}
+              {" · "}{exportReceipt.byteSize.toLocaleString()} bytes{" · "}
+              <span className="tr-archive__export-receipt-checksum">#{exportReceipt.checksum}</span>
+            </p>
+          )}
+        </div>
 
+        <div className="tr-panel__section-head">PUBLISH ARTIFACT</div>
+        <div className="tr-archive__card tr-archive__card--publish">
+          <p className="tr-archive__card-kicker">STANDALONE · runs anywhere, no longer editable here</p>
           <button className="tr-btn tr-btn--ghost" onClick={doExportHtml}>
-            Export HTML (.taroke.html)
+            Publish HTML (.taroke.html)
           </button>
           <p className="tr-archive__desc">Standalone artifact — runs in any browser, no server needed.</p>
-
-          {exportReceipt && (
+          {exportReceipt?.filename.endsWith(".taroke.html") && (
             <p className="tr-archive__export-receipt" role="status">
-              Exported <strong>{exportReceipt.filename}</strong> at{" "}
+              Published <strong>{exportReceipt.filename}</strong> at{" "}
               {new Date(exportReceipt.timestamp).toLocaleString(undefined, { dateStyle: "short", timeStyle: "medium" })}
               {" · "}{exportReceipt.byteSize.toLocaleString()} bytes{" · "}
               <span className="tr-archive__export-receipt-checksum">#{exportReceipt.checksum}</span>

@@ -97,7 +97,7 @@ test("2 — all six panels are reachable via nav", async ({ page }) => {
       await expect(page.getByText("CUE").first()).toBeVisible();
     }],
     ["Archive", async () => {
-      await expect(page.getByText("EXPORT").first()).toBeVisible();
+      await expect(page.getByText("SAVE PROJECT").first()).toBeVisible();
     }],
   ];
 
@@ -300,12 +300,13 @@ test("11 — Performance: Surface Generate → select line → UNMIX appears →
 
 // ── 12. Archive: export buttons visible ────────────────────────────────────────
 
-test("12 — Archive: JSON and HTML export buttons are visible", async ({ page }) => {
+test("12 — Archive: JSON save and HTML publish buttons are visible", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Archive");
-  await expect(page.getByText("EXPORT").first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /Export JSON/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Export HTML/i })).toBeVisible();
+  await expect(page.getByText("SAVE PROJECT").first()).toBeVisible();
+  await expect(page.getByText("PUBLISH ARTIFACT").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Save JSON/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Publish HTML/i })).toBeVisible();
 });
 
 // ── 13. Archive: Import button and section present ─────────────────────────────
@@ -763,15 +764,15 @@ test("33 — Archive: preview iframe has sandbox=allow-scripts and no allow-same
   expect(sandbox, "iframe sandbox must NOT include allow-same-origin").not.toContain("allow-same-origin");
 });
 
-// ── 34. Archive: Export JSON triggers download with valid parseable JSON ───────
+// ── 34. Archive: Save JSON triggers download with valid parseable JSON ─────────
 
-test("34 — Archive: Export JSON triggers a download with valid parseable JSON", async ({ page }) => {
+test("34 — Archive: Save JSON triggers a download with valid parseable JSON", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Archive");
 
   const [download] = await Promise.all([
     page.waitForEvent("download"),
-    page.getByRole("button", { name: /Export JSON/i }).click(),
+    page.getByRole("button", { name: /Save JSON/i }).click(),
   ]);
 
   // Download must have a .json filename
@@ -789,15 +790,15 @@ test("34 — Archive: Export JSON triggers a download with valid parseable JSON"
   expect(parsed["stanzaPatterns"], "Expected stanzaPatterns array").toBeDefined();
 });
 
-// ── 35. Archive: Export HTML triggers download with standalone artifact ────────
+// ── 35. Archive: Publish HTML triggers download with standalone artifact ───────
 
-test("35 — Archive: Export HTML triggers a download with standalone taroke HTML", async ({ page }) => {
+test("35 — Archive: Publish HTML triggers a download with standalone taroke HTML", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Archive");
 
   const [download] = await Promise.all([
     page.waitForEvent("download"),
-    page.getByRole("button", { name: /Export HTML/i }).click(),
+    page.getByRole("button", { name: /Publish HTML/i }).click(),
   ]);
 
   expect(download.suggestedFilename(), "Expected .taroke.html extension").toMatch(/\.taroke\.html$/);

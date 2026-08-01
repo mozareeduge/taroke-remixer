@@ -108,7 +108,7 @@ test("MI-1 — mobile: select sample → sheet not auto-opened → Forms bench e
   // Verify the switcher is still present and usable
   await gotoChamber(page, "Archive");
   await page.waitForTimeout(200);
-  await expect(page.getByText("EXPORT").first()).toBeVisible({ timeout: 3_000 });
+  await expect(page.getByText("SAVE PROJECT").first()).toBeVisible({ timeout: 3_000 });
 });
 
 // ── Overlay auto-open at 960–1199 px (regression guard) ─────────────────────
