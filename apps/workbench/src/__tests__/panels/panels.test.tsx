@@ -247,11 +247,12 @@ describe("InstrumentsPanel", () => {
     expect(screen.getByText("ROUTES")).toBeInTheDocument();
   });
 
-  // R3: No permanent chip wall — only Insert variable… button
+  // R3: No permanent chip wall — only Insert variable… button, behind Advanced
   it("R3: no permanent variable chip wall — only Insert variable… button", () => {
     const store = makeStore();
     store.dispatch(selectDevice("ld_path"));
     wrap(<InstrumentsPanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: /Advanced: edit raw template/i }));
     // "Insert variable…" button(s) must exist (one per route)
     const insertBtns = screen.queryAllByRole("button", { name: /Insert variable/i });
     expect(insertBtns.length).toBeGreaterThan(0);
@@ -265,10 +266,32 @@ describe("InstrumentsPanel", () => {
     const store = makeStore();
     store.dispatch(selectDevice("ld_path"));
     wrap(<InstrumentsPanel />, store);
+    fireEvent.click(screen.getByRole("button", { name: /Advanced: edit raw template/i }));
     const insertBtns = screen.queryAllByRole("button", { name: /Insert variable/i });
     expect(insertBtns.length).toBeGreaterThan(0);
     fireEvent.click(insertBtns[0]!);
     expect(screen.getByRole("dialog", { name: /insert variable/i })).toBeInTheDocument();
+  });
+
+  // INS-01/DS-INS-03: raw template syntax is not the primary route surface —
+  // it lives behind an Advanced disclosure, default closed.
+  it("INS-01: raw template is hidden behind an Advanced disclosure by default", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    expect(screen.queryByLabelText(/^Template for route/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Advanced: edit raw template/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Advanced: edit raw template/i }));
+    expect(screen.getByLabelText(/^Template for route/i)).toBeInTheDocument();
+  });
+
+  // DS-INS-03: a readable rendered example is shown for routes by default,
+  // without requiring a click.
+  it("DS-INS-03: shows a rendered example for the selected route without a click", () => {
+    const store = makeStore();
+    store.dispatch(selectDevice("ld_path"));
+    wrap(<InstrumentsPanel />, store);
+    expect(screen.getAllByText("renders like").length).toBeGreaterThan(0);
   });
 
   // R6: Remove buttons use written text, not bare ✕
@@ -287,20 +310,20 @@ describe("InstrumentsPanel", () => {
   // INST-04: each route can be tested directly, beside its own editor,
   // instead of only via the device-level Cue (which uses a weighted pick
   // that may never land on the route being edited).
-  it("INST-04: a selected route has its own Test route button beside its editor", () => {
+  it("INST-04: a selected route has its own Audition button beside its editor", () => {
     const store = makeStore();
     store.dispatch(selectDevice("ld_path"));
     wrap(<InstrumentsPanel />, store);
-    expect(screen.getAllByRole("button", { name: /test route/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /audition this route/i }).length).toBeGreaterThan(0);
   });
 
-  it("INST-04: testing a route shows its rendered output inline, without waiting for the device Cue", () => {
+  it("INST-04: auditioning a route shows its rendered output inline, without waiting for the device Cue", () => {
     const store = makeStore();
     store.dispatch(selectDevice("ld_path"));
     wrap(<InstrumentsPanel />, store);
-    const testBtn = screen.getAllByRole("button", { name: /test route/i })[0]!;
+    const testBtn = screen.getAllByRole("button", { name: /audition this route/i })[0]!;
     fireEvent.click(testBtn);
-    expect(document.querySelector(".tr-cue-device__output")).not.toBeNull();
+    expect(document.querySelector(".tr-route__example")).not.toBeNull();
   });
 });
 

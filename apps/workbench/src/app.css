@@ -1084,6 +1084,35 @@ input[type="checkbox"] {
   background: var(--tr-field);
 }
 
+/* INS-01/DS-INS-03: readable rendered example — the primary route surface,
+   distinct from the apparatus register used by the raw template below. */
+.tr-route__example {
+  padding: 0 var(--tr-sp-3) var(--tr-sp-2);
+  font-family: var(--tr-font-reading);
+  color: var(--tr-text);
+  font-size: var(--tr-font-size-md);
+  line-height: 1.5;
+}
+.tr-route__example-label {
+  font-family: var(--tr-font-ui);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--tr-muted-min);
+  margin-right: var(--tr-sp-2);
+}
+
+.tr-route__advanced {
+  border-top: 1px solid var(--tr-line-soft);
+  padding-top: var(--tr-sp-2);
+}
+
+.tr-route__advanced-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tr-sp-2);
+  margin-top: var(--tr-sp-2);
+}
+
 .tr-route__template {
   width: 100%;
   padding: var(--tr-sp-2);

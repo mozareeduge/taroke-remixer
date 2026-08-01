@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks.js";
 import { mutateProject } from "../store/projectSlice.js";
 import { selectDevice, selectRoute } from "../store/selectionSlice.js";
@@ -131,7 +131,29 @@ export function InstrumentsPanel() {
   const [cueError, setCueError] = useState<string | null>(null);
   const [routeCue, setRouteCue] = useState<Record<string, { surface?: string; error?: string }>>({});
   const [removeDeviceError, setRemoveDeviceError] = useState<string | null>(null);
+  const [advancedOpenFor, setAdvancedOpenFor] = useState<Record<string, boolean>>({});
   const templateRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+
+  // INS-01/DS-INS-03: every route card shows a readable rendered example by
+  // default, not only after an explicit "Test route" click — recomputed
+  // whenever this device's routes change (weight/template edits, upstream
+  // Forms/Materials changes reflected through renderDeviceEvent) so the
+  // example stays causally current (DS-INS-13).
+  useEffect(() => {
+    if (!activeDevice) return;
+    const localRunState = { ...runState, queue: [...runState.queue] };
+    setRouteCue((prev) => {
+      const next = { ...prev };
+      for (const rt of activeDevice.routes) {
+        const ev = renderDeviceEvent(
+          project, activeDevice.id, { type: "device", deviceId: activeDevice.id }, localRunState, Math.random, rt.id
+        );
+        next[rt.id] = ev.type === "line" ? { surface: (ev as LineEvent).surface } : { error: (ev as { error?: string }).error ?? "error" };
+      }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDevice]);
 
   function doCue() {
     if (!activeDevice) return;
@@ -361,56 +383,80 @@ export function InstrumentsPanel() {
                         onClick={() => dispatch(mutateProject(removeRoute(project, activeDevice.id, rt.id)))}
                       >Remove</button>
                     </div>
+
+                    {/* INS-01/DS-INS-03: readable example is the primary,
+                        always-visible surface for every route card — raw
+                        syntax lives under Advanced below, only when selected. */}
+                    {routeCue[rt.id]?.error && (
+                      <p className="tr-cue-device__error" role="alert">{routeCue[rt.id]!.error}</p>
+                    )}
+                    {routeCue[rt.id]?.surface && (
+                      <p className="tr-route__example" aria-live="off">
+                        <span className="tr-route__example-label">renders like</span> {routeCue[rt.id]!.surface}
+                      </p>
+                    )}
+
                     {isSelected && (
                       <div className="tr-route__editor">
-                        <textarea
-                          ref={(el) => { templateRefs.current[rt.id] = el; }}
-                          className="tr-route__template"
-                          value={rt.template}
-                          rows={2}
-                          onChange={(e) => dispatch(mutateProject(updateRouteTemplate(project, activeDevice.id, rt.id, e.target.value)))}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Template for route ${rt.name}`}
-                          spellCheck={false}
-                          data-route-template={rt.id}
-                        />
-                        <div className="tr-route__palette-row">
-                          {activeDevice.inputs.length > 0 && (
-                            <button
-                              className="tr-btn tr-btn--ghost tr-btn--sm"
-                              aria-label="Insert variable…"
-                              aria-haspopup="dialog"
-                              onClick={(e) => { e.stopPropagation(); setOpenPaletteForRoute(openPaletteForRoute === rt.id ? null : rt.id); }}
-                            >
-                              {openPaletteForRoute === rt.id ? "Close palette" : "Insert variable…"}
-                            </button>
-                          )}
+                        <button
+                          className="tr-btn tr-btn--ghost tr-btn--sm"
+                          onClick={(e) => { e.stopPropagation(); doCueRoute(rt.id); }}
+                          aria-label={`Audition this route, ${rt.name} (private, not recorded)`}
+                        >
+                          Audition this route
+                        </button>
+
+                        <div className="tr-route__advanced">
                           <button
+                            type="button"
                             className="tr-btn tr-btn--ghost tr-btn--sm"
-                            onClick={(e) => { e.stopPropagation(); doCueRoute(rt.id); }}
-                            aria-label={`Test route ${rt.name} (private, not recorded)`}
+                            aria-expanded={Boolean(advancedOpenFor[rt.id])}
+                            aria-controls={`tr-route-advanced-${rt.id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAdvancedOpenFor((prev) => ({ ...prev, [rt.id]: !prev[rt.id] }));
+                            }}
                           >
-                            Test route
+                            {advancedOpenFor[rt.id] ? "Hide advanced: raw template" : "Advanced: edit raw template"}
                           </button>
+                          {advancedOpenFor[rt.id] && (
+                            <div id={`tr-route-advanced-${rt.id}`} className="tr-route__advanced-body">
+                              <textarea
+                                ref={(el) => { templateRefs.current[rt.id] = el; }}
+                                className="tr-route__template"
+                                value={rt.template}
+                                rows={2}
+                                onChange={(e) => dispatch(mutateProject(updateRouteTemplate(project, activeDevice.id, rt.id, e.target.value)))}
+                                onClick={(e) => e.stopPropagation()}
+                                aria-label={`Template for route ${rt.name}`}
+                                spellCheck={false}
+                                data-route-template={rt.id}
+                              />
+                              <div className="tr-route__palette-row">
+                                {activeDevice.inputs.length > 0 && (
+                                  <button
+                                    className="tr-btn tr-btn--ghost tr-btn--sm"
+                                    aria-label="Insert variable…"
+                                    aria-haspopup="dialog"
+                                    onClick={(e) => { e.stopPropagation(); setOpenPaletteForRoute(openPaletteForRoute === rt.id ? null : rt.id); }}
+                                  >
+                                    {openPaletteForRoute === rt.id ? "Close palette" : "Insert variable…"}
+                                  </button>
+                                )}
+                              </div>
+                              {openPaletteForRoute === rt.id && (
+                                <VariablePalette
+                                  deviceId={activeDevice.id}
+                                  routeId={rt.id}
+                                  routeTemplate={rt.template}
+                                  templateRef={{ current: templateRefs.current[rt.id] ?? null }}
+                                  onClose={() => setOpenPaletteForRoute(null)}
+                                  onInsert={handleInsert}
+                                />
+                              )}
+                            </div>
+                          )}
                         </div>
-                        {routeCue[rt.id]?.error && (
-                          <p className="tr-cue-device__error" role="alert">{routeCue[rt.id]!.error}</p>
-                        )}
-                        {routeCue[rt.id]?.surface && (
-                          <div className="tr-cue-device__output" aria-live="polite" aria-atomic="true">
-                            <p className="tr-cue-device__line">{routeCue[rt.id]!.surface}</p>
-                          </div>
-                        )}
-                        {openPaletteForRoute === rt.id && (
-                          <VariablePalette
-                            deviceId={activeDevice.id}
-                            routeId={rt.id}
-                            routeTemplate={rt.template}
-                            templateRef={{ current: templateRefs.current[rt.id] ?? null }}
-                            onClose={() => setOpenPaletteForRoute(null)}
-                            onInsert={handleInsert}
-                          />
-                        )}
                       </div>
                     )}
                   </div>

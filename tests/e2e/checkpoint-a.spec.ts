@@ -149,8 +149,10 @@ test("5 — Instruments: route template textarea is editable and updates model",
   await goto(page);
   await clickNav(page, "Instruments");
   await expect(page.getByText("DEVICES").first()).toBeVisible();
+  // Raw template syntax lives under Advanced, closed by default (INS-01)
+  await page.getByRole("button", { name: /Advanced: edit raw template/i }).first().click();
   // PATH device is selected by default; route template textarea must be editable
-  const templateArea = page.locator("textarea").first();
+  const templateArea = page.getByLabel(/^Template for route/i).first();
   await expect(templateArea).toBeVisible();
   await templateArea.fill("test template text");
   // After editing the template, the textarea value must reflect the change
@@ -525,12 +527,15 @@ test("25 — Instruments: variable palette opens and inserts a token into the te
   await clickNav(page, "Instruments");
   await expect(page.getByText("DEVICES").first()).toBeVisible();
 
+  // Raw template syntax lives under Advanced, closed by default (INS-01)
+  await page.getByRole("button", { name: /Advanced: edit raw template/i }).first().click();
+
   // "Insert variable…" button must be present (PATH device has inputs)
   const insertBtn = page.getByRole("button", { name: /Insert variable/i }).first();
   await expect(insertBtn).toBeVisible();
 
   // Clear the first template textarea, then open the palette and insert a variable
-  const templateArea = page.locator("textarea").first();
+  const templateArea = page.getByLabel(/^Template for route/i).first();
   await templateArea.fill("");
   await insertBtn.click();
   await page.waitForTimeout(200);
