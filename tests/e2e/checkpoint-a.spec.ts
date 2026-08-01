@@ -159,15 +159,16 @@ test("5 — Instruments: route template textarea is editable and updates model",
 
 // ── 6. Composition: slot reorder buttons present ───────────────────────────────
 
-test("6 — Composition: slot drag-handle buttons exist for the active pattern", async ({ page }) => {
+test("6 — Composition: slot Actions menus exist for the active pattern", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Composition");
   await expect(page.getByText("PATTERNS").first()).toBeVisible();
-  await expect(page.getByText("SLOTS").first()).toBeVisible();
-  // Default stanza has slots; each slot must have a drag-handle button for reorder
-  const dragHandles = page.getByRole("button", { name: /Reorder slot .+/i });
-  const count = await dragHandles.count();
-  expect(count, "Expected drag-handle buttons for slot reorder").toBeGreaterThan(0);
+  await expect(page.getByText("PATTERN SCORE").first()).toBeVisible();
+  // Default stanza has slots; each slot must have an Actions menu (the single
+  // keyboard/touch-safe reorder + remove path, replacing four competing affordances).
+  const actionsBtns = page.getByRole("button", { name: /^Actions for slot /i });
+  const count = await actionsBtns.count();
+  expect(count, "Expected Actions menu buttons for slot reorder/remove").toBeGreaterThan(0);
 });
 
 // ── 7. Automation: TRIGGERS section and add affordance present ─────────────────
@@ -262,24 +263,30 @@ test("10 — Performance: Surface Clear empties history", async ({ page }) => {
 
 // ── 11. Performance: Take capture workflow ─────────────────────────────────────
 
-test("11 — Performance: Surface Generate → UNMIX appears → Capture Take → Take listed", async ({
+test("11 — Performance: Surface Generate → select line → UNMIX appears → Capture Take → Take listed", async ({
   page,
 }) => {
   await goto(page);
   await clickNav(page, "Performance");
   const surfaceGenBtn = page.getByRole("button", { name: /Surface: generate/i });
 
-  // Generate until we get a line event (UNMIX section appears)
+  // Generate until we get a line event. UNMIX must NOT appear on its own —
+  // it opens only through explicit selection of a Surface line.
   let gotLine = false;
   for (let i = 0; i < 15; i++) {
     await surfaceGenBtn.click();
     await page.waitForTimeout(200);
-    if ((await page.getByText("UNMIX").count()) > 0) {
+    expect(await page.locator("#unmix-head").count(), "UNMIX must not auto-open on Generate").toBe(0);
+    if ((await page.locator(".tr-surface__line").count()) > 0) {
       gotLine = true;
       break;
     }
   }
   expect(gotLine, "Expected at least one line event in 15 Surface generates").toBe(true);
+
+  // Explicitly select the Surface line — only now must UNMIX open.
+  await page.locator(".tr-surface__line").first().click();
+  await expect(page.locator("#unmix-head")).toBeVisible();
 
   // Capture Take button must be visible
   const captureBtn = page.getByRole("button", { name: /Capture.*Take/i });
@@ -567,7 +574,12 @@ test("26 — Archive: import receipt banner appears after a valid file is loaded
     mimeType: "application/json",
     buffer: Buffer.from(validProject),
   });
-  await page.waitForTimeout(500);
+
+  // Import preflight must appear and require explicit confirmation before
+  // the current project is replaced.
+  const preflight = page.getByRole("alertdialog", { name: /confirm import/i });
+  await expect(preflight).toBeVisible({ timeout: 3000 });
+  await page.getByRole("button", { name: "Replace project" }).click();
 
   // Import receipt banner must appear
   const banner = page.locator('[aria-label="Import receipt"]');
@@ -577,48 +589,51 @@ test("26 — Archive: import receipt banner appears after a valid file is loaded
 
 // ── 27. Composition: slot reorder changes order in model ──────────────────────
 
-test("27 — Composition: clicking slot Down reorder button moves slot", async ({ page }) => {
+test("27 — Composition: Move later in the Actions menu moves the slot", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Composition");
-  await expect(page.getByText("SLOTS").first()).toBeVisible();
+  await expect(page.getByText("PATTERN SCORE").first()).toBeVisible();
 
-  // Get slot Down buttons
-  const downBtns = page.getByRole("button", { name: /move slot .+ down/i });
-  const count = await downBtns.count();
-  if (count < 2) {
-    // If only one slot, skip reorder check (first slot's Down is also last = disabled)
-    return;
-  }
+  // Identify by data-slot-id, not label text — adjacent slots may share
+  // the same device label (e.g. two PATH slots) without being the same slot.
+  const slotRows = page.locator("[data-slot-id]");
+  const totalSlots = await slotRows.count();
+  if (totalSlots < 2) return; // Need ≥2 slots for a visible reorder
 
-  // Click the first enabled Down button — first slot's label must change
-  const firstEnabled = downBtns.filter({ hasNot: page.locator("[disabled]") }).first();
-  const slotLabels = page.locator(".tr-slot__type");
-  const beforeFirstLabel = await slotLabels.first().textContent();
+  const beforeFirstId = await slotRows.first().getAttribute("data-slot-id");
 
-  await firstEnabled.click();
+  // Open the first slot's Actions menu and click "Move later"
+  await page.getByRole("button", { name: /^Actions for slot /i }).first().click();
+  await page.getByRole("menuitem", { name: "Move later" }).click();
   await page.waitForTimeout(200);
 
-  const afterFirstLabel = await slotLabels.first().textContent();
-  // After moving the first slot down, a different slot is now first — label changes
-  expect(afterFirstLabel, "Expected slot reorder to change first slot's label").not.toBe(beforeFirstLabel);
+  const afterFirstId = await slotRows.first().getAttribute("data-slot-id");
+  expect(afterFirstId, "Expected slot reorder to change which slot is first").not.toBe(beforeFirstId);
 });
 
-// ── 28. Composition: Move to start/end buttons ────────────────────────────────
+// ── 28. Composition: Move to start/end menu items ─────────────────────────────
 
-test("28 — Composition: slot drag-handle buttons exist for reordering", async ({ page }) => {
+test("28 — Composition: Move to start in the Actions menu reorders the last slot to first", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Composition");
-  await expect(page.getByText("SLOTS").first()).toBeVisible();
+  await expect(page.getByText("PATTERN SCORE").first()).toBeVisible();
 
-  // Drag-handle buttons must exist for all slots
-  const dragHandles = page.getByRole("button", { name: /Reorder slot/i });
-  const count = await dragHandles.count();
-  expect(count, "Expected drag-handle buttons for slot reorder").toBeGreaterThan(0);
+  // Actions menus must exist for all slots
+  const actionsBtns = page.getByRole("button", { name: /^Actions for slot /i });
+  const count = await actionsBtns.count();
+  expect(count, "Expected Actions menu buttons for slot reorder").toBeGreaterThan(0);
 
-  // Default stanza must have 3+ slots
   const slotLabels = page.locator(".tr-slot__type");
   const totalSlots = await slotLabels.count();
   expect(totalSlots, "Need ≥3 slots to verify reorder is meaningful").toBeGreaterThanOrEqual(3);
+
+  const beforeLastLabel = await slotLabels.last().textContent();
+  await actionsBtns.last().click();
+  await page.getByRole("menuitem", { name: "Move to start" }).click();
+  await page.waitForTimeout(200);
+
+  const afterFirstLabel = await slotLabels.first().textContent();
+  expect(afterFirstLabel, "Expected the last slot to become first").toBe(beforeLastLabel);
 });
 
 // ── 29. Instruments: device input slot is editable ───────────────────────────
@@ -933,14 +948,17 @@ test("42 — Performance: UNMIX table shows device name, route, and consumed inp
   await clickNav(page, "Performance");
   const surfaceGenBtn = page.getByRole("button", { name: /Surface: generate/i });
 
-  // Generate until UNMIX appears (line event)
+  // Generate until a line event appears, then explicitly select it — UNMIX
+  // opens only through user selection, never automatically on Generate.
   let gotLine = false;
   for (let i = 0; i < 15; i++) {
     await surfaceGenBtn.click();
     await page.waitForTimeout(200);
-    if ((await page.getByText("UNMIX").count()) > 0) { gotLine = true; break; }
+    if ((await page.locator(".tr-surface__line").count()) > 0) { gotLine = true; break; }
   }
-  expect(gotLine, "Expected a line event to appear in UNMIX within 15 generates").toBe(true);
+  expect(gotLine, "Expected a line event to appear within 15 generates").toBe(true);
+  await page.locator(".tr-surface__line").first().click();
+  await expect(page.locator("#unmix-head")).toBeVisible();
 
   // UNMIX section must contain Device, Route, and Final rows
   const unmixSection = page.locator(".tr-unmix");
@@ -957,12 +975,14 @@ test("43 — Performance: captured take shows tick number badge", async ({ page 
   await clickNav(page, "Performance");
   const surfaceGenBtn = page.getByRole("button", { name: /Surface: generate/i });
 
-  // Get a line event into UNMIX
+  // Get a line event, then explicitly select it to open UNMIX.
   for (let i = 0; i < 15; i++) {
     await surfaceGenBtn.click();
     await page.waitForTimeout(200);
-    if ((await page.getByText("UNMIX").count()) > 0) break;
+    if ((await page.locator(".tr-surface__line").count()) > 0) break;
   }
+  await page.locator(".tr-surface__line").first().click();
+  await expect(page.locator("#unmix-head")).toBeVisible();
 
   // Capture take
   const captureBtn = page.getByRole("button", { name: /Capture.*Take/i });
@@ -1025,7 +1045,7 @@ test("45 — Instruments: Remove input button removes a device input row", async
 test("46 — Composition: Add Breath button appends a BREATH slot", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Composition");
-  await expect(page.getByText("SLOTS").first()).toBeVisible();
+  await expect(page.getByText("PATTERN SCORE").first()).toBeVisible();
 
   const slotLabels = page.locator(".tr-slot__type");
   const before = await slotLabels.count();
@@ -1044,7 +1064,7 @@ test("46 — Composition: Add Breath button appends a BREATH slot", async ({ pag
 test("47 — Composition: undo after slot reorder restores previous slot order", async ({ page }) => {
   await goto(page);
   await clickNav(page, "Composition");
-  await expect(page.getByText("SLOTS").first()).toBeVisible();
+  await expect(page.getByText("PATTERN SCORE").first()).toBeVisible();
 
   const slotRows = page.locator("[data-slot-id]");
   const count = await slotRows.count();
@@ -1053,13 +1073,9 @@ test("47 — Composition: undo after slot reorder restores previous slot order",
   // Record slot identity (id attribute) rather than label text — adjacent slots may share the same label
   const beforeFirstId = await slotRows.first().getAttribute("data-slot-id");
 
-  // Use keyboard drag: focus the first drag-handle, Space to pick up, ArrowDown to move, Space to drop
-  const dragHandles = page.getByRole("button", { name: /Reorder slot/i });
-  const firstHandle = dragHandles.first();
-  await firstHandle.focus();
-  await page.keyboard.press("Space");
-  await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("Space");
+  // Reorder via the Actions menu — the single keyboard/touch-safe move path.
+  await page.getByRole("button", { name: /^Actions for slot /i }).first().click();
+  await page.getByRole("menuitem", { name: "Move later" }).click();
   await page.waitForTimeout(200);
 
   const afterMoveId = await slotRows.first().getAttribute("data-slot-id");

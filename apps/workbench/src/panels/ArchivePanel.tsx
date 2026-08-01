@@ -4,6 +4,14 @@ import { setProject } from "../store/projectSlice.js";
 import { setPreviewFresh, setPreviewHtml } from "../store/editorSlice.js";
 import { showReceipt } from "../store/importReceiptSlice.js";
 import { exportProjectJson, exportProjectHtml, importProjectWithReceipt, downloadName, checksumOf } from "@taroke/core";
+import type { TarokeProject } from "@taroke/schema";
+import type { ImportReceipt } from "@taroke/core";
+
+interface PendingImport {
+  filename: string;
+  imported: TarokeProject;
+  receipt: ImportReceipt;
+}
 
 type PreviewLifecycle = "unbuilt" | "building" | "ready" | "stale" | "error";
 
@@ -46,6 +54,7 @@ export function ArchivePanel() {
   const previewHtml = useAppSelector((s) => s.editor.previewHtml);
   const importRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [pendingImport, setPendingImport] = useState<PendingImport | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [handshake, setHandshake] = useState<"pending" | "ready" | "error" | null>(null);
   const [exportReceipt, setExportReceipt] = useState<{ filename: string; timestamp: string; checksum: string; byteSize: number } | null>(null);
@@ -128,6 +137,9 @@ export function ArchivePanel() {
     recordExport(filename, content);
   }
 
+  // Import preflight: parse and validate the file first, but do not replace
+  // the current project until the user explicitly confirms the replacement
+  // warning below — importing is destructive to unsaved in-memory work.
   function doImport(file: File) {
     setImportError(null);
     const reader = new FileReader();
@@ -135,13 +147,7 @@ export function ArchivePanel() {
       const text = String(e.target?.result ?? "");
       try {
         const { project: imported, receipt } = importProjectWithReceipt(text, file.name);
-        dispatch(setProject(imported));
-        dispatch(showReceipt({
-          filename: file.name,
-          issues: [],
-          repairCount: receipt.repairCount,
-          fullReceipt: receipt,
-        }));
+        setPendingImport({ filename: file.name, imported, receipt });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setImportError(`Could not import "${file.name}": ${msg}`);
@@ -151,6 +157,30 @@ export function ArchivePanel() {
       setImportError(`Could not read "${file.name}".`);
     };
     reader.readAsText(file);
+  }
+
+  function confirmImport() {
+    if (!pendingImport) return;
+    dispatch(setProject(pendingImport.imported));
+    dispatch(showReceipt({
+      filename: pendingImport.filename,
+      issues: [],
+      repairCount: pendingImport.receipt.repairCount,
+      fullReceipt: pendingImport.receipt,
+    }));
+    setPendingImport(null);
+  }
+
+  function cancelImport() {
+    setPendingImport(null);
+  }
+
+  function doOpenArtifactSeparately() {
+    if (!previewHtml) return;
+    const blob = new Blob([previewHtml], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
   }
 
   return (
@@ -201,6 +231,28 @@ export function ArchivePanel() {
               {importError}
             </p>
           )}
+          {pendingImport && (
+            <div className="tr-archive__import-preflight" role="alertdialog" aria-label="Confirm import — replaces current project">
+              <p className="tr-archive__import-preflight-warning">
+                Importing <strong>{pendingImport.filename}</strong> will <strong>replace</strong> the current
+                project (&ldquo;{project.project.title || "untitled"}&rdquo;) with
+                &ldquo;{pendingImport.imported.project.title || "untitled"}&rdquo; —
+                {" "}{pendingImport.receipt.bankCount} bank{pendingImport.receipt.bankCount !== 1 ? "s" : ""},{" "}
+                {pendingImport.receipt.patternCount} pattern{pendingImport.receipt.patternCount !== 1 ? "s" : ""},{" "}
+                {pendingImport.receipt.deviceCount} device{pendingImport.receipt.deviceCount !== 1 ? "s" : ""}.
+                {pendingImport.receipt.repairCount > 0
+                  ? ` ${pendingImport.receipt.repairCount} ID conflict${pendingImport.receipt.repairCount !== 1 ? "s" : ""} will be auto-repaired.`
+                  : ""}
+                {" "}Undo will still be available afterward.
+              </p>
+              <div className="tr-archive__import-preflight-actions">
+                <button className="tr-btn tr-btn--ghost tr-btn--sm" onClick={cancelImport}>Cancel</button>
+                <button className="tr-btn tr-btn--danger tr-btn--sm" onClick={confirmImport} autoFocus>
+                  Replace project
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="tr-panel__section-head">
@@ -227,6 +279,15 @@ export function ArchivePanel() {
             <p className="tr-archive__desc tr-archive__stale-hint">
               Project has changed — preview is stale. Click Refresh to rebuild.
             </p>
+          )}
+          {previewHtml && (
+            <button
+              className="tr-btn tr-btn--ghost tr-btn--sm"
+              onClick={doOpenArtifactSeparately}
+              aria-label="Open the standalone artifact in a new tab"
+            >
+              Open separately ↗
+            </button>
           )}
           {previewError && (
             <p className="tr-archive__error" role="alert" aria-live="assertive">

@@ -781,6 +781,37 @@ describe("ArchivePanel", () => {
     });
   });
 
+  // Open-separately action: the standalone artifact must be verifiable
+  // outside the app's own iframe sandbox, not only embedded in it.
+  describe("open artifact separately", () => {
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    const originalOpen = window.open;
+
+    beforeEach(() => {
+      URL.createObjectURL = vi.fn(() => "blob:mock-artifact-url");
+      URL.revokeObjectURL = vi.fn();
+      window.open = vi.fn();
+    });
+    afterEach(() => {
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+      window.open = originalOpen;
+    });
+
+    it("is absent until a preview has been generated", () => {
+      wrap(<ArchivePanel />);
+      expect(screen.queryByRole("button", { name: /open the standalone artifact in a new tab/i })).toBeNull();
+    });
+
+    it("opens a Blob URL of the exported artifact in a new tab once previewed", () => {
+      wrap(<ArchivePanel />);
+      fireEvent.click(screen.getByRole("button", { name: /generate preview of exported artifact/i }));
+      fireEvent.click(screen.getByRole("button", { name: /open the standalone artifact in a new tab/i }));
+      expect(window.open).toHaveBeenCalledWith("blob:mock-artifact-url", "_blank", expect.stringContaining("noopener"));
+    });
+  });
+
   // Export/import receipts must carry filename/time/checksum (T04).
   describe("export receipt", () => {
     const originalCreateObjectURL = URL.createObjectURL;
@@ -1109,6 +1140,14 @@ describe("ArchivePanel — import receipt dispatch on success", () => {
       fireEvent.change(fileInput, { target: { files: [file] } });
     });
 
+    // Import preflight: state is not replaced until the replacement
+    // warning is explicitly confirmed.
+    const preflight = await waitFor(() => screen.getByRole("alertdialog", { name: /confirm import/i }), { timeout: 2000 });
+    expect(preflight.textContent).toMatch(/replace/i);
+    expect(store.getState().project.present.project.title).toBe(titleBefore);
+
+    fireEvent.click(screen.getByRole("button", { name: "Replace project" }));
+
     await waitFor(() => {
       expect(store.getState().importReceipt.visible, "importReceipt.visible must become true after import").toBe(true);
     }, { timeout: 2000 });
@@ -1117,5 +1156,31 @@ describe("ArchivePanel — import receipt dispatch on success", () => {
     expect(titleAfter).toBe(importedTitle);
     expect(titleAfter).not.toBe(titleBefore);
     expect(store.getState().importReceipt.filename).toBe("receipt-import-test.taroke.json");
+  });
+
+  it("Cancel on the import preflight leaves the current project untouched", async () => {
+    const store = makeStore();
+    const titleBefore = store.getState().project.present.project.title;
+    wrap(<ArchivePanel />, store);
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+    const validProject = JSON.stringify({
+      schemaVersion: "7.8",
+      project: { title: "should-not-apply", author: "" },
+      materials: { trays: {}, bankMeta: {} },
+      forms: { casePolicy: "source" },
+      lineDevices: [], stanzaPatterns: [], flowScenes: [], triggers: [], meta: {},
+    });
+    const file = new File([validProject], "cancel-test.taroke.json", { type: "application/json" });
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
+    await waitFor(() => screen.getByRole("alertdialog", { name: /confirm import/i }), { timeout: 2000 });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("alertdialog", { name: /confirm import/i })).toBeNull();
+    expect(store.getState().project.present.project.title).toBe(titleBefore);
+    expect(store.getState().importReceipt.visible).toBe(false);
   });
 });

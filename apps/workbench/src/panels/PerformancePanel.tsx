@@ -203,7 +203,7 @@ export function PerformancePanel() {
             {monitorOpen ? "Hide details" : "Details"}
           </button>
         </div>
-        <div className="tr-monitor__compact">
+        <div className="tr-monitor__compact" tabIndex={0} aria-label="Runtime state summary, scrollable">
           <span className="tr-monitor__item tr-monitor__item--mode">{runModeLabel}</span>
           <span className="tr-monitor__sep" aria-hidden="true">·</span>
           <span className="tr-monitor__item">scene <strong>{currentScene}</strong></span>
@@ -293,6 +293,7 @@ export function PerformancePanel() {
             className="tr-surface"
             aria-label="Surface output stream"
             aria-live="polite"
+            tabIndex={0}
             ref={surfaceListRef}
             onScroll={handleSurfaceScroll}
           >
@@ -349,7 +350,7 @@ export function PerformancePanel() {
 
       {/* UNMIX — provenance for selected Surface record (not latest event) */}
       {selectedRecord && (
-        <section className="tr-perf__unmix" aria-labelledby="unmix-head">
+        <section className="tr-perf__unmix" aria-labelledby="unmix-head" tabIndex={0}>
           <div className="tr-panel__section-head" id="unmix-head">
             UNMIX
             <button
@@ -400,7 +401,7 @@ export function PerformancePanel() {
       )}
 
       {/* TAKES — always shown, with full state machine */}
-      <section className="tr-perf__takes" aria-labelledby="takes-head">
+      <section className="tr-perf__takes" aria-labelledby="takes-head" tabIndex={0}>
         <div className="tr-panel__section-head" id="takes-head">
           TAKES
           {takes.length > 0 && (
