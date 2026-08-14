@@ -1,13 +1,18 @@
 name: Deploy Preview
 
 # Deploys the public Pages preview.
-# v07.8 app at the root (/), v08 candidate app at /next/.
+# v07.8 app at the root (/), v08 candidate app at /next/, v1.0.3 review candidate at /next2/.
 #
 # REQUIRES: GitHub Pages enabled (Settings → Pages → Source: GitHub Actions)
 #
 # Public URL: https://mozareeduge.github.io/taroke-remixer/
-# v07 (root):  https://mozareeduge.github.io/taroke-remixer/
-# v08 (/next/): https://mozareeduge.github.io/taroke-remixer/next/
+# v07 (root):   https://mozareeduge.github.io/taroke-remixer/
+# v08 (/next/):  https://mozareeduge.github.io/taroke-remixer/next/
+# v1.0.3 review (/next2/): https://mozareeduge.github.io/taroke-remixer/next2/
+#
+# /next2/ is a review-only preview of the TAROKE_RIMIXER_v1.0.3_CLAUDE_PRODUCT_DESIGN_AUTHORITY
+# package's candidate. It is additive only — it does not replace root or /next/. It exists so the
+# candidate can be reviewed live before any decision to cut root/next over to it.
 
 on:
   push:
@@ -53,7 +58,7 @@ jobs:
 
       - name: Assemble Pages output
         run: |
-          mkdir -p _site/next
+          mkdir -p _site/next _site/next2
           # v07.8 at root
           cp index.html _site/
           cp styles.css _site/
@@ -61,6 +66,8 @@ jobs:
           cp sample_v07_reset.taroke.json _site/ 2>/dev/null || true
           # v08 at /next/
           cp -r next/. _site/next/
+          # v1.0.3 review candidate at /next2/ (review-only, additive)
+          cp next2/index.html _site/next2/index.html
 
       - name: Add Pages 404 fallback (SPA routing for v08)
         run: |
