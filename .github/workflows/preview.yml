@@ -20,6 +20,7 @@ on:
       - main
       - "claude/taroke-remixer-reconcile-tydcn5"
       - "claude/v08-wp06-12-experience-system"
+      - "claude/taroke-remixer-migration-6z1xma"
   workflow_dispatch:
 
 permissions:
