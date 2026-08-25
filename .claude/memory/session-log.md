@@ -29,3 +29,63 @@
 - （必要に応じて追記）
 
 ---
+
+## セッション: 2026-08-25T12:14:22Z
+
+- session_id: `session-1787660056868629400`
+- project: `taroke-remixer`
+- branch: `main`
+- started_at: `2026-08-25T12:14:16Z`
+- ended_at: `2026-08-25T12:14:22Z`
+- changes: 0
+
+### 変更ファイル
+- （なし）
+
+### 重要な変更（important=true）
+- （なし）
+
+### 次回への引き継ぎ（任意）
+- （必要に応じて追記）
+
+---
+
+## セッション: 2026-08-25T12:39:03Z
+
+- session_id: `session-1787661538322802500`
+- project: `taroke-remixer`
+- branch: `main`
+- started_at: `2026-08-25T12:38:58Z`
+- ended_at: `2026-08-25T12:39:03Z`
+- changes: 0
+
+### 変更ファイル
+- （なし）
+
+### 重要な変更（important=true）
+- （なし）
+
+### 次回への引き継ぎ（任意）
+- （必要に応じて追記）
+
+---
+
+## セッション: 2026-08-25T12:39:28Z
+
+- session_id: `session-1787661562563978200`
+- project: `taroke-remixer`
+- branch: `main`
+- started_at: `2026-08-25T12:39:22Z`
+- ended_at: `2026-08-25T12:39:28Z`
+- changes: 0
+
+### 変更ファイル
+- （なし）
+
+### 重要な変更（important=true）
+- （なし）
+
+### 次回への引き継ぎ（任意）
+- （必要に応じて追記）
+
+---
