@@ -1,0 +1,8 @@
+{
+  "name": "taroke-remixer",
+  "version": "0.1.0",
+  "description": "TAROKE remixer — v07.8 root app, v08 workbench (/next/), v1.0.3 review candidate (/next2/)",
+  "skills": [
+    "./skills/"
+  ]
+}

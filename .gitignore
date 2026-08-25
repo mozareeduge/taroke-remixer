@@ -29,3 +29,7 @@ packages/*/src/**/*.d.ts.map
 
 # Relay mutable run state
 .claude/relay/run/
+
+# Harness runtime state (claude-code-harness plugin)
+.claude/state/
+.claude/sessions/
