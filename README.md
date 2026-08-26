@@ -4,9 +4,9 @@ TAROKE RIMIXER is a visible-constraint generative-poetry workbench that runs ent
 
 **Live URL:** `https://mozareeduge.github.io/taroke-remixer/`
 
-**Current pass:** v07.8 release checkpoint.
+**Current pass:** v1.0.3 (promoted from `/next2/` review candidate on 2026-08-26).
 
-**Current test count:** 534 passed, 0 failed (executable suite).
+**Legacy v07.8 release checkpoint:** archived at `https://mozareeduge.github.io/taroke-remixer/archive/v07.8/` (534 passed, 0 failed, unmodified — its CI suite still runs on every push).
 
 ---
 
@@ -86,4 +86,10 @@ See [docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md). No server. No cloud. No accoun
 
 ## Repository
 
-Static. No framework, no bundler, no build step. `index.html`, `styles.css`, and `src/` at the repository root.
+Static. No framework, no bundler, no build step.
+
+`index.html`, `styles.css`, and `src/` at the repository root are the **v07.8 legacy app** —
+unmodified, still covered by its 534-test CI suite, but deployed only at `/archive/v07.8/`.
+
+The **live app** (v1.0.3) is `next2/index.html`, a single self-contained file, deployed to both
+the site root and `/next2/`.

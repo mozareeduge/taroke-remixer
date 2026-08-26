@@ -1,5 +1,16 @@
 # TAROKE RIMIXER — Changelog
 
+## v1.0.3 promoted to root; v07.8 archived (2026-08-26)
+
+- `/next2/` (v1.0.3 review candidate, five approved design repairs applied) promoted to the site
+  root. It remains additionally available at `/next2/` as a stable mirror URL.
+- v07.8 legacy app moved out of the live root and archived at `/archive/v07.8/`. Its source files
+  (`index.html`, `styles.css`, `src/` at the repository root) and 534-test CI suite are unchanged.
+- `.github/workflows/preview.yml` updated: root now builds from `next2/index.html`; v07.8 assembled
+  into `_site/archive/v07.8/` instead of `_site/`.
+
+---
+
 ## v08 WP05 — Human Checkpoint A (2026-07-16)
 
 v08 workbench (React + Redux + Vite) vertical slice, branch `claude/v08-wp05-vertical-slice-recovery`.

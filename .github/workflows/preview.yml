@@ -1,18 +1,21 @@
 name: Deploy Preview
 
 # Deploys the public Pages preview.
-# v07.8 app at the root (/), v08 candidate app at /next/, v1.0.3 review candidate at /next2/.
+# v1.0.3 (formerly /next2/) at the root (/), v08 candidate app at /next/,
+# v07.8 legacy app archived at /archive/v07.8/.
 #
 # REQUIRES: GitHub Pages enabled (Settings → Pages → Source: GitHub Actions)
 #
 # Public URL: https://mozareeduge.github.io/taroke-remixer/
-# v07 (root):   https://mozareeduge.github.io/taroke-remixer/
-# v08 (/next/):  https://mozareeduge.github.io/taroke-remixer/next/
-# v1.0.3 review (/next2/): https://mozareeduge.github.io/taroke-remixer/next2/
+# v1.0.3 (root):        https://mozareeduge.github.io/taroke-remixer/
+# v08 (/next/):         https://mozareeduge.github.io/taroke-remixer/next/
+# v1.0.3 (/next2/):     https://mozareeduge.github.io/taroke-remixer/next2/ (mirror of root)
+# v07.8 (/archive/v07.8/): https://mozareeduge.github.io/taroke-remixer/archive/v07.8/
 #
-# /next2/ is a review-only preview of the TAROKE_RIMIXER_v1.0.3_CLAUDE_PRODUCT_DESIGN_AUTHORITY
-# package's candidate. It is additive only — it does not replace root or /next/. It exists so the
-# candidate can be reviewed live before any decision to cut root/next over to it.
+# v1.0.3 was promoted from /next2/ to root on 2026-08-26 (approved five design repairs).
+# v07.8 is preserved unmodified in the repo root (index.html/styles.css/src/) — its 534-test
+# CI suite (scripts/verify_v07_baseline.py) still runs against those files in place — but it
+# is now deployed only at /archive/v07.8/, not at the live root.
 
 on:
   push:
@@ -59,16 +62,18 @@ jobs:
 
       - name: Assemble Pages output
         run: |
-          mkdir -p _site/next _site/next2
-          # v07.8 at root
-          cp index.html _site/
-          cp styles.css _site/
-          cp -r src/ _site/src/
-          cp sample_v07_reset.taroke.json _site/ 2>/dev/null || true
+          mkdir -p _site/next _site/next2 _site/archive/v07.8
+          # v1.0.3 (promoted from /next2/) at root
+          cp next2/index.html _site/index.html
+          # v1.0.3 also kept at /next2/ as a stable mirror URL
+          cp next2/index.html _site/next2/index.html
           # v08 at /next/
           cp -r next/. _site/next/
-          # v1.0.3 review candidate at /next2/ (review-only, additive)
-          cp next2/index.html _site/next2/index.html
+          # v07.8 legacy app, archived (source untouched at repo root; deployed under /archive/ only)
+          cp index.html _site/archive/v07.8/index.html
+          cp styles.css _site/archive/v07.8/styles.css
+          cp -r src/ _site/archive/v07.8/src/
+          cp sample_v07_reset.taroke.json _site/archive/v07.8/ 2>/dev/null || true
 
       - name: Add Pages 404 fallback (SPA routing for v08)
         run: |
