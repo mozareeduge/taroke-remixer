@@ -33,3 +33,4 @@ packages/*/src/**/*.d.ts.map
 # Harness runtime state (claude-code-harness plugin)
 .claude/state/
 .claude/sessions/
+.harness/
