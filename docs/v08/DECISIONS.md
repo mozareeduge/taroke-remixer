@@ -1,4 +1,4 @@
-# TAROKE RIMIXER v08 — Decision Log
+# TAROKE REMIXER v08 — Decision Log
 
 All decisions recorded here are implementation-layer decisions below the authored design specification in `docs/v08/program/`. They do not override the program authority.
 

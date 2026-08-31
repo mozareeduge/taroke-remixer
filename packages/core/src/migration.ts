@@ -101,7 +101,7 @@ export function defaultProject(): TarokeProject {
       sourceTitle: "Taroko Gorge",
       sourceUrl: "https://collection.eliterature.org/3/works/taroko-gorge/taroko-gorge.html",
       statement: "A local-first remix machine for shaping source samples, form modulation, line devices, stanza patterns, flow scenes, triggers, output surface, and event tape.",
-      credits: "Made with TAROKE RIMIXER.",
+      credits: "Made with TAROKE REMIXER.",
       language: "en",
     },
     workbench: { theme: "night", relief: "medium", density: "standard", texture: "source" },
@@ -113,7 +113,7 @@ export function defaultProject(): TarokeProject {
     triggers: [{ id: "tr_box", name: "box intrusion", enabled: true, condition: { tray: "above", term: "unknown-box" }, chance: 35, action: { type: "append", text: "[BOX EVENT]" } }],
     surface: { family: "taroko", traceMode: "hidden", theme: "night", speedMs: 1200, retention: 28, fontSize: 21, lineHeight: 1.48, showTitle: true, showSource: true, showTick: false },
     notes: [],
-    meta: { createdWith: "TAROKE RIMIXER", updatedAt: new Date().toISOString() },
+    meta: { createdWith: "TAROKE REMIXER", updatedAt: new Date().toISOString() },
   };
 }
 

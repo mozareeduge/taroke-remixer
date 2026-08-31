@@ -1,4 +1,4 @@
-# TAROKE RIMIXER — Changelog
+# TAROKE REMIXER — Changelog
 
 ## v1.0.3 promoted to root; v07.8 archived (2026-08-26)
 
@@ -46,7 +46,7 @@ Final release verification and checkpoint for the v07 track.
 
 Commit: `bd8a78e` / merge `e145603`
 
-- Six public documentation files added: `WHAT_IS_TAROKE_RIMIXER.md`, `MAKE_A_REMIX.md`, `IMPORTING_AUTHORED_PROJECTS.md`, `EXPORT_PREVIEW_AND_RECOVERY.md`, `KNOWN_LIMITS.md`, `RELEASE_v07_7.md`.
+- Six public documentation files added: `WHAT_IS_TAROKE_REMIXER.md`, `MAKE_A_REMIX.md`, `IMPORTING_AUTHORED_PROJECTS.md`, `EXPORT_PREVIEW_AND_RECOVERY.md`, `KNOWN_LIMITS.md`, `RELEASE_v07_7.md`.
 - `tests/run_docs_verification.py` added: deterministic offline documentation verifier (105 checks).
 - `tests/run_live_preview_cdp.py` added: live preview CDP test suite (68 tests).
 - README rewritten as compact entry point with six-document index.

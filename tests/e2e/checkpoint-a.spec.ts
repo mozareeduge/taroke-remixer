@@ -13,7 +13,7 @@ const BASE = "/next/";
 
 async function goto(page: Page) {
   await page.goto(BASE);
-  await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
+  await expect(page.locator("h1")).toContainText("TAROKE REMIXER", { timeout: 10_000 });
 }
 
 const NAV_LABELS: Record<string, string> = {
@@ -360,10 +360,10 @@ test("16 — Inspector panel can be opened via button", async ({ page }) => {
 
 test("17 — v08 app is reachable at /next/ via direct navigation", async ({ page }) => {
   await page.goto("/next/");
-  await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
+  await expect(page.locator("h1")).toContainText("TAROKE REMIXER", { timeout: 10_000 });
   // Reload — app must survive refresh
   await page.reload();
-  await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
+  await expect(page.locator("h1")).toContainText("TAROKE REMIXER", { timeout: 10_000 });
 });
 
 // ── 18. Accessibility: structural checks ──────────────────────────────────────
@@ -790,7 +790,7 @@ test("36 — DraftRecoveryBanner: no banner rendered when localStorage has no dr
   // Clear any pre-existing draft
   await page.evaluate(() => localStorage.removeItem("taroke.remixer.v08.draft"));
   await page.reload();
-  await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
+  await expect(page.locator("h1")).toContainText("TAROKE REMIXER", { timeout: 10_000 });
 
   // Banner must not exist
   const banner = page.locator("[class*='tr-draft-banner']");
@@ -806,7 +806,7 @@ test("37 — DraftRecoveryBanner: banner appears after localStorage draft is inj
     localStorage.setItem("taroke.remixer.v08.draft", draft);
   }, JSON.stringify({ project: JSON.parse(MINIMAL_PROJECT), savedAt: new Date().toISOString() }));
   await page.reload();
-  await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
+  await expect(page.locator("h1")).toContainText("TAROKE REMIXER", { timeout: 10_000 });
 
   // Banner must appear
   const banner = page.locator("[class*='tr-draft-banner']").first();
@@ -822,7 +822,7 @@ test("38 — DraftRecoveryBanner: Restore draft loads the saved project", async 
     localStorage.setItem("taroke.remixer.v08.draft", draft);
   }, JSON.stringify({ project: JSON.parse(MINIMAL_PROJECT), savedAt: new Date().toISOString() }));
   await page.reload();
-  await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
+  await expect(page.locator("h1")).toContainText("TAROKE REMIXER", { timeout: 10_000 });
 
   // Click Restore draft
   const restoreBtn = page.getByRole("button", { name: /restore draft/i });
@@ -847,7 +847,7 @@ test("39 — DraftRecoveryBanner: Dismiss hides banner and keeps current project
     localStorage.setItem("taroke.remixer.v08.draft", draft);
   }, JSON.stringify({ project: JSON.parse(MINIMAL_PROJECT), savedAt: new Date().toISOString() }));
   await page.reload();
-  await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
+  await expect(page.locator("h1")).toContainText("TAROKE REMIXER", { timeout: 10_000 });
 
   const dismissBtn = page.getByRole("button", { name: /^dismiss$/i });
   await expect(dismissBtn).toBeVisible({ timeout: 3000 });
@@ -875,7 +875,7 @@ test("40 — DraftRecoveryBanner: Clear draft removes localStorage entry and hid
     localStorage.setItem("taroke.remixer.v08.draft", draft);
   }, JSON.stringify({ project: JSON.parse(MINIMAL_PROJECT), savedAt: new Date().toISOString() }));
   await page.reload();
-  await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
+  await expect(page.locator("h1")).toContainText("TAROKE REMIXER", { timeout: 10_000 });
 
   const clearBtn = page.getByRole("button", { name: /clear draft/i });
   await expect(clearBtn).toBeVisible({ timeout: 3000 });
@@ -899,7 +899,7 @@ test("41 — DraftRecoveryBanner: corrupt localStorage JSON shows error banner",
     localStorage.setItem("taroke.remixer.v08.draft", "{ this is not valid json }");
   });
   await page.reload();
-  await expect(page.locator("h1")).toContainText("TAROKE RIMIXER", { timeout: 10_000 });
+  await expect(page.locator("h1")).toContainText("TAROKE REMIXER", { timeout: 10_000 });
 
   // Error banner variant must appear
   const banner = page.locator("[class*='tr-draft-banner']").first();

@@ -1,4 +1,4 @@
-# TAROKE RIMIXER v08 — Risk Register
+# TAROKE REMIXER v08 — Risk Register
 
 **Model:** claude-sonnet-4-6  **Effort:** medium
 

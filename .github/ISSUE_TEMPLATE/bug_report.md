@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a defect in TAROKE RIMIXER
+about: Report a defect in TAROKE REMIXER
 labels: bug
 ---
 
