@@ -34,6 +34,52 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 <meta property="og:description" content="A visible-constraint generative-poetry workbench: author the poem-machine, perform it, inspect how lines arrived, and publish the result.">
 <meta property="og:url" content="https://mozareeduge.github.io/taroke-remixer/">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23050605'/%3E%3Crect x='11' y='4' width='4' height='24' fill='%23b7ff38'/%3E%3Crect x='17' y='4' width='4' height='24' fill='%2372e4dc'/%3E%3C/svg%3E">
+<script>
+/* Routing favicon, pixel form — a weighted route resolving on a 16x16 grid.
+   A pulse walks the spine, is switched into the acid or cyan channel, the other goes dark.
+   15 discrete frames per cycle; route alternates each pass. Static SVG link above is the no-JS state. */
+(function () {
+  var C = document.createElement("canvas"); C.width = C.height = 16;
+  var g = C.getContext("2d"); g.imageSmoothingEnabled = false;
+  var O = document.createElement("canvas"); O.width = O.height = 32;
+  var og = O.getContext("2d"); og.imageSmoothingEnabled = false;
+  var link = document.querySelector('link[rel="icon"]') ||
+    document.head.appendChild(Object.assign(document.createElement("link"), { rel: "icon" }));
+  var BG="#050605",TRUNK="#343d2c",JUNC="#4a5a34",INK="#f2eede",
+      dimA="#2e3a1c",dimC="#1f403d",DEAD="#191e15",litA="#b7ff38",litC="#72e4dc";
+  var SPINE=[[8,2],[8,3],[8,4],[8,5],[8,6],[8,7],[8,8]];
+  var LEGL=[[7,9],[6,10],[5,11],[4,12],[3,13]], LEGR=[[9,9],[10,10],[11,11],[12,12],[13,13]];
+  var SPS=[]; for (var y=2;y<=8;y++){ SPS.push([7,y]); SPS.push([8,y]); }
+  var LO=[[6,9],[7,9],[5,10],[6,10],[4,11],[5,11],[3,12],[4,12],[2,13],[3,13]];
+  var RO=[[8,9],[9,9],[9,10],[10,10],[10,11],[11,11],[11,12],[12,12],[12,13],[13,13]];
+  var FR=15, F=0;
+  function px(x,y,c){ if(x<0||x>15||y<0||y>15) return; g.fillStyle=c; g.fillRect(x,y,1,1); }
+  function seg(a,c){ for (var i=0;i<a.length;i++) px(a[i][0],a[i][1],c); }
+  function halo(x,y,c){ px(x-1,y,c); px(x+1,y,c); px(x,y-1,c); px(x,y+1,c); }
+  function draw(){
+    var f=F%FR, side=Math.floor(F/FR)%2, dec=f>=7;
+    g.fillStyle=BG; g.fillRect(0,0,16,16);
+    seg(SPS,TRUNK); px(7,8,JUNC); px(8,8,JUNC);
+    if (!dec || f===14){ seg(LO,dimA); seg(RO,dimC); }
+    else {
+      seg(side?RO:LO, side?litC:litA);
+      seg(side?LO:RO, DEAD);
+    }
+    if (f<=6){ var s=SPINE[f]; halo(s[0],s[1],litA); px(s[0],s[1],INK);
+      if (f>0) px(SPINE[f-1][0],SPINE[f-1][1],JUNC); }
+    else if (f<=11){ var p=(side?LEGR:LEGL)[f-7]; halo(p[0],p[1], side?litC:litA); px(p[0],p[1],INK); }
+    else if (f<=13){ var e=(side?LEGR:LEGL)[4], r=f===12?2:1, c=side?litC:litA;
+      for (var dx=-r;dx<=r;dx++) for (var dy=-r;dy<=r;dy++)
+        if (Math.abs(dx)+Math.abs(dy)<=r) px(e[0]+dx,e[1]+dy,c);
+      px(e[0],e[1],INK); }
+    og.clearRect(0,0,32,32); og.drawImage(C,0,0,16,16,0,0,32,32);
+    try { link.href = O.toDataURL("image/png"); } catch (err) {}
+  }
+  draw();
+  if (!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches))
+    setInterval(function () { F++; draw(); }, 110);
+})();
+</script>
 <style>
 :root{
   color-scheme:dark;
