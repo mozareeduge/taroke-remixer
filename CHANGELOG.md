@@ -1,5 +1,34 @@
 # TAROKE RIMIXER — Changelog
 
+## 00 · Intakes chamber added (2026-09-01)
+
+App-native `00 · Intakes` chamber added to the live v1.0.3 app (`next2/index.html`), implementing design Alternative A (Intake Cabinet / Reading Desk) from the `TAROKE_REMIX_INTAKES_PRODUCT_QA_AUTHORITY` R2 authority.
+
+- New `ORIGINS` navigator group with `00 · Intakes` before `01 · Source`; nav, mobile menu
+  and `setChamber` are data-driven and pick it up automatically.
+- Cabinet layout: sticky index list + reading-desk detail. `Ready to remix` (15 startable
+  baselines) vs `Ecosystem` (all 35 records) scope; live search with Esc-to-clear.
+- Each record shows *What this work does*, *In this intake* / *Outside this intake*, a
+  typographic procedure score, and external access points (underlined link + `↗`).
+- `Start from this intake` loads the bundled `.taroke.json` baseline through the existing
+  `loadProjectText` path, names the project `"<work> — derivative"`, marks it unsaved, and
+  routes to Source, which now renders a provenance receipt (`project.meta.intakeOrigin`).
+  Unsaved current projects get a Save / Discard / Keep guard first. Built-in baselines are
+  never mutated.
+- Procedure record (`Argot Ogre, OK!`), embedded-witness, reference-only, and the
+  baseline-pending `Grave-Machine — English` record expose no Start affordance.
+- 15 historical Taroko baselines bundled inline (single-file-app parity); record copy
+  curated from the handoff inventory. One corrupt character in a Camel Tail material
+  literal (`U+FFFD`) removed.
+- Verified headless: 49/49 DOM assertions (chamber render, Ready/Ecosystem, search,
+  Start → Source receipt + derivative identity + unsaved state, reference-only/procedure
+  record show no Start, dirty-project guard, all 15 baselines load, existing chambers
+  unaffected), zero console errors; `node --check` passes on the app script.
+- v07.8 root app, its source, and its 534-test CI suite are untouched.
+
+---
+
+
 ## v1.0.3 promoted to root; v07.8 archived (2026-08-26)
 
 - `/next2/` (v1.0.3 review candidate, five approved design repairs applied) promoted to the site
