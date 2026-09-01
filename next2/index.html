@@ -47,30 +47,33 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
     document.head.appendChild(Object.assign(document.createElement("link"), { rel: "icon" }));
   var BG="#050605",TRUNK="#343d2c",JUNC="#4a5a34",INK="#f2eede",
       dimA="#2e3a1c",dimC="#1f403d",DEAD="#191e15",litA="#b7ff38",litC="#72e4dc";
-  var SPINE=[[8,2],[8,3],[8,4],[8,5],[8,6],[8,7],[8,8]];
-  var LEGL=[[7,9],[6,10],[5,11],[4,12],[3,13]], LEGR=[[9,9],[10,10],[11,11],[12,12],[13,13]];
-  var SPS=[]; for (var y=2;y<=8;y++){ SPS.push([7,y]); SPS.push([8,y]); }
-  var LO=[[6,9],[7,9],[5,10],[6,10],[4,11],[5,11],[3,12],[4,12],[2,13],[3,13]];
-  var RO=[[8,9],[9,9],[9,10],[10,10],[10,11],[11,11],[11,12],[12,12],[12,13],[13,13]];
+  var SPINE=[[8,3],[8,4],[8,5],[8,6],[8,7]];
+  var LEGL=[[7,8],[6,9],[5,10],[4,11],[3,12]], LEGR=[[8,8],[9,9],[10,10],[11,11],[12,12]];
+  var SPS=[]; for (var y=3;y<=7;y++){ SPS.push([7,y]); SPS.push([8,y]); }
+  var LO=[[7,8],[8,8],[6,9],[7,9],[5,10],[6,10],[4,11],[5,11],[3,12],[4,12]];
+  var RO=[[8,8],[7,8],[9,9],[8,9],[10,10],[9,10],[11,11],[10,11],[12,12],[11,12]];
   var FR=15, F=0;
   function px(x,y,c){ if(x<0||x>15||y<0||y>15) return; g.fillStyle=c; g.fillRect(x,y,1,1); }
   function seg(a,c){ for (var i=0;i<a.length;i++) px(a[i][0],a[i][1],c); }
-  function halo(x,y,c){ px(x-1,y,c); px(x+1,y,c); px(x,y-1,c); px(x,y+1,c); }
+  function halo(x,y,c){ if(y>2)px(x,y-1,c); if(y<13)px(x,y+1,c); if(x>2)px(x-1,y,c); if(x<13)px(x+1,y,c); }
   function draw(){
-    var f=F%FR, side=Math.floor(F/FR)%2, dec=f>=7;
+    var f=F%FR, side=Math.floor(F/FR)%2, dec=f>=5;
     g.fillStyle=BG; g.fillRect(0,0,16,16);
-    seg(SPS,TRUNK); px(7,8,JUNC); px(8,8,JUNC);
-    if (!dec || f===14){ seg(LO,dimA); seg(RO,dimC); }
+    seg(SPS,TRUNK); px(7,7,JUNC); px(8,7,JUNC);
+    if (!dec || f>=12){ seg(LO,dimA); seg(RO,dimC); }
     else {
-      seg(side?RO:LO, side?litC:litA);
       seg(side?LO:RO, DEAD);
+      seg(side?RO:LO, side?litC:litA);
     }
-    if (f<=6){ var s=SPINE[f]; halo(s[0],s[1],litA); px(s[0],s[1],INK);
-      if (f>0) px(SPINE[f-1][0],SPINE[f-1][1],JUNC); }
-    else if (f<=11){ var p=(side?LEGR:LEGL)[f-7]; halo(p[0],p[1], side?litC:litA); px(p[0],p[1],INK); }
-    else if (f<=13){ var e=(side?LEGR:LEGL)[4], r=f===12?2:1, c=side?litC:litA;
-      for (var dx=-r;dx<=r;dx++) for (var dy=-r;dy<=r;dy++)
-        if (Math.abs(dx)+Math.abs(dy)<=r) px(e[0]+dx,e[1]+dy,c);
+    if (f<=4){ var yy=SPINE[f][1];
+      px(7,yy,INK); px(8,yy,INK);
+      if (yy>2){ px(7,yy-1,litA); px(8,yy-1,litA); }
+      if (yy<7){ px(7,yy+1,litA); px(8,yy+1,litA); }
+      if (f>0){ px(7,SPINE[f-1][1],JUNC); px(8,SPINE[f-1][1],JUNC); } }
+    else if (f<=9){ var p=(side?LEGR:LEGL)[f-5]; halo(p[0],p[1], side?litC:litA); px(p[0],p[1],INK); }
+    else if (f<=11){ var e=(side?LEGR:LEGL)[4], c=side?litC:litA, dx, dy;
+      for (dx=-1;dx<=1;dx++) for (dy=-1;dy<=1;dy++)
+        if (Math.abs(dx)+Math.abs(dy)<=1) px(e[0]+dx,e[1]+dy,c);
       px(e[0],e[1],INK); }
     og.clearRect(0,0,32,32); og.drawImage(C,0,0,16,16,0,0,32,32);
     try { link.href = O.toDataURL("image/png"); } catch (err) {}
