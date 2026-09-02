@@ -1,4 +1,4 @@
-# TAROKE RIMIXER v08 — Evidence Index
+# TAROKE REMIXER v08 — Evidence Index
 
 **Model:** claude-sonnet-4-6  **Effort:** medium
 

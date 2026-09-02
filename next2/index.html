@@ -23,14 +23,14 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>TAROKE RIMIXER — Mohammad Zare</title>
+<title>TAROKE REMIXER — Mohammad Zare</title>
 <meta name="author" content="Mohammad Zare">
-<meta name="description" content="TAROKE RIMIXER is a local-first visible-constraint generative-poetry workbench by Mohammad Zare (mozare). Author materials, transformations, Instruments, Stanzas, Flow, Rules, perform the system, inspect provenance, and publish standalone HTML works.">
-<meta name="application-name" content="TAROKE RIMIXER">
+<meta name="description" content="TAROKE REMIXER is a local-first visible-constraint generative-poetry workbench by Mohammad Zare (mozare). Author materials, transformations, Instruments, Stanzas, Flow, Rules, perform the system, inspect provenance, and publish standalone HTML works.">
+<meta name="application-name" content="TAROKE REMIXER">
 <meta name="theme-color" content="#050605">
 <meta name="color-scheme" content="dark">
 <meta property="og:type" content="website">
-<meta property="og:title" content="TAROKE RIMIXER — Mohammad Zare">
+<meta property="og:title" content="TAROKE REMIXER — Mohammad Zare">
 <meta property="og:description" content="A visible-constraint generative-poetry workbench: author the poem-machine, perform it, inspect how lines arrived, and publish the result.">
 <meta property="og:url" content="https://mozareeduge.github.io/taroke-remixer/">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23050605'/%3E%3Crect x='11' y='4' width='4' height='24' fill='%23b7ff38'/%3E%3Crect x='17' y='4' width='4' height='24' fill='%2372e4dc'/%3E%3C/svg%3E">
@@ -567,7 +567,7 @@ button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.38}
 <body>
 <div class="app" id="app">
   <header class="project-bar">
-    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><div class="brand-copy"><div class="brand-title">TAROKE RIMIXER</div><div class="brand-meta" id="workMeta">Taroko Gorge · current project</div></div></div>
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><div class="brand-copy"><div class="brand-title">TAROKE REMIXER</div><div class="brand-meta" id="workMeta">Taroko Gorge · current project</div></div></div>
     <div class="project-actions"><div class="save-state"><span class="save-dot" id="saveDot"></span><span id="saveState">Project file not saved</span></div><button class="btn" data-action="open-project"><span class="wide-action-label">Open project</span><span class="narrow-action-label">Open</span></button><button class="btn primary" data-action="save-project"><span class="wide-action-label">Save project</span><span class="narrow-action-label">Save</span></button></div>
   </header>
   <aside class="navigator" id="navigator" aria-label="Chambers"></aside>
@@ -917,8 +917,8 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const scenarioId=window.__TAROKE_SCENARIO__||new URLSearchParams(location.search).get('scenario');
 const TAROKE_VERSION='1.0.3';
-const RECOVERY_KEY='taroke.rimixer.v1.draft';
-const PREVIOUS_RECOVERY_KEYS=['taroke.rimixer.v1.0.1.draft','taroke.design.v4.5'];
+const RECOVERY_KEY='taroke.remixer.v1.draft';
+const PREVIOUS_RECOVERY_KEYS=['taroke.rimixer.v1.draft','taroke.rimixer.v1.0.1.draft','taroke.design.v4.5'];
 const LEGACY_PLURALS={man:'men',woman:'women',child:'children',person:'people',mouse:'mice',tooth:'teeth',foot:'feet',goose:'geese',ox:'oxen',sheep:'sheep',deer:'deer',fish:'fish',aircraft:'aircraft',series:'series',species:'species',cactus:'cacti',focus:'foci',fungus:'fungi',nucleus:'nuclei',syllabus:'syllabi',analysis:'analyses',crisis:'crises',thesis:'theses',diagnosis:'diagnoses',phenomenon:'phenomena',criterion:'criteria'};
 const LEGACY_VERB3={be:'is',have:'has',do:'does',go:'goes'};
 const LEGACY_F_EXCEPTIONS=new Set(['roof','belief','chef','chief','proof','reef','cliff','safe']);
@@ -928,7 +928,7 @@ function pluralLegacyBase(lower){lower=String(lower||'').toLowerCase();if(LEGACY
 function verb3LegacyBase(lower){lower=String(lower||'').toLowerCase();if(LEGACY_VERB3[lower])return LEGACY_VERB3[lower];if(/[^aeiou]y$/.test(lower))return lower.slice(0,-1)+'ies';if(/(s|x|z|ch|sh|o)$/.test(lower))return lower+'es';return lower+'s'}
 function articleFor(phrase){const w=String(phrase||'').trim().replace(/^[^a-zA-Z]+/,'');if(!w)return'a';if(/^(honest|hour|heir|honor)/i.test(w))return'an';if(/^(university|user|unit|one\b)/i.test(w))return'a';return/^[aeiou]/i.test(w)?'an':'a'}
 const baseProject={
- meta:{schemaVersion:'1.0.2',createdWith:'TAROKE RIMIXER 1.0.3',updatedAt:new Date().toISOString(),lastSavedAt:null,cadenceMs:1200,surfaceRetention:26,sourceProcedure:{id:'taroko-gorge-js',title:'Taroko Gorge',author:'Nick Montfort',date:'2009-01-08',mode:'exact-baseline',sourceUrl:'https://collection.eliterature.org/3/works/taroko-gorge/taroko-gorge.html'}},
+ meta:{schemaVersion:'1.0.2',createdWith:'TAROKE REMIXER 1.0.3',updatedAt:new Date().toISOString(),lastSavedAt:null,cadenceMs:1200,surfaceRetention:26,sourceProcedure:{id:'taroko-gorge-js',title:'Taroko Gorge',author:'Nick Montfort',date:'2009-01-08',mode:'exact-baseline',sourceUrl:'https://collection.eliterature.org/3/works/taroko-gorge/taroko-gorge.html'}},
  source:{title:'Untitled Taroko Gorge remix',author:'Remixer',language:'English',sourceTitle:'Taroko Gorge',sourceUrl:'https://collection.eliterature.org/3/works/taroko-gorge/taroko-gorge.html',statement:'This project begins from Nick Montfort’s Taroko Gorge text procedure. Change the Materials to begin a classic remix, or change the Instruments, Composition, and Rules to depart from the source procedure explicitly.',credits:'Source procedure and source text by Nick Montfort. Copyright (c) 2009–2017 Nick Montfort. Used under the permission notice reproduced in this TAROKE file and package.'},
  banks:[
   {id:'above',label:'ABOVE',role:'noun',note:'Original Taroko Gorge above array.',materials:[
@@ -1071,7 +1071,7 @@ function migrateLegacyProject(input){
  const source={title:String(legacy.project?.title||'Untitled remix'),author:String(legacy.project?.author||''),language:String(legacy.project?.language||legacy.forms?.language||'English'),sourceTitle:String(legacy.project?.sourceTitle||''),sourceUrl:String(legacy.project?.sourceUrl||''),statement:String(legacy.project?.statement||''),credits:String(legacy.project?.credits||'')};
  const forms={casePolicy:legacy.forms?.casePolicy||'preserve',compoundPolicy:legacy.forms?.compoundPolicy==='space'?'space':'hyphen',overrides:clone(legacy.forms?.overrides||{})};
  const migration={fromSchema:schema,at:new Date().toISOString(),kind:'pre-v1-project',exactlyPreserved:['work identity','sample-bank order and material IDs where unique','material weights and roles','form overrides','line-device inputs','route weights and templates','explicit {input:form} route syntax','a/an article derivation','stanza order','bounded legacy loop caps','Flow entries','trigger text/chance/action'],semanticChanges:['Pre-v1 weighted scene selection is converted to the v1 ordered Flow model.','Multiple pre-v1 triggers are converted to v1 Rules, which are evaluated as the visible Rule stack.','Pre-v1 presentation settings (theme, speed, retention, surface family) do not override the v1 workbench or published-work design.','Legacy Notes are preserved inside migration metadata rather than represented as if they were native v1 Takes.'],historicExecution:'Use the archived pre-v1 release/tag for exact execution under the old engine.'};
- return {project:{meta:{schemaVersion:'1.0.2',createdWith:'TAROKE RIMIXER 1.0.3',updatedAt:new Date().toISOString(),lastSavedAt:null,migration,legacyNotes:notes},source,banks,forms,instruments,stanzas,flow,rules,surface:[],takes:[]},receipt:migration};
+ return {project:{meta:{schemaVersion:'1.0.2',createdWith:'TAROKE REMIXER 1.0.3',updatedAt:new Date().toISOString(),lastSavedAt:null,migration,legacyNotes:notes},source,banks,forms,instruments,stanzas,flow,rules,surface:[],takes:[]},receipt:migration};
 }
 function normalizeIncomingProject(input,{fromRecovery=false}={}){if(isCurrentProjectShape(input))return {project:validateProjectCandidate(input),receipt:null};if(isLegacyProjectShape(input)){const migrated=migrateLegacyProject(input);return {project:validateProjectCandidate(migrated.project),receipt:migrated.receipt};}return {project:validateProjectCandidate(input),receipt:null}}
 function validateProjectCandidate(input){

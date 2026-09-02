@@ -13,7 +13,7 @@ export function Transport() {
   return (
     <header className="tr-transport" role="banner">
       <div className="tr-transport__title">
-        <h1 className="tr-transport__app-name">TAROKE RIMIXER</h1>
+        <h1 className="tr-transport__app-name">TAROKE REMIXER</h1>
         <StatusLamp state={isDirty ? "warn" : "off"} label={isDirty ? "unsaved" : "saved"} />
         <span className="tr-transport__name">{title || "Untitled"}</span>
       </div>

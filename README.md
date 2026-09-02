@@ -1,6 +1,6 @@
-# TAROKE RIMIXER
+# TAROKE REMIXER
 
-TAROKE RIMIXER is a visible-constraint generative-poetry workbench that runs entirely in your browser. It is a local-first static application — no server, no account, no build step. Open `index.html` locally or publish the repository root with GitHub Pages. The app edits a project JSON describing a poem-machine and exports a standalone playable HTML artifact.
+TAROKE REMIXER is a visible-constraint generative-poetry workbench that runs entirely in your browser. It is a local-first static application — no server, no account, no build step. Open `index.html` locally or publish the repository root with GitHub Pages. The app edits a project JSON describing a poem-machine and exports a standalone playable HTML artifact.
 
 **Live URL:** `https://mozareeduge.github.io/taroke-remixer/`
 
@@ -55,7 +55,7 @@ open index.html
 
 | Document | Contents |
 |----------|----------|
-| [What Is TAROKE RIMIXER?](docs/WHAT_IS_TAROKE_RIMIXER.md) | Concept, layers, scope, and what it is not. |
+| [What Is TAROKE REMIXER?](docs/WHAT_IS_TAROKE_REMIXER.md) | Concept, layers, scope, and what it is not. |
 | [Make a Remix](docs/MAKE_A_REMIX.md) | Chamber-by-chamber practical usage guide. |
 | [Importing Authored Projects](docs/IMPORTING_AUTHORED_PROJECTS.md) | Import contract, fidelity rules, supported formats, Grave v3.2 acceptance. |
 | [Export, Preview, and Recovery](docs/EXPORT_PREVIEW_AND_RECOVERY.md) | JSON, standalone HTML, autosave, live preview, sandboxing. |
